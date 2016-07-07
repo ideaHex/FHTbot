@@ -39,8 +39,7 @@ motorController::motorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 ,ui
 void motorController::update(int X, int Y){
     int A = Y - X*(Y<=0) + X*(Y>0); // to fix steering when backwards *(Y<0) + X*(Y>0)
     int B = Y + X*(Y<=0) - X*(Y>0);
-  if (!useEnablePins)
-  {// assuming LOW LOW to h bridge is OFF and HIGH HIGH is Break
+  if (!useEnablePins){// assuming LOW LOW to h bridge is OFF and HIGH HIGH is Break
     analogWrite(mPA1,getPWM1(A));
     analogWrite(mPA2,getPWM2(A));
     Serial.printf("Motor A: 1 %d , 2 %d \r\n",getPWM1(A),getPWM2(A));
@@ -48,11 +47,9 @@ void motorController::update(int X, int Y){
     // invert motor B ?
     analogWrite(mPB1,getPWM1(B));
     analogWrite(mPB2,getPWM2(B));
-  }
-  else
-  { // PWM pins connected to H-Bridge enable
+  }else{ // PWM pins connected to H-Bridge enable
     digitalWrite(mPA1, (A<0));
-    digitalWrite(mPA2, (A<0));
+    digitalWrite(mPA2, (A>0));
     if (A<0) A *= -1;
     analogWrite(PWMA,getPWM1(A));
     // invert motor B ?
@@ -75,5 +72,13 @@ int motorController::getPWM1(int A){
 int motorController::getPWM2(int A){
   int result = (A<0) * ( ((float(float(A*-1)/float(MAX_range))*1023)* ((A*-1)<MAX_range)) + (((A*-1)>=MAX_range) * 1023) );
   return result;
+}
+
+void reverseMotorA(){
+  
+}
+
+void reverseMotorB(){
+    
 }
 
