@@ -1,14 +1,12 @@
-// Based on Virtual joystick by Alexandra Etienne and Jerome Etienne
-// http://learningthreejs.com/blog/2011/12/26/let-s-make-a-3d-game-virtual-joystick/
-
 const char HTML_text[] PROGMEM = R"=====(
 <html>
   <head>
+    <title>FH@Tbot</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">    
     <style>
     body{
-      overflow  : hidden;
+      position:fixed; top: 0; right: 0;
       padding   : 0;
       margin    : 0;
       background-color: #333;
@@ -19,11 +17,19 @@ const char HTML_text[] PROGMEM = R"=====(
       height: 100%;
       color: white;
       font-size: 20px;
+      -webkit-user-select : none;
+      -moz-user-select  : none;
+      -khtml-user-select : none;
+      -ms-user-select : none;
+      user-select: none;
+      overflow:hidden;
+      text-shadow: 2px 2px Black;
     }
     
     h1 {
         color: red;
         font-size: 40px;
+        text-shadow: 2px 2px Black;
     }
     #info{
       position  : absolute;
@@ -47,10 +53,13 @@ const char HTML_text[] PROGMEM = R"=====(
       margin    : 0;
       -webkit-user-select : none;
       -moz-user-select  : none;
+      -khtml-user-select : none;
+      -ms-user-select : none;
+      user-select: none;
     }
     </style>
   </head>
-  <body>
+  <body draggable="false" ondragstart="return false;" ondrop="return false;">
     <div id="container"></div>
     <div id="info">
       <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</h1>
@@ -470,31 +479,29 @@ VirtualJoystick.prototype._check3D = function()
       joystick.addEventListener('touchEnd', function(){
         console.log('up')
       })
-      
+      var xhttp = new XMLHttpRequest();
       function moveit(dx,dy) 
       {
-        var xhttp = new XMLHttpRequest();
-        xhttp.open("GET", "/X" + dx + "/Y" + dy, true);
+        xhttp.abort();
+        xhttp.open("GET", "/X" + dx + "/Y" + dy , true);
+        // xhttp.timeout = 100;
         xhttp.send();
       };
       setInterval(function(){
         var range = 1000.0;
         var dx = (joystick.deltaX()/container.clientWidth)*range;
         var dy = (joystick.deltaY()/container.clientHeight)*range;
+        dx = dx.toFixed(2);
+        dy = dy.toFixed(2);
         var outputEl  = document.getElementById('result');
-        outputEl.innerHTML  = '<b>Result:</b>' 
+        outputEl.innerHTML  = '<b>Result: </b>' 
         + 'dx:' + dx
-        + 'dy:' + dy
-        + (joystick.right() ? 'right' : '')
-        + (joystick.up() ? 'up' : '')
-        + (joystick.left() ? 'left' : '')
-        + (joystick.down() ? 'down' : '');
+        + ' dy:' + dy
         moveit(dx,dy);
-      },  5/30 * 1000);
+      },  100);
 
     </script>
   </body>
 </html>
  )=====";
-
 

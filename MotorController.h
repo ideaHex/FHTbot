@@ -18,6 +18,8 @@ class motorController {
   motorController(uint8_t , uint8_t  , uint8_t ,uint8_t );
   void update(int,int);
   void range(int);
+  void reverseMotorA();
+  void reverseMotorB();
 
   private:
   uint8_t mPA1;
