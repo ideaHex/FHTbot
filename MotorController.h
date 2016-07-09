@@ -1,5 +1,7 @@
-
-
+/*
+ * 
+ * 
+ */
 
 #ifndef motorController_h
 #define motorController_h
@@ -17,10 +19,14 @@ class motorController {
   motorController(uint8_t , uint8_t  , uint8_t ,uint8_t  , uint8_t ,uint8_t );
   motorController(uint8_t , uint8_t  , uint8_t ,uint8_t );
   void update(int,int);
-  void range(int);
+  void setRange(int);
+  float checkNormal(float);
   void reverseMotorA();
   void reverseMotorB();
-
+  void setTrim(float,float);
+  void setSteeringSensitivity(float);
+  void setPWMFrequency(int);
+  
   private:
   uint8_t mPA1;
   uint8_t mPA2;
@@ -28,14 +34,18 @@ class motorController {
   uint8_t mPB2;
   uint8_t PWMA;
   uint8_t PWMB;
-  int MAX_range;
+  int MAX_range = 500;
   bool useEnablePins;
   int getPWM1(int);
   int getPWM2(int);
+  float trimA = 1.0;
+  float trimB = 1.0;
+  float steeringSensitivity = 1.0;
+  bool reverseMotorADirection = false;
+  bool reverseMotorBDirection = false;
+  int PWMFrequency = 1000; //Theoretical max frequency is 80000000/range, range = 1024 so 78Khz here
   
 };
-
-
 
 
 #endif
