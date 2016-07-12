@@ -1,3 +1,7 @@
+// Based on Virtual joystick by Alexandra Etienne and Jerome Etienne  
+// http://learningthreejs.com/blog/2011/12/26/let-s-make-a-3d-game-virtual-joystick/ 
+
+
 const char HTML_text[] PROGMEM = R"=====(
 <html>
   <head>

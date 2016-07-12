@@ -1,6 +1,6 @@
 /*
  * 
- * Remember on the ESP8266 pin 16, also called D0 has no PWM output
+ * Remember on the ESP8266 pin 16, also called D0 has no PWM output so don't use it for speed/pwm
  * This is a work in progress
  */
 
@@ -43,7 +43,7 @@ void motorController::update(int X, int Y){
   if (X < -MAX_range)X = -MAX_range;
   if (Y > MAX_range)Y = MAX_range;
   if (Y < -MAX_range)Y = -MAX_range;
-  int A = Y - int(steeringSensitivity*(X*(Y<=0) + X*(Y>0))); // to fix steering when backwards *(Y<0) + X*(Y>0)
+  int A = Y - int(steeringSensitivity*(X*(Y<=0) - X*(Y>0))); // to fix steering when backwards *(Y<0) + X*(Y>0)
   int B = Y + int(steeringSensitivity*(X*(Y<=0) - X*(Y>0)));
   if (!useEnablePins){// assuming LOW LOW to h bridge is OFF and HIGH HIGH is Break
     
@@ -88,18 +88,20 @@ void motorController::update(int X, int Y){
     analogWrite(PWMB,int(getPWM1(B)*trimB));
   }
 }
-// maximum input expected from controller input
+// maximum input expected from controller input ie 0 to Range
 void motorController::setRange(int newRange){
   MAX_range = newRange;
 }
 
 int motorController::getPWM1(int A){
   int result = (A>0) * ( ((float(float(A)/float(MAX_range))*1023)* (A<MAX_range)) + ((A>=MAX_range) * 1023) );
+  result = checkMinimumSpeed(result);
   return result;
 }
 
 int motorController::getPWM2(int A){
   int result = (A<0) * ( ((float(float(A*-1)/float(MAX_range))*1023)* ((A*-1)<MAX_range)) + (((A*-1)>=MAX_range) * 1023) );
+  result = checkMinimumSpeed(result);
   return result;
 }
 
@@ -115,7 +117,7 @@ void motorController::reverseMotorB(){
 // 0 - 1, 0 = stop 1 = 100 %
 void motorController::setTrim(float trimForMotorA ,float trimForMotorB){
   trimA = checkNormal(trimForMotorA);
-  trimB = checkNormal(trimForMotorA);
+  trimB = checkNormal(trimForMotorB);
 }
 // reduce turning speed
 void motorController::setSteeringSensitivity(float sensitivity){
@@ -130,5 +132,14 @@ float motorController::checkNormal(float normal){
 void motorController::setPWMFrequency(int frequency){
   PWMFrequency = frequency;
   analogWriteFreq(PWMFrequency);
+}
+int motorController::checkMinimumSpeed(int PWM){
+  if (PWM > 0 && PWM < int(1023 * minMotorSpeed))PWM = int(1023 * minMotorSpeed);
+  //Serial.printf("PWM: %d \r\n" , PWM);
+  return PWM;
+}
+// motor speed expressed as a value of 0.0 - 1.0
+void motorController::setMinimumSpeed(float minimumMotorSpeed){
+  minMotorSpeed = checkNormal(minimumMotorSpeed);
 }
 

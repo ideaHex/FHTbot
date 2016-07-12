@@ -21,8 +21,8 @@ extern "C" {
 // WiFi Definitions //
 //////////////////////
 const char *password = "12345678";    // This is the Wifi Password (only numbers and letters,  not . , |)
-String AP_Name = "FH@Tbot";        // This is the Wifi Name(SSID), some numbers will be added for clarity
-#define testCaptivePortal false
+String AP_Name = "FH@Tbot";        // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
+#define testCaptivePortal true
 
 void setupWiFi(void);
 void initHardware(void);
@@ -30,20 +30,34 @@ void initHardware(void);
 /////////////////////
 // Pin Definitions //
 /////////////////////
+/*
+// stepper without PWM/speed input pins, don't use D0
+const int motorLeftA  = D2;
+const int motorLeftB  = D3;
+const int motorRightA = D4;
+const int motorRightB = D5;
 
-//const int motorLeftA  = D2;
-//const int motorLeftB  = D3;
-//const int motorRightA = D4;
-//const int motorRightB = D5;
-//
-//motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
-const int motorLeftDir  = D2; 
-const int motorLeftSpd  = D3; 
-const int motorRightDir = D0; 
-const int motorRightSpd = D1; 
- 
+motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
+*/
+
+// stepper with direction and speed pins, don't use D0 for speed
+const int motorLeftDir  = D2;
+const int motorLeftSpd  = D3;
+const int motorRightDir = D0;
+const int motorRightSpd = D1;
+
 motorController motors(motorLeftDir,D5,motorLeftSpd,motorRightDir,D4,motorRightSpd); 
 
+/*
+// stepper with 2 motor pins and a enable pin per motor, don't use D0 for speed
+const int motorLeftA    =  D1;
+const int motorLeftB    =  D0;
+const int motorLeftSpd  =  D2;
+const int motorRightA   =  D3;
+const int motorRightB   =  D4;
+const int motorRightSpd =  D5;
+*/
+motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
 
 WiFiServer server(80); // http only https is 443
 DNSServer dnsServer;
@@ -66,7 +80,7 @@ void CheckHeartBeat(void)
   else
   {
     Stop();
- //   Serial.println("STOP!!!!!!");
+ //   Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -74,9 +88,12 @@ void setup()
 {
   initHardware();
   setupWiFi();
-  server.begin();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
   Stop();
+  //motors.setTrim(1.0,0.75); // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
+  motors.setSteeringSensitivity(0.75); // this setting is optional
+  //motors.setPWMFrequency(50);// this setting is optional, depending on power supply this option will alter motor noise and torque.
+  //motors.setMinimumSpeed(0.15);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 }
 
 void loop()
@@ -131,11 +148,11 @@ void setupWiFi()
  
   // Create a unique name by appending the MAC address to the AP Name
 
-  String macID = WiFi.softAPmacAddress();
-  AP_Name = AP_Name + " " +macID;
-
+  AP_Name = AP_Name + " " + WiFi.softAPmacAddress();
   char AP_NameChar[AP_Name.length() + 1];
   AP_Name.toCharArray(AP_NameChar,AP_Name.length() + 1);
+
+  // setup AP, start DNS server, start Web server
 
   int channel = random(1,13);
   const byte DNS_PORT = 53;
@@ -143,16 +160,17 @@ void setupWiFi()
   IPAddress apIP(192, 168, 1, 1);
   WiFi.softAPConfig(apIP, apIP, subnet);
   WiFi.softAP(AP_NameChar, password , channel , 0 );
-   // set all traffic to 192.168.1.1 automatically
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   if (testCaptivePortal)
-  dnsServer.start(DNS_PORT, "*", apIP);
+  dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
+  server.begin();
 }
 
 void initHardware()
 {
   Serial.begin(115200);
   delay(100);
-  Serial.println("");
-  Serial.println("FH@Tbot Serial Connected");
+  Serial.println(F("\r\n"));
+  Serial.println(F("            FH@Tbot Serial Connected\r\n"));
+  Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
 }
