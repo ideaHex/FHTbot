@@ -2,14 +2,10 @@
  * / \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \  
  * \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ 
  *
- * Hub to mount a 12mm hex RC car wheel to a Micro Metal Gear Motor
- * you will need to pause the print to place the M4 nut inside
- * the height will be shown in the console
- * 
- * 	          visit
- * 		www.ideahex.com
+ * Mechanical design of FH@Tbot for Makerfair 2016
  * 
  * Written by Damian Kleiss 
+ * OpenSCAD version 2016.04.06
  *  _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _   _
  * / \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \  
  * \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \_/ \*/
@@ -54,13 +50,6 @@ translate([0,0,wheelThickness/2])
   Oring(id = oringInnerDia, thickness = oringThickness);
 }
 
-//color("blue")
-// rotate([180,0,0])
-//HubHoles(shape = "Hex");
-//color("red")
-//
-//Hub(shape = "Round");
- 
  module Wheel(hubShape = "Round", shaft = "D")
  {
     color("red")
@@ -156,72 +145,3 @@ module HubHoles(shape = "D")
     
 }
 
-
- 
- 
-// echo("Pause at Z height of ",shaftLength+wheelNutHeight, " mm");
- 
-
-/*
- difference() // Uncomment for cross section view
- {
-     union()
-     {      
-         
-         // WHEEL END //
-         translate([0,0,shaftLength])
-         translate([0,0,hexLength/2])
-         rotate([0,0,30])       // Rotate so it lines up with shaft end
-         difference()
-         {             
-             cylinder(r =  hexWidth / 2 / cos(180/6), h = hexLength, $fn=6, center = true); // Wheel Hex End
-             color("red")
-             union()
-             {
-                 translate([0,0,-(hexLength+smidge)/2])  // Move nut hole to end of Hex
-                 cylinder(r =  wheelNutWidth / 2 / cos(180/6), h = wheelNutHeight, $fn=6 ); // Wheel nut hole
-                 
-                 cylinder(r=wheelBoltDia/2,h=hexLength+smidge,center=true,$fn=100); // wheel bolt hole
-             }
-         }
-         
-         // MOTOR END //
-         translate([0,0,shaftLength/2])
-         difference()
-         {
-            rotate([0,0,30])
-            cylinder(r =  shaftMountOuterWidth / 2 / cos(180/6), h = shaftLength, $fn=6, center = true); // Motor End
-               
-            // Shaft Mount Holes        
-            color("red")
-            union()
-            {                
-                rotate([0,90,0])
-                {
-                    translate([0,0,shaftDia-shaftFlat+minWallThickness])
-                    hull()      // Hull two nuts so we can slip a nut in after the hub has been printed
-                    {
-                        cylinder(r = shaftNutWidth / 2 / cos(180/6), h = shaftnutHeight, $fn=6); // ShaftNut Hole
-                        translate([shaftLength/2,0,0])
-                        cylinder(r = shaftNutWidth / 2 / cos(180/6), h = shaftnutHeight, $fn=6); // ShaftNut Hole
-                    }
-                    translate([0,0,hexWidth/2])
-                    cylinder(r = shaftBoltDia /2, h=hexWidth,center = true,$fn=100);            // Shaft Bolt hole
-                }
-                
-                
-                // Shaft Hole
-                difference()
-                {
-                    cylinder(r=shaftDia/2,h=shaftLength+smidge,center = true, $fn = 100);
-                    translate([(shaftDia-(shaftDia-shaftFlat)),0,0])
-                    cube([shaftDia,shaftDia,shaftLength+(smidge*2)],center=true);       // Shaft Flat
-                }
-            }
-        }
-    }
-    translate([-shaftMountOuterWidth,0,-smidge/2])
-    cube([shaftMountOuterWidth*2,shaftMountOuterWidth*2,shaftLength+hexLength+smidge],center=false);
-}
-*/
- 
