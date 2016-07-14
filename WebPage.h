@@ -40,7 +40,6 @@ const char HTML_text[] PROGMEM = R"=====(
       top   : 0px;
       width   : 100%;
       padding   : 5px;
-      text-align  : center;
     }
     #info a{
       color   : #fff;
@@ -64,15 +63,16 @@ const char HTML_text[] PROGMEM = R"=====(
     </style>
   </head>
   <body draggable="false" ondragstart="return false;" ondrop="return false;">
-    <div id="container"></div>
-    <div id="info">
+    <div id="container">
       <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</h1>
+      <p align="center">
       Touch the screen and move
       -
       works with mouse too 
       <br/>
       <span id="result"></span>
-    </div> 
+      </p>
+    </div>    
   <script>
   var VirtualJoystick  = function(opts)
   {
