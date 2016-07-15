@@ -41,8 +41,8 @@ motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 */
 
 // stepper with direction and speed pins, don't use D0 for speed
-const int motorLeftDir  = D2;
-const int motorLeftSpd  = D3;
+const int motorLeftDir  = D3;
+const int motorLeftSpd  = D2;
 const int motorRightDir = D7;
 const int motorRightSpd = D8;
 
@@ -56,9 +56,9 @@ const int motorLeftSpd  =  D2;
 const int motorRightA   =  D3;
 const int motorRightB   =  D4;
 const int motorRightSpd =  D5;
-*/
-//motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
 
+motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
+*/
 WiFiServer server(80); // http only https is 443
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
@@ -86,14 +86,15 @@ void CheckHeartBeat(void)
 
 void setup()
 {
+  //system_update_cpu_freq(160); // set cpu to 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
   Stop();
-  motors.setTrim(0.3,0.3); // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
+  //motors.setTrim(1.0,0.8); // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
   motors.setSteeringSensitivity(0.25); // this setting is optional
-  motors.setPWMFrequency(15000);// this setting is optional, depending on power supply this option will alter motor noise and torque.
-  //motors.setMinimumSpeed(0.15);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+  motors.setPWMFrequency(15000);// this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  motors.setMinimumSpeed(0.06);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 }
 
 void loop()
