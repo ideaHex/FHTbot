@@ -20,9 +20,9 @@ extern "C" {
 //////////////////////
 // WiFi Definitions //
 //////////////////////
-const char *password = "12345678";    // This is the Wifi Password (only numbers and letters,  not . , |)
-String AP_Name = "FH@Tbot";        // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
-#define testCaptivePortal true
+const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
+String AP_Name = "FH@Tbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
+bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 void setupWiFi(void);
 void initHardware(void);
@@ -93,8 +93,8 @@ void setup()
   Stop();
   //motors.setTrim(1.0,0.8); // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
   motors.setSteeringSensitivity(0.25); // this setting is optional
-  motors.setPWMFrequency(15000);// this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  motors.setMinimumSpeed(0.06);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+  //motors.setPWMFrequency(50);// this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  //motors.setMinimumSpeed(0.05);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 }
 
 void loop()
@@ -103,7 +103,7 @@ void loop()
    WiFiClient client = server.available();
   if (!client)
   {
-          return;
+    return;
   }
   // Read the first line of the request
   String req = client.readStringUntil('\r');
@@ -121,9 +121,9 @@ void loop()
     int dY = yOffset.toInt();
     Serial.print(F(" DY: "));
     Serial.println(dY);
-    
+
     motors.update(dX,dY);
-    
+
     Serial.print(F("Free Ram: "));
     Serial.println(system_get_free_heap_size());
 
@@ -160,11 +160,19 @@ void setupWiFi()
   IPAddress subnet(255, 255, 255, 0);
   IPAddress apIP(192, 168, 1, 1);
   WiFi.softAPConfig(apIP, apIP, subnet);
-  WiFi.softAP(AP_NameChar, password , channel , 0 );
+  if (enableCompatibilityMode){
+    wifi_set_phy_mode(PHY_MODE_11B); // Note: ESP8266 soft-AP only support bg.
+    char *pw = "";
+    WiFi.softAP(AP_NameChar, pw , channel , 0 );
+  }else{
+    wifi_set_phy_mode(PHY_MODE_11N);
+    WiFi.softAP(AP_NameChar, password , channel , 0 );
+  }
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  if (testCaptivePortal)
   dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
+  
+  WiFi.printDiag(Serial);
 }
 
 void initHardware()
