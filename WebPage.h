@@ -2,7 +2,7 @@
 // http://learningthreejs.com/blog/2011/12/26/let-s-make-a-3d-game-virtual-joystick/ 
 
 
-const char HTML_text[] PROGMEM = R"=====(
+const char HTML_text[] PROGMEM = R"=====( <!doctype html>
 <html>
   <head>
     <title>FH@Tbot</title>
@@ -26,10 +26,14 @@ const char HTML_text[] PROGMEM = R"=====(
       -khtml-user-select : none;
       -ms-user-select : none;
       user-select: none;
+      -o-user-select:none;
+      //unselectable="on"
+      //onselectstart="return false;" 
+      //onmousedown="return false;"
       overflow:hidden;
       text-shadow: 2px 2px Black;
     }
-    
+
     h1 {
         color: red;
         font-size: 40px;
@@ -59,12 +63,13 @@ const char HTML_text[] PROGMEM = R"=====(
       -khtml-user-select : none;
       -ms-user-select : none;
       user-select: none;
+      -o-user-select:none;
     }
     </style>
   </head>
   <body draggable="false" ondragstart="return false;" ondrop="return false;">
     <div id="container">
-      <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</h1>
+      <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</font></h1>
       <p align="center">
       Touch the screen and move
       -
@@ -72,7 +77,7 @@ const char HTML_text[] PROGMEM = R"=====(
       <br/>
       <span id="result"></span>
       </p>
-    </div>    
+    </div>
   <script>
   var VirtualJoystick  = function(opts)
   {
@@ -88,29 +93,29 @@ const char HTML_text[] PROGMEM = R"=====(
     this._limitStickTravel  = opts.limitStickTravel || false
     this._stickRadius = opts.stickRadius !== undefined ? opts.stickRadius : 100
     this._useCssTransform = opts.useCssTransform !== undefined ? opts.useCssTransform : false
-  
+
     this._container.style.position  = "relative"
-  
+
     this._container.appendChild(this._baseEl)
     this._baseEl.style.position = "absolute"
     this._baseEl.style.display  = "none"
     this._container.appendChild(this._stickEl)
     this._stickEl.style.position  = "absolute"
     this._stickEl.style.display = "none"
-  
+
     this._pressed = false;
     this._touchIdx  = null;
-    
+
     if(this._stationaryBase === true)
     {
       this._baseEl.style.display  = "";
       this._baseEl.style.left   = (this._baseX - this._baseEl.width /2)+"px";
       this._baseEl.style.top    = (this._baseY - this._baseEl.height/2)+"px";
     }
-      
+
     this._transform = this._useCssTransform ? this._getTransformProperty() : false;
     this._has3d = this._check3D();
-    
+
     var __bind  = function(fn, me){ return function(){ return fn.apply(me, arguments); }; };
     this._$onTouchStart = __bind(this._onTouchStart , this);
     this._$onTouchEnd = __bind(this._onTouchEnd , this);
@@ -219,10 +224,10 @@ VirtualJoystick.prototype._onUp = function()
 {
   this._pressed = false; 
   this._stickEl.style.display = "none";
-  
+
   if(this._stationaryBase == false){  
     this._baseEl.style.display  = "none";
-  
+
     this._baseX = this._baseY = 0;
     this._stickX  = this._stickY  = 0;
   }
@@ -237,10 +242,10 @@ VirtualJoystick.prototype._onDown = function(x, y)
     this._baseEl.style.display  = "";
     this._move(this._baseEl.style, (this._baseX - this._baseEl.width /2), (this._baseY - this._baseEl.height/2));
   }
-  
+
   this._stickX  = x;
   this._stickY  = y;
-  
+
   if(this._limitStickTravel === true){
     var deltaX  = this.deltaX();
     var deltaY  = this.deltaY();
@@ -248,12 +253,12 @@ VirtualJoystick.prototype._onDown = function(x, y)
     if(stickDistance > this._stickRadius){
       var stickNormalizedX = deltaX / stickDistance;
       var stickNormalizedY = deltaY / stickDistance;
-      
+
       this._stickX = stickNormalizedX * this._stickRadius + this._baseX;
       this._stickY = stickNormalizedY * this._stickRadius + this._baseY;
     }   
   }
-  
+
   this._stickEl.style.display = "";
   this._move(this._stickEl.style, (this._stickX - this._stickEl.width /2), (this._stickY - this._stickEl.height/2));  
 }
@@ -262,7 +267,7 @@ VirtualJoystick.prototype._onMove = function(x, y)
   if( this._pressed === true ){
     this._stickX  = x;
     this._stickY  = y;
-    
+
     if(this._limitStickTravel === true){
       var deltaX  = this.deltaX();
       var deltaY  = this.deltaY();
@@ -270,12 +275,12 @@ VirtualJoystick.prototype._onMove = function(x, y)
       if(stickDistance > this._stickRadius){
         var stickNormalizedX = deltaX / stickDistance;
         var stickNormalizedY = deltaY / stickDistance;
-      
+
         this._stickX = stickNormalizedX * this._stickRadius + this._baseX;
         this._stickY = stickNormalizedY * this._stickRadius + this._baseY;
       }     
     }
-    
+
           this._move(this._stickEl.style, (this._stickX - this._stickEl.width /2), (this._stickY - this._stickEl.height/2));  
   } 
 }
@@ -310,7 +315,7 @@ VirtualJoystick.prototype._onTouchStart = function(event)
   // notify event for validation
   var isValid = this.dispatchEvent('touchStartValidation', event);
   if( isValid === false ) return;
-  
+
   // dispatch touchStart
   this.dispatchEvent('touchStart', event);
 
@@ -374,7 +379,7 @@ VirtualJoystick.prototype._buildJoystickBase  = function()
   var canvas  = document.createElement( 'canvas' );
   canvas.width  = 126;
   canvas.height = 126;
-  
+
   var ctx   = canvas.getContext('2d');
   ctx.beginPath(); 
   ctx.strokeStyle = this._strokeStyle; 
@@ -387,7 +392,7 @@ VirtualJoystick.prototype._buildJoystickBase  = function()
   ctx.lineWidth = 2; 
   ctx.arc( canvas.width/2, canvas.width/2, 60, 0, Math.PI*2, true); 
   ctx.stroke();
-  
+
   return canvas;
 }
 // build the canvas for joystick stick
@@ -432,10 +437,10 @@ VirtualJoystick.prototype._getTransformProperty = function()
       'OTransform',
       'transform'
     ];
-    
+
     var el = document.createElement('p');
     var style;
-    
+
     for (var i = 0; i < styles.length; i++) {
       style = styles[i];
       if (null != el.style[style]) {
@@ -449,7 +454,7 @@ VirtualJoystick.prototype._check3D = function()
     var prop = this._getTransformProperty();
     // IE8<= doesn't have `getComputedStyle`
     if (!prop || !window.getComputedStyle) return module.exports = false;
-    
+
     var map = {
       webkitTransform: '-webkit-transform',
       OTransform: '-o-transform',
@@ -457,7 +462,7 @@ VirtualJoystick.prototype._check3D = function()
       MozTransform: '-moz-transform',
       transform: 'transform'
     };
-    
+
     // from: https://gist.github.com/lorenzopolidori/3794226
     var el = document.createElement('div');
     el.style[prop] = 'translate3d(1px,1px,1px)';
@@ -472,7 +477,7 @@ VirtualJoystick.prototype._check3D = function()
 
     <script>
       console.log("touchscreen is", VirtualJoystick.touchScreenAvailable() ? "available" : "not available");
-  
+
       var joystick  = new VirtualJoystick({
         container : document.getElementById('container'),
         mouseSupport  : true,
@@ -487,7 +492,7 @@ VirtualJoystick.prototype._check3D = function()
       function moveit(dx,dy) 
       {
         xhttp.abort();
-        xhttp.open("GET", "/X" + dx + "/Y" + dy , true);
+        xhttp.open("GET", "/X" + dx + "/Y" + dy, true);
         // xhttp.timeout = 100;
         xhttp.send();
       };
@@ -498,7 +503,7 @@ VirtualJoystick.prototype._check3D = function()
         dx = dx.toFixed(2);
         dy = dy.toFixed(2);
         var outputEl  = document.getElementById('result');
-        outputEl.innerHTML  = '<b>Result: </b>' 
+        outputEl.innerHTML  = '<b>Result: </b>'
         + 'dx:' + dx
         + ' dy:' + dy
         moveit(dx,dy);
@@ -508,4 +513,3 @@ VirtualJoystick.prototype._check3D = function()
   </body>
 </html>
  )=====";
-
