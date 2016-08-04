@@ -8,6 +8,7 @@
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "MotorController.h"
+#include "US100Ping.h"
 
 // WebPage
 #include "WebPage.h"
@@ -59,16 +60,20 @@ const int motorRightSpd =  D5;
 
 motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
 */
-WiFiServer server(80); // http only https is 443
+WiFiServer server(80);                  // http only https is 443
+WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
+US100Ping ping;
+byte clientTimeout = 150;
+bool clientStopped = true;
+unsigned long nextClientTimeout = 0;
 
 bool HeartBeatRcvd = false;
 
 void Stop(void)
 {
   motors.update(0,0);
-  //Serial.println("STOP");
 }
 
 void CheckHeartBeat(void)
@@ -80,67 +85,79 @@ void CheckHeartBeat(void)
   else
   {
     Stop();
- //   Serial.println("Connection lost STOP!!!!!!");
+                                        // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
 void setup()
 {
-  //system_update_cpu_freq(160); // set cpu to 160MHZ !
+  //system_update_cpu_freq(160);        // set cpu to 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
   Stop();
-  //motors.setTrim(1.0,0.8); // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
-  motors.setSteeringSensitivity(0.25); // this setting is optional
-  //motors.setPWMFrequency(50);// this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  //motors.setMinimumSpeed(0.05);// this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+  //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
+  motors.setSteeringSensitivity(0.25);  // this setting is optional
+  motors.setPWMFrequency(50);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  motors.setMinimumSpeed(0.05);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 }
 
 void loop()
 {
+  // time dependant functions here
+   ping.run();
+   if (ping.gotTemperature()) Serial.printf("Temperature: %d C \r\n", ping.getTemperature());
+   if (ping.gotDistance()) Serial.printf("distance: %d mm \r\n", ping.getDistance());
    dnsServer.processNextRequest();
-   WiFiClient client = server.available();
-  if (!client)
+
+   // client functions here
+   if (clientStopped){
+    client = server.available();
+    clientStopped = false;
+    nextClientTimeout = millis() + clientTimeout;
+   }else{
+    if (!client.connected() || millis() > nextClientTimeout){
+      client.stop();
+      clientStopped = true;
+    }
+   }
+   
+  if (!client.available())
   {
     return;
   }
   // Read the first line of the request
   String req = client.readStringUntil('\r');
-  Serial.println(req);
+  //Serial.println(req);
   //Serial.println(client.readString());
   client.flush();
-
-  if (req.indexOf("/X") != -1 && req.indexOf("/Y") != -1){
-    String xOffset = req.substring(req.indexOf("/X")+2, req.indexOf("/X")+8);
-    int dX = xOffset.toInt();
-    Serial.print(F("DX: "));
-    Serial.print(dX);
-
-    String yOffset = req.substring(req.indexOf("/Y")+2, req.indexOf("/Y")+8);
-    int dY = yOffset.toInt();
-    Serial.print(F(" DY: "));
-    Serial.println(dY);
-
-    motors.update(dX,dY);
-
-    Serial.print(F("Free Ram: "));
-    Serial.println(system_get_free_heap_size());
-
-    HeartBeatRcvd = true; // recieved data, must be connected
+  int indexOfX = req.indexOf("/X");
+  int indexOfY = req.indexOf("/Y");
+  if (indexOfX != -1 && indexOfY != -1){
     
-   byte max_delay = 150;
-   while (client.connected() && max_delay>0){
-      delay(1);
-      max_delay--;
-   }
-   //Serial.printf("Timeout delay: %d \r\n", max_delay);
-   client.stop();
-   
+    String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
+    int dX = xOffset.toInt();
+    String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
+    int dY = yOffset.toInt();
+    
+    motors.update(dX,dY);
+    
+    //Serial.print(F("DX: "));
+    //Serial.print(dX);
+    //Serial.print(F(" DY: "));
+    //Serial.println(dY);
+    //Serial.print(F("Free Ram: "));
+    //Serial.println(system_get_free_heap_size());
+
+    HeartBeatRcvd = true;               // recieved data, must be connected
+
   }else{
-          client.write_P(HTML_text,strlen_P(HTML_text));
+        if (req.indexOf("GET / HTTP/1.1") != -1){
+            Serial.println(F("Sending Page"));
+            client.write_P(HTML_text,strlen_P(HTML_text));
+            delay(1);                   // to improve compatability with some browsers
+          }
         }
-  delay(1);
 }
 
 void setupWiFi()
@@ -161,8 +178,8 @@ void setupWiFi()
   IPAddress apIP(192, 168, 1, 1);
   WiFi.softAPConfig(apIP, apIP, subnet);
   if (enableCompatibilityMode){
-    wifi_set_phy_mode(PHY_MODE_11B); // Note: ESP8266 soft-AP only support bg.
-    char *pw = "";
+    wifi_set_phy_mode(PHY_MODE_11B);    // Note: ESP8266 soft-AP only support bg.
+    const char *pw = "";
     WiFi.softAP(AP_NameChar, pw , channel , 0 );
   }else{
     wifi_set_phy_mode(PHY_MODE_11N);
@@ -172,14 +189,16 @@ void setupWiFi()
   dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   
-  WiFi.printDiag(Serial);
+  //WiFi.printDiag(Serial);
 }
 
 void initHardware()
 {
-  Serial.begin(115200);
+  Serial.begin(9600);
   delay(100);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  //ping.begin(D6,D7,9600);
+  ping.begin(Serial);
 }

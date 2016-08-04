@@ -5,7 +5,6 @@
 
 #ifndef motorController_h
 #define motorController_h
-//#include <stdint.h>
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>

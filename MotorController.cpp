@@ -76,7 +76,7 @@ void motorController::update(int X, int Y){
     }
     if (A<0) A *= -1;
     analogWrite(PWMA, getPWM1(A,trimA));
-    Serial.printf("Motor A PWM: %d  \r\n", getPWM1(A,trimA)); 
+    //Serial.printf("Motor A PWM: %d  \r\n", getPWM1(A,trimA)); 
     if (!reverseMotorBDirection){
       digitalWrite(mPB1, (B>0));
       digitalWrite(mPB2, (B<0));
@@ -86,7 +86,7 @@ void motorController::update(int X, int Y){
     }
     if (B<0) B *= -1;
     analogWrite(PWMB, getPWM1(B,trimB));
-    Serial.printf("Motor B PWM: %d \r\n", getPWM1(B,trimB));
+    //Serial.printf("Motor B PWM: %d \r\n", getPWM1(B,trimB));
   }
 }
 // maximum input expected from controller input ie 0 to Range
