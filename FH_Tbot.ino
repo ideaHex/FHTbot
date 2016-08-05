@@ -9,6 +9,10 @@
 #include <Ticker.h>
 #include "MotorController.h"
 #include "US100Ping.h"
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
 
 // WebPage
 #include "WebPage.h"
@@ -16,6 +20,23 @@
 extern "C" { 
    #include "user_interface.h" 
  } 
+
+//////////////////////
+// RGB LEDs //
+//////////////////////
+// Parameter 1 = number of pixels in strip
+// Parameter 2 = Arduino pin number (most are valid)
+// Parameter 3 = pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
+#define PIN 3
+#define NUMPIXELS      6
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+int delayval = 500; // delay for half a second
+            
 
 
 //////////////////////
@@ -31,24 +52,24 @@ void initHardware(void);
 /////////////////////
 // Pin Definitions //
 /////////////////////
-/*
+
 // stepper without PWM/speed input pins, don't use D0
-const int motorLeftA  = D2;
-const int motorLeftB  = D3;
-const int motorRightA = D4;
-const int motorRightB = D5;
+const int motorLeftA  = D5;
+const int motorLeftB  = D6;
+const int motorRightA = D2;
+const int motorRightB = D1;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
-*/
 
+/*
 // stepper with direction and speed pins, don't use D0 for speed
-const int motorLeftDir  = D3;
-const int motorLeftSpd  = D2;
-const int motorRightDir = D7;
-const int motorRightSpd = D8;
+const int motorLeftDir  = D2;
+const int motorLeftSpd  = D1;
+const int motorRightDir = D5;
+const int motorRightSpd = D6;
 
 motorController motors(motorLeftDir,D5,motorLeftSpd,motorRightDir,D4,motorRightSpd); 
-
+*/
 /*
 // stepper with 2 motor pins and a enable pin per motor, don't use D0 for speed
 const int motorLeftA    =  D1;
@@ -85,7 +106,7 @@ void CheckHeartBeat(void)
   else
   {
     Stop();
-                                        // Serial.println("Connection lost STOP!!!!!!");
+    // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -97,10 +118,26 @@ void setup()
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
   Stop();
   //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
-  motors.setSteeringSensitivity(0.25);  // this setting is optional
+  //motors.setSteeringSensitivity(0.5);  // this setting is optional
   motors.setPWMFrequency(50);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  motors.setMinimumSpeed(0.05);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-}
+  //motors.setMinimumSpeed(0.25);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+    
+  pixels.begin();
+  pixels.show(); // Initialize all pixels to 'off'
+     //////////////////////////
+ for(int i=0;i<NUMPIXELS;i++){
+
+    // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+    pixels.setPixelColor(i, pixels.Color(0,150,0)); // Moderately bright green color.
+
+    pixels.show(); // This sends the updated pixel color to the hardware.
+
+    delay(delayval); // Delay for a period of time (in milliseconds).
+
+  }
+  /////////////////////////////////////////////
+  
+  }
 
 void loop()
 {
@@ -126,6 +163,7 @@ void loop()
   {
     return;
   }
+  
   // Read the first line of the request
   String req = client.readStringUntil('\r');
   //Serial.println(req);
@@ -194,11 +232,12 @@ void setupWiFi()
 
 void initHardware()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(100);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
-  //ping.begin(D6,D7,9600);
+  Serial.swap();
+  //ping.begin(D7,D8,9600);
   ping.begin(Serial);
 }
