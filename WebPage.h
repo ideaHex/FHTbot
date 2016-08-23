@@ -2,12 +2,12 @@
 // http://learningthreejs.com/blog/2011/12/26/let-s-make-a-3d-game-virtual-joystick/ 
 
 
-const char HTML_text[] PROGMEM = R"=====( <!doctype html>
+const char HTML_text[] PROGMEM = R"=====(<!doctype html>
 <html>
   <head>
     <title>FH@Tbot</title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">    
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <style>
     body{
       position:fixed; top: 0; right: 0;
@@ -27,9 +27,6 @@ const char HTML_text[] PROGMEM = R"=====( <!doctype html>
       -ms-user-select : none;
       user-select: none;
       -o-user-select:none;
-      //unselectable="on"
-      //onselectstart="return false;" 
-      //onmousedown="return false;"
       overflow:hidden;
       text-shadow: 2px 2px Black;
     }
@@ -76,7 +73,11 @@ const char HTML_text[] PROGMEM = R"=====( <!doctype html>
       works with mouse too 
       <br/>
       <span id="result"></span>
-      </p>
+      <span id="resulttoo"></span>
+    <iframe name='feedback'
+      style='display:none;'
+      src='/feedback'>
+    </iframe></p>
     </div>
   <script>
   var VirtualJoystick  = function(opts)
@@ -472,10 +473,6 @@ VirtualJoystick.prototype._check3D = function()
     var exports = null != val && val.length && 'none' != val;
     return exports;
 }
-
-    </script>
-
-    <script>
       console.log("touchscreen is", VirtualJoystick.touchScreenAvailable() ? "available" : "not available");
 
       var joystick  = new VirtualJoystick({
@@ -492,7 +489,7 @@ VirtualJoystick.prototype._check3D = function()
       function moveit(dx,dy) 
       {
         xhttp.abort();
-        xhttp.open("GET", "/X" + dx + "/Y" + dy, true);
+        xhttp.open("GET", "/X" + dx + "/Y" + dy , true);
         // xhttp.timeout = 100;
         xhttp.send();
       };
@@ -505,8 +502,10 @@ VirtualJoystick.prototype._check3D = function()
         var outputEl  = document.getElementById('result');
         outputEl.innerHTML  = '<b>Result: </b>'
         + 'dx:' + dx
-        + ' dy:' + dy
+        + ' dy:' + dy;
         moveit(dx,dy);
+        var outputE2 = document.getElementById('resulttoo');
+        outputE2.innerHTML  = '<br>Temp: ' + window.feedback.temperature + ' ºC, Range: ' + window.feedback.distance +' mm';
       },  100);
 
     </script>
