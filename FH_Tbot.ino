@@ -10,6 +10,7 @@
 #include "MotorController.h"
 #include "US100Ping.h"
 #include <NeoPixelBus.h>
+#include "Encoder.h"
 
 // WebPage
 #include "WebPage.h"
@@ -75,6 +76,8 @@ byte clientTimeout = 150;
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
 NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4); // 6 pixels, output pin D4, function ignores pin
+encoder encoderA;
+encoder encoderB;
 
 bool HeartBeatRcvd = false;
 
@@ -111,6 +114,8 @@ int distance = 0;
 void loop()
 {
   // time dependant functions here
+   encoderA.run();
+   encoderB.run();
    ping.run();
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
@@ -118,6 +123,9 @@ void loop()
    }
    if (ping.gotDistance()){
     distance = ping.getDistance();
+    if (distance < 130){
+        motors.update(0,80);
+      }
     //Serial.printf("distance: %d mm \r\n", distance);
    }
    dnsServer.processNextRequest();
@@ -152,7 +160,14 @@ void loop()
     int dY = yOffset.toInt();
     
     HeartBeatRcvd = true;               // recieved data, must be connected
-    
+    // driver assist
+    if (distance < 450 && dY < 0){
+      dX = 500 - distance;
+      if (dY < -40 ){
+        //dX = 0;
+        dY = -40;
+      }
+    }
     motors.update(dX,dY);
     
     //Serial.print(F("DX: "));
@@ -182,11 +197,15 @@ void loop()
                 s += F("<!DOCTYPE HTML>\r\n<html>\r\n");
               //  s += F("<head><style> body{color : White; text-shadow: 1px 1px Black;font-size: 20px; -webkit-user-select : none; -moz-user-select  : none; -khtml-user-select : none; -ms-user-select : none; user-select: none; -o-user-select:none; overflow:hidden;}</style></head>");
                 s += F("<body>");
-                s += F("<script> var temperature = '");//
+                s += F("<script> var tmp = '");//
                 s += String(temperature);
-                s += F("';var distance = '");
+                s += F("';var dis = '");
                 s += String(distance);
-                s += F("';</script></body></html>\n");
+                s += F("';");
+                s += F("var kph = '");
+                s += String( float(encoderA.getAngularVelocity() * ((70 * PI) / 360) * 0.0036) );
+                s += F("';");
+                s += F("</script></body></html>\n");
                 client.print(s);
           }
         }
@@ -238,6 +257,8 @@ void initHardware()
   strip.Begin();
   strip.Show();
   smile();
+  encoderA.begin(motorLeftEncoder , 40);
+  encoderB.begin(motorRightEncoder , 40);
 }
 
 void pixelTest(){

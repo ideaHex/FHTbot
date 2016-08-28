@@ -505,7 +505,12 @@ VirtualJoystick.prototype._check3D = function()
         + ' dy:' + dy;
         moveit(dx,dy);
         var outputE2 = document.getElementById('resulttoo');
-        outputE2.innerHTML  = '<br>Temp: ' + window.feedback.temperature + ' ºC, Range: ' + window.feedback.distance +' mm';
+        //var iframe = document.getElementById('feedback');
+        //var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        //if (iframeDoc.readyState  == 'complete'){
+        if (window.feedback.tmp !== undefined && window.feedback.dis !== undefined){
+        outputE2.innerHTML  = '<br>Temp: ' + window.feedback.tmp + ' ºC, Range: ' + window.feedback.dis +' mm, Speed: ' + window.feedback.kph + ' Kph';
+        }
       },  100);
 
     </script>
