@@ -571,7 +571,7 @@
             function moveit(dx, dy)
             {
                 console.log("X:" + dx + ";Y:" + dy);
-                xhttp.abort();
+                xhttp.abort();                
                 xhttp.open("GET", "/X" + dx + "/Y" + dy, true);
                 // xhttp.timeout = 100;
                 xhttp.send();

@@ -36,6 +36,7 @@ extern "C" {
 #define NUMPIXELS      6
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 int delayval = 500; // delay for half a second
+boolean useBlinkers = false;
             
 
 
@@ -110,6 +111,57 @@ void CheckHeartBeat(void)
   }
 }
 
+/**
+ * Flashes forward LEDs to indicate direction of travel.
+ * Should scale to larger LED counts (assuming two rows).
+ * Stupid LED Trick mostly.
+ * param int indexOfX: x axis on Joystick, left or right.
+ * param int indexOfY: y axis on Joystick, forward or back.
+ */
+void updateBlinkers(int indexOfX, int indexOfY){
+  //Creates array for pixels
+  int px[NUMPIXELS];
+  //Pick which variable is greater in magnitude.
+    //If X>Y the result should be 0
+    if((indexOfX % indexOfY) == 0){
+      if(indexOfX < 0 ){
+        //Update Left
+        px = {(NUMPIXELS/2 - 1),NUMPIXELS - 1};
+      }else if (indexOfX > 0){
+        //update Right
+        px = {0,(NUMPIXELS/2)};
+      }else{
+        //Equals 0 no indication
+        for(int i=0;i<NUMPIXELS;i++){
+          px[i] = i;
+        }
+      }      
+    }else{
+      if(indexOfY < 0 ){
+        for(int i=0;i<(NUMPIXELS/2);i++){
+          px[i] = i;
+        }
+      }else if (indexOfY > 0){
+        for(int i=(NUMPIXELS/2);i<NUMPIXELS;i++){
+          px[i] = i;
+        }
+      }else{
+        //Equals 0 no indication
+        for(int i=0;i<NUMPIXELS;i++){
+          px[i] = i;
+        }
+      }  
+    }
+    int i = 0;
+    while(px[i] != null){    
+      // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+      pixels.setPixelColor(px[i], pixels.Color(255,127,0)); // Orange colour.
+      pixels.show(); // This sends the updated pixel color to the hardware.
+      //delay(delayval); // Delay for a period of time (in milliseconds).
+      i ++;
+    }
+}
+
 void setup()
 {
   //system_update_cpu_freq(160);        // set cpu to 160MHZ !
@@ -179,7 +231,8 @@ void loop()
     int dY = yOffset.toInt();
     
     motors.update(dX,dY);
-    
+
+        
     //Serial.print(F("DX: "));
     //Serial.print(dX);
     //Serial.print(F(" DY: "));
@@ -188,6 +241,12 @@ void loop()
     //Serial.println(system_get_free_heap_size());
 
     HeartBeatRcvd = true;               // recieved data, must be connected
+
+    //Blinker Addon
+    //Only operates if enabled in RGB options above
+    if(useBlinkers == true){
+      updateBlinkers(dx,dy);
+    }
 
   }else{
         if (req.indexOf("GET / HTTP/1.1") != -1){
