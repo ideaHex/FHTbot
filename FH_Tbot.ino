@@ -40,10 +40,11 @@ void pixelTest(void);
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
-const int motorRightA = D1;
+const int motorRightA = D3;
 const int motorRightB = D2;
-const int motorLeftEncoder = D3;
+const int motorLeftEncoder = D1;
 const int motorRightEncoder = D0;
+const float wheelDiameter = 60.5;//mm
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
@@ -123,8 +124,9 @@ void loop()
    }
    if (ping.gotDistance()){
     distance = ping.getDistance();
-    if (distance < 130){
-        motors.update(0,80);
+    if (distance < 200){
+        setColor(RgbColor(255,0,0));
+        motors.update(0,50);
       }
     //Serial.printf("distance: %d mm \r\n", distance);
    }
@@ -161,7 +163,9 @@ void loop()
     
     HeartBeatRcvd = true;               // recieved data, must be connected
     // driver assist
+    
     if (distance < 450 && dY < 0){
+    setColor(RgbColor(70,85,75));
       dX = 500 - distance;
       if (dY < -40 ){
         //dX = 0;
@@ -191,19 +195,25 @@ void loop()
           }
           if (req.indexOf("feedback") != -1){
                 String s;
-                s = F("HTTP/1.1 200 OK\r\n"); 
-                s += F("Content-Type: text/html\r\n\r\n");
-                s += F("<meta http-equiv='refresh' content='1' />");
-                s += F("<!DOCTYPE HTML>\r\n<html>\r\n");
-              //  s += F("<head><style> body{color : White; text-shadow: 1px 1px Black;font-size: 20px; -webkit-user-select : none; -moz-user-select  : none; -khtml-user-select : none; -ms-user-select : none; user-select: none; -o-user-select:none; overflow:hidden;}</style></head>");
-                s += F("<body>");
-                s += F("<script> var tmp = '");//
+                s = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
+                s += F("<meta http-equiv='refresh' content='1'>");
+                s += F("<!DOCTYPE HTML>\r\n<html>\r\n<body>");
+                s += F("<script>var tmp='");
                 s += String(temperature);
-                s += F("';var dis = '");
+                s += F("';var dis='");
                 s += String(distance);
                 s += F("';");
-                s += F("var kph = '");
-                s += String( float(encoderA.getAngularVelocity() * ((70 * PI) / 360) * 0.0036) );
+                s += F("var kph='");
+                double velocity = (encoderA.getAngularVelocity() + encoderB.getAngularVelocity()) / 2.0;
+                s += String( float(velocity * ((wheelDiameter * PI) / 360.0) * 0.0036) );
+                s += F("';");
+                s += F("var movd='");
+                int steps = (encoderA.getSteps() + encoderB.getSteps()) / 2.0;
+                s += String( int(steps * ((wheelDiameter * PI) / 40.0) ) );
+                s += F("';");
+                s += F("var acl='");
+                double acceleration = (encoderA.getAngularAcceleration() + encoderB.getAngularAcceleration()) / 2.0;
+                s += String( double(acceleration * ((wheelDiameter * PI) / 360.0) / 1000.0) );
                 s += F("';");
                 s += F("</script></body></html>\n");
                 client.print(s);
@@ -257,13 +267,12 @@ void initHardware()
   strip.Begin();
   strip.Show();
   smile();
-  encoderA.begin(motorLeftEncoder , 40);
-  encoderB.begin(motorRightEncoder , 40);
+  encoderA.begin(motorLeftEncoder , 20);
+  encoderB.begin(motorRightEncoder , 20);
 }
 
 void pixelTest(){
-  // this resets all the neopixels to an off state
-    byte brightness = 50; // max is 255
+    byte brightness = 20; // max is 255
     strip.SetPixelColor(0, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(1, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(2, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
@@ -281,7 +290,8 @@ void smile(){
     strip.SetPixelColor(4, RgbColor(a,0,0));
     strip.SetPixelColor(5, RgbColor(a,0,0));
     strip.Show();
-    delay(3000);
+    //delay(2000);
+    sound();
     for ( b = 0; b <= a ; b++){
     strip.SetPixelColor(0, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
     strip.SetPixelColor(2, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
@@ -291,5 +301,62 @@ void smile(){
     strip.Show();
     delay(4+a-b);
     }
+}
+void setColor(RgbColor color){
+    strip.SetPixelColor(0, color);
+    strip.SetPixelColor(1, color);
+    strip.SetPixelColor(2, color);
+    strip.SetPixelColor(3, color);
+    strip.SetPixelColor(4, color);
+    strip.SetPixelColor(5, color);
+    strip.Show();
+}
+void sound(){
+  motors.update(0,-1);
+  delay(1);
+  motors.setPWMFrequency(800);
+  int a=0;
+  while (a<500){
+    a++;
+  motors.update(0,1);
+  delayMicroseconds(250);
+  motors.update(0,-1);
+  delayMicroseconds(250);
+  }
+  motors.setPWMFrequency(600);
+  a=0;
+  while (a<500){
+    a++;
+  motors.update(0,1);
+  delayMicroseconds(250);
+  motors.update(0,-1);
+  delayMicroseconds(250);
+  }
+  motors.setPWMFrequency(1400);
+  a=0;
+  while (a<500){
+    a++;
+  motors.update(0,1);
+  delayMicroseconds(250);
+  motors.update(0,-1);
+  delayMicroseconds(250);
+  }
+  delay(1);
+  for (a = 100; a < 2200; a++){
+  motors.setPWMFrequency(a);
+  motors.update(0,250);
+  delayMicroseconds(100);
+  motors.update(0,-250);
+  delayMicroseconds(100);
+  }
+  delay(1);
+  for ( a= 2200; a > 100; a--){
+  motors.setPWMFrequency(a);
+  motors.update(0,250);
+  delayMicroseconds(100);
+  motors.update(0,-250);
+  delayMicroseconds(100);
+  }
+  motors.update(0,0);
 }
 

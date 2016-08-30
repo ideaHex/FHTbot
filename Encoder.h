@@ -20,10 +20,13 @@ class encoder {
   void run();
   void resetEncoder(); // when direction is stopped / reversed clear data
   double getAngularVelocity();
+  unsigned long getSteps();
+  double getAngularAcceleration();
 
   private:
 
-  #define MAX_STEP_TIMING_BUFFER 10
+  #define MAX_STEP_TIMING_BUFFER 20
+  #define TIME_OUT 100000                       // encoder time out in micro seconds
   
   uint8_t encoderPin;
   uint8_t slotsPerRevolution;
@@ -33,8 +36,10 @@ class encoder {
   double instantaniousAngularVelocity;
   double angularAcceleration;                    // degrees per second
   double angularResolution;                      // degrees per step
-  int encoderStepTiming[MAX_STEP_TIMING_BUFFER]; // milli seconds of each step
+  int encoderStepTiming[MAX_STEP_TIMING_BUFFER]; // micro seconds of each step
   int encoderStepTimingBufferPosition;
+  unsigned long steps;
+  double lastVelocityCount;
   // private encoder functions
 
   
