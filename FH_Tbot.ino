@@ -9,10 +9,7 @@
 #include <Ticker.h>
 #include "MotorController.h"
 #include "US100Ping.h"
-#include <Adafruit_NeoPixel.h>
-#ifdef __AVR__
-  #include <avr/power.h>
-#endif
+#include <NeoPixelBus.h>
 
 // WebPage
 #include "WebPage.h"
@@ -32,11 +29,11 @@ extern "C" {
 //   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
 //   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
 //   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-#define PIN 3
+#define PIN D4
 #define NUMPIXELS      6
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6,D4);//6 [pixels on pin d4]
 int delayval = 500; // delay for half a second
-boolean useBlinkers = false;
+boolean useBlinkers = true;
             
 
 
@@ -57,8 +54,8 @@ void initHardware(void);
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
-const int motorRightA = D2;
-const int motorRightB = D1;
+const int motorRightA = D3;
+const int motorRightB = D2;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
@@ -120,45 +117,53 @@ void CheckHeartBeat(void)
  */
 void updateBlinkers(int indexOfX, int indexOfY){
   //Creates array for pixels
-  int px[NUMPIXELS];
+  RgbColor px[NUMPIXELS];
+  for(int i = 0; i < NUMPIXELS; i++){
+    px[i] = RgbColor(0,0,0);
+  }
   //Pick which variable is greater in magnitude.
     //If X>Y the result should be 0
     if((indexOfX % indexOfY) == 0){
       if(indexOfX < 0 ){
         //Update Left
-        px = {(NUMPIXELS/2 - 1),NUMPIXELS - 1};
+        //px[(NUMPIXELS/2 - 1)] = RgbColor(255,127,0);
+        //px[NUMPIXELS - 1] =  RgbColor(255,127,0);
+        px[2] = RgbColor(80,40,0);
+        px[5] =  RgbColor(80,40,0);
       }else if (indexOfX > 0){
         //update Right
-        px = {0,(NUMPIXELS/2)};
+        //px[0] =  RgbColor(255,127,0);
+        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
+        px[0] =  RgbColor(80,40,0);
+        px[3] = RgbColor(80,40,0);
       }else{
-        //Equals 0 no indication
-        for(int i=0;i<NUMPIXELS;i++){
-          px[i] = i;
-        }
+        //Equals 0 no indication        
       }      
     }else{
       if(indexOfY < 0 ){
-        for(int i=0;i<(NUMPIXELS/2);i++){
-          px[i] = i;
-        }
+        //px[(NUMPIXELS/2) - 2] = RgbColor(255,127,0);
+        //px[(NUMPIXELS/2) - 1] = RgbColor(255,127,0);
+        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
+        px[0] = RgbColor(80,40,0);
+        px[1] = RgbColor(80,40,0);
+        px[2] = RgbColor(80,40,0);
       }else if (indexOfY > 0){
-        for(int i=(NUMPIXELS/2);i<NUMPIXELS;i++){
-          px[i] = i;
-        }
+        //px[(NUMPIXELS) - 2] = RgbColor(255,127,0);
+        //px[(NUMPIXELS) - 1] = RgbColor(255,127,0);
+        //px[(NUMPIXELS)] = RgbColor(255,127,0);        
+        px[3] = RgbColor(80,40,0);
+        px[4] = RgbColor(80,40,0);
+        px[5] = RgbColor(80,40,0);
       }else{
         //Equals 0 no indication
-        for(int i=0;i<NUMPIXELS;i++){
-          px[i] = i;
-        }
       }  
     }
-    int i = 0;
-    while(px[i] != null){    
+    
+    for(int i = 0; i< NUMPIXELS; i++){
       // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-      pixels.setPixelColor(px[i], pixels.Color(255,127,0)); // Orange colour.
-      pixels.show(); // This sends the updated pixel color to the hardware.
+      strip.SetPixelColor(i, px[i]); // Orange colour.
+      strip.Show(); // This sends the updated pixel color to the hardware.
       //delay(delayval); // Delay for a period of time (in milliseconds).
-      i ++;
     }
 }
 
@@ -174,19 +179,20 @@ void setup()
   motors.setPWMFrequency(50);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
   //motors.setMinimumSpeed(0.25);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
     
-  pixels.begin();
-  pixels.show(); // Initialize all pixels to 'off'
+  strip.Begin();
+  strip.Show(); // Initialize all pixels to 'off'
      //////////////////////////
  for(int i=0;i<NUMPIXELS;i++){
 
-    // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-    pixels.setPixelColor(i, pixels.Color(0,150,0)); // Moderately bright green color.
-
-    pixels.show(); // This sends the updated pixel color to the hardware.
-
-    delay(delayval); // Delay for a period of time (in milliseconds).
+    // strip.Color takes RGB values, from 0,0,0 up to 255,255,255
+    strip.SetPixelColor(i, RgbColor(0,40,0)); // Moderately bright green color.
 
   }
+  strip.Show(); // This sends the updated pixel color to the hardware.
+  //delay(delayval); // Delay for a period of time (in milliseconds).
+    
+
+  
   /////////////////////////////////////////////
   
   }
@@ -245,7 +251,7 @@ void loop()
     //Blinker Addon
     //Only operates if enabled in RGB options above
     if(useBlinkers == true){
-      updateBlinkers(dx,dy);
+      updateBlinkers(dX,dY);
     }
 
   }else{
