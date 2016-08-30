@@ -9,10 +9,8 @@
 #include <Ticker.h>
 #include "MotorController.h"
 #include "US100Ping.h"
-#include <Adafruit_NeoPixel.h>
-#ifdef __AVR__
-  #include <avr/power.h>
-#endif
+#include <NeoPixelBus.h>
+#include "Encoder.h"
 
 // WebPage
 #include "WebPage.h"
@@ -20,23 +18,6 @@
 extern "C" { 
    #include "user_interface.h" 
  } 
-
-//////////////////////
-// RGB LEDs //
-//////////////////////
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-#define PIN 3
-#define NUMPIXELS      6
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
-int delayval = 500; // delay for half a second
-            
 
 
 //////////////////////
@@ -48,25 +29,30 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 
 void setupWiFi(void);
 void initHardware(void);
+void pixelTest(void);
 
 /////////////////////
 // Pin Definitions //
 /////////////////////
 
+// D4 is used for neoPixelBus (TXD1)
+
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
-const int motorRightA = D2;
-const int motorRightB = D1;
+const int motorRightA = D1;
+const int motorRightB = D2;
+const int motorLeftEncoder = D3;
+const int motorRightEncoder = D0;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
 /*
 // stepper with direction and speed pins, don't use D0 for speed
-const int motorLeftDir  = D2;
-const int motorLeftSpd  = D1;
-const int motorRightDir = D5;
-const int motorRightSpd = D6;
+const int motorLeftDir  = D3;
+const int motorLeftSpd  = D2;
+const int motorRightDir = D7;
+const int motorRightSpd = D8;
 
 motorController motors(motorLeftDir,D5,motorLeftSpd,motorRightDir,D4,motorRightSpd); 
 */
@@ -89,6 +75,9 @@ US100Ping ping;
 byte clientTimeout = 150;
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4); // 6 pixels, output pin D4, function ignores pin
+encoder encoderA;
+encoder encoderB;
 
 bool HeartBeatRcvd = false;
 
@@ -105,46 +94,40 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();
-    // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                          // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
 void setup()
 {
-  //system_update_cpu_freq(160);        // set cpu to 160MHZ !
+  system_update_cpu_freq(80);        // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
-  Stop();
-  //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
-  //motors.setSteeringSensitivity(0.5);  // this setting is optional
-  motors.setPWMFrequency(50);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  //motors.setMinimumSpeed(0.25);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-    
-  pixels.begin();
-  pixels.show(); // Initialize all pixels to 'off'
-     //////////////////////////
- for(int i=0;i<NUMPIXELS;i++){
-
-    // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
-    pixels.setPixelColor(i, pixels.Color(0,150,0)); // Moderately bright green color.
-
-    pixels.show(); // This sends the updated pixel color to the hardware.
-
-    delay(delayval); // Delay for a period of time (in milliseconds).
-
-  }
-  /////////////////////////////////////////////
-  
-  }
-
+  motors.setTrim(0.95,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
+  //motors.setSteeringSensitivity(0.9);  // this setting is optional
+  motors.setPWMFrequency(60);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  motors.setMinimumSpeed(0.07);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+}
+int temperature = 0;
+int distance = 0;
 void loop()
 {
   // time dependant functions here
+   encoderA.run();
+   encoderB.run();
    ping.run();
-   if (ping.gotTemperature()) Serial.printf("Temperature: %d C \r\n", ping.getTemperature());
-   if (ping.gotDistance()) Serial.printf("distance: %d mm \r\n", ping.getDistance());
+   if (ping.gotTemperature()){
+    temperature = ping.getTemperature();
+    //Serial.printf("Temperature: %d C \r\n", temperature);
+   }
+   if (ping.gotDistance()){
+    distance = ping.getDistance();
+    if (distance < 130){
+        motors.update(0,80);
+      }
+    //Serial.printf("distance: %d mm \r\n", distance);
+   }
    dnsServer.processNextRequest();
 
    // client functions here
@@ -163,21 +146,28 @@ void loop()
   {
     return;
   }
-  
   // Read the first line of the request
   String req = client.readStringUntil('\r');
   //Serial.println(req);
   //Serial.println(client.readString());
-  client.flush();
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
-    
+    pixelTest();
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
     
+    HeartBeatRcvd = true;               // recieved data, must be connected
+    // driver assist
+    if (distance < 450 && dY < 0){
+      dX = 500 - distance;
+      if (dY < -40 ){
+        //dX = 0;
+        dY = -40;
+      }
+    }
     motors.update(dX,dY);
     
     //Serial.print(F("DX: "));
@@ -187,15 +177,39 @@ void loop()
     //Serial.print(F("Free Ram: "));
     //Serial.println(system_get_free_heap_size());
 
-    HeartBeatRcvd = true;               // recieved data, must be connected
-
   }else{
         if (req.indexOf("GET / HTTP/1.1") != -1){
-            Serial.println(F("Sending Page"));
-            client.write_P(HTML_text,strlen_P(HTML_text));
+          //req = client.readString();
+          //Serial.println(req);
+          //Serial.println(F("Sending Page"));
+          if (req.indexOf("Chrome") != -1){
+            //client.print("<html><head></head><body>Your browser is not fully supported</body></html>");
+          }
+            int dataLength = strlen_P(HTML_text);
+            client.write_P(HTML_text , dataLength);
             delay(1);                   // to improve compatability with some browsers
           }
+          if (req.indexOf("feedback") != -1){
+                String s;
+                s = F("HTTP/1.1 200 OK\r\n"); 
+                s += F("Content-Type: text/html\r\n\r\n");
+                s += F("<meta http-equiv='refresh' content='1' />");
+                s += F("<!DOCTYPE HTML>\r\n<html>\r\n");
+              //  s += F("<head><style> body{color : White; text-shadow: 1px 1px Black;font-size: 20px; -webkit-user-select : none; -moz-user-select  : none; -khtml-user-select : none; -ms-user-select : none; user-select: none; -o-user-select:none; overflow:hidden;}</style></head>");
+                s += F("<body>");
+                s += F("<script> var tmp = '");//
+                s += String(temperature);
+                s += F("';var dis = '");
+                s += String(distance);
+                s += F("';");
+                s += F("var kph = '");
+                s += String( float(encoderA.getAngularVelocity() * ((70 * PI) / 360) * 0.0036) );
+                s += F("';");
+                s += F("</script></body></html>\n");
+                client.print(s);
+          }
         }
+         client.flush();
 }
 
 void setupWiFi()
@@ -232,12 +246,50 @@ void setupWiFi()
 
 void initHardware()
 {
-  Serial.begin(115200);
-  delay(100);
+  Serial.begin(9600);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  //ping.begin(D6,D7,9600);
+  delay(200);
   Serial.swap();
-  //ping.begin(D7,D8,9600);
   ping.begin(Serial);
+  strip.Begin();
+  strip.Show();
+  smile();
+  encoderA.begin(motorLeftEncoder , 40);
+  encoderB.begin(motorRightEncoder , 40);
 }
+
+void pixelTest(){
+  // this resets all the neopixels to an off state
+    byte brightness = 50; // max is 255
+    strip.SetPixelColor(0, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.SetPixelColor(1, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.SetPixelColor(2, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.SetPixelColor(3, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.SetPixelColor(4, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.SetPixelColor(5, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
+    strip.Show();
+}
+void smile(){
+    int a = 25, b = 0;
+    strip.SetPixelColor(0, RgbColor(0,0,0));
+    strip.SetPixelColor(1, RgbColor(0,0,0));
+    strip.SetPixelColor(2, RgbColor(0,0,0));
+    strip.SetPixelColor(3, RgbColor(a,0,0));
+    strip.SetPixelColor(4, RgbColor(a,0,0));
+    strip.SetPixelColor(5, RgbColor(a,0,0));
+    strip.Show();
+    delay(3000);
+    for ( b = 0; b <= a ; b++){
+    strip.SetPixelColor(0, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
+    strip.SetPixelColor(2, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
+    strip.SetPixelColor(3, RgbColor(a-b,0,0));
+    strip.SetPixelColor(4, RgbColor(a-b,b,0));
+    strip.SetPixelColor(5, RgbColor(a-b,0,0));
+    strip.Show();
+    delay(4+a-b);
+    }
+}
+

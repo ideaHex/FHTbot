@@ -44,12 +44,18 @@ class motorController {
   int PWMFrequency = 1000; //Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023; // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   float minMotorSpeed = 0.1;
+  int lastX = 0, lastY = 0;
   
   // private functions
   int getPWM1(int,float);
   int getPWM2(int,float);
   float checkNormal(float);
   int checkMinimumSpeed(int,float);
+  int makePositive(int);
+  float makePositive(float);
+  void startBoost(int*,int*);
+  int boostDuration = 150; //ms
+  unsigned long boostEndTime;
   
 };
 

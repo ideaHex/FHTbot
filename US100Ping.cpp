@@ -4,7 +4,7 @@
  */
 
 #include "US100Ping.h"
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 US100Ping::US100Ping(){
 }
 

@@ -23,6 +23,8 @@ motorController::motorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 , u
   pinMode(mPB2,OUTPUT);
   pinMode(PWMA,OUTPUT);
   pinMode(PWMB,OUTPUT);
+  lastX = 0;
+  lastY = 0;
 }
 // constructor for h bridge without enable pins for PWM
 // can also be used for h bridge with direction and speed(PWM) pins using (directionA,Unused pin,SpeedA,directionB,Unused pin,SpeedB);
@@ -37,32 +39,45 @@ motorController::motorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 ,ui
   pinMode(mPA2,OUTPUT);
   pinMode(mPB1,OUTPUT);
   pinMode(mPB2,OUTPUT);
+  lastX = 0;
+  lastY = 0;
 }
 void motorController::update(int X, int Y){
   if (X > MAX_range)X = MAX_range;
   if (X < -MAX_range)X = -MAX_range;
   if (Y > MAX_range)Y = MAX_range;
   if (Y < -MAX_range)Y = -MAX_range;
-  int A = Y - int(steeringSensitivity*(X*(Y<=0) - X*(Y>0))); // to fix steering when backwards *(Y<0) + X*(Y>0)
-  int B = Y + int(steeringSensitivity*(X*(Y<=0) - X*(Y>0)));
+  startBoost(&X,&Y); // to overcome initial torque needed to start motors
+  //int A = Y - int(steeringSensitivity*float(X*(Y<=0) - X*(Y>0))); // to fix steering when backwards *(Y<0) + X*(Y>0)
+  //int B = Y + int(steeringSensitivity*float(X*(Y<=0) - X*(Y>0)));
+  //int A = Y - int(steeringSensitivity*float(X*(Y<=0)*(X<0) - X*(Y>0)*(X<0))); // to fix steering when backwards *(Y<0) + X*(Y>0)
+  //int B = Y + int(steeringSensitivity*float(X*(Y<=0)*(X>0) - X*(Y>0))*(X>0));
+  int A = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X<=0) )) + Y*(X>0);
+  int B = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X>=0) )) + Y*(X<0);
+  float float_MAX_range = float(MAX_range);
+  float minTurn = 0.7;//float(makePositive(Y))/float_MAX_range - 0.2;
+  float steeringA = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X<=0) ) + 1.0*(X>0);
+  float steeringB = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X>=0) ) + 1.0*(X<0);
+  if (steeringA < minTurn) steeringA = minTurn; // limit turning to prevent spinout at high speed
+  if (steeringB < minTurn) steeringB = minTurn;
   if (!useEnablePins){// assuming LOW LOW to h bridge is OFF and HIGH HIGH is Break
     
     if (!reverseMotorADirection){
-      analogWrite(mPA1, getPWM1(A,trimA));
-      analogWrite(mPA2, getPWM2(A,trimA));
+      analogWrite(mPA1, getPWM1(A,trimA)*steeringA);
+      analogWrite(mPA2, getPWM2(A,trimA)*steeringA);
     }else{
-      analogWrite(mPA1, getPWM2(A,trimA));
-      analogWrite(mPA2, getPWM1(A,trimA));
+      analogWrite(mPA1, getPWM2(A,trimA)*steeringA);
+      analogWrite(mPA2, getPWM1(A,trimA)*steeringA);
     }
     //Serial.printf("Motor A: 1 %d , 2 %d \r\n",int(getPWM1(A)*trimA),int(getPWM2(A)*trimA));
     //Serial.printf("Motor B: 1 %d , 2 %d \r\n",int(getPWM1(B)*trimB),int(getPWM2(B)*trimB));
     
     if (!reverseMotorBDirection){
-      analogWrite(mPB1, getPWM1(B,trimB));
-      analogWrite(mPB2, getPWM2(B,trimB));
+      analogWrite(mPB1, getPWM1(B,trimB)*steeringB);
+      analogWrite(mPB2, getPWM2(B,trimB)*steeringB);
     }else{
-      analogWrite(mPB1, getPWM2(B,trimB));
-      analogWrite(mPB2, getPWM1(B,trimB));
+      analogWrite(mPB1, getPWM2(B,trimB)*steeringB);
+      analogWrite(mPB2, getPWM1(B,trimB)*steeringB);
     }
     
   }else{ // PWM pins connected to H-Bridge enable
@@ -75,7 +90,7 @@ void motorController::update(int X, int Y){
       digitalWrite(mPA2, (A<0));
     }
     if (A<0) A *= -1;
-    analogWrite(PWMA, getPWM1(A,trimA));
+    analogWrite(PWMA, getPWM1(A,trimA)*steeringA);
     //Serial.printf("Motor A PWM: %d  \r\n", getPWM1(A,trimA)); 
     if (!reverseMotorBDirection){
       digitalWrite(mPB1, (B>0));
@@ -85,7 +100,7 @@ void motorController::update(int X, int Y){
       digitalWrite(mPB2, (B>0));
     }
     if (B<0) B *= -1;
-    analogWrite(PWMB, getPWM1(B,trimB));
+    analogWrite(PWMB, getPWM1(B,trimB)*steeringB);
     //Serial.printf("Motor B PWM: %d \r\n", getPWM1(B,trimB));
   }
 }
@@ -101,7 +116,7 @@ int motorController::getPWM1(int A, float trimN){
 }
 
 int motorController::getPWM2(int A, float trimN){
-  int result = (A<0) * ( ((float(float(A*-1)/float(MAX_range))*PWMWriteRange)* ((A*-1)<MAX_range)) + (((A*-1)>=MAX_range) * PWMWriteRange) );
+  int result = (A<0) * ( ((float(float(-A)/float(MAX_range))*PWMWriteRange)* ((-A)<MAX_range)) + (((-A)>=MAX_range) * PWMWriteRange) );
   result = int(checkMinimumSpeed(result, trimN) * trimN);
   return result;
 }
@@ -152,5 +167,34 @@ void motorController::setMinimumSpeed(float minimumMotorSpeed){
   minMotorSpeed = checkNormal(minimumMotorSpeed);
   if (trimA<minMotorSpeed)trimA=minMotorSpeed;
   if (trimB<minMotorSpeed)trimB=minMotorSpeed;
+}
+int motorController::makePositive(int number){
+  if (number < 0){
+    number = -number;
+  }
+  return number;
+}
+float motorController::makePositive(float number){
+  if (number < 0){
+    number = -number;
+  }
+  return number;
+}
+void motorController::startBoost(int *X ,int *Y){
+  unsigned long currentMillis = millis();
+  if (lastY == 0 || boostEndTime > currentMillis){
+    float startSpeed = MAX_range * minMotorSpeed * 2.0;
+    if ( makePositive(*Y) < startSpeed && *Y != 0){
+      if (*Y > 0){
+        *Y = startSpeed;
+      }
+      else{
+        *Y = -startSpeed;
+      }
+      if (boostEndTime < currentMillis) boostEndTime = currentMillis + boostDuration;
+    }
+  }
+  lastX = *X;
+  lastY = *Y;
 }
 

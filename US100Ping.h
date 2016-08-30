@@ -11,7 +11,7 @@
 #else
 #include <WProgram.h>
 #endif
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 
 class US100Ping {
 
@@ -34,9 +34,9 @@ class US100Ping {
   void startTemperature();
 
   byte pingInterval = 24;                       // minimum time between pings
-  byte globalUpdateSpeed = 1;                   // limit cpu overhead
+  byte globalUpdateSpeed = 2;                   // limit cpu overhead
   int tempInterval = 5000;                      // time between tests for temperature
-  byte sensorTimeout = 100;                     // sensor timeout dont touch
+  byte sensorTimeout = 255;                     // sensor timeout dont touch
   unsigned long nextMillisPing = millis() + pingInterval;
   unsigned long nextMillisTemp = millis() + tempInterval;
   unsigned long nextMillisGlobal = millis() + globalUpdateSpeed;
