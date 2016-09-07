@@ -162,7 +162,6 @@ void loop()
     
     HeartBeatRcvd = true;               // recieved data, must be connected
     // driver assist
-    
     if (distance < 450 && dY < 0){
     setColor(RgbColor(70,85,75));
       dX = 500 - distance;

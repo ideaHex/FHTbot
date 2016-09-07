@@ -17,9 +17,9 @@ void encoder::begin(uint8_t EncoderPin,uint8_t encoderWheelSlots){
 }
 
 boolean encoder::run(){
-  boolean encoderCurrentState = digitalRead(encoderPin);
+  boolean encoderCurrentState = boolean(digitalRead(encoderPin));
   unsigned long currentMicros = micros();
-  int deltaMicros = int(currentMicros - lastMicros);
+  unsigned long deltaMicros = currentMicros - lastMicros;
   if (deltaMicros > TIME_OUT){
       resetEncoder();
       return false;
@@ -35,7 +35,7 @@ boolean encoder::run(){
     lastMicros = currentMicros;
     encoderStepTimingBufferPosition++;
     if (encoderStepTimingBufferPosition >= MAX_STEP_TIMING_BUFFER || millis() >= nextUpdate){
-      double sampleDeltaT = 0;
+      double sampleDeltaT = 0.0;
       for (int a = 0; a < encoderStepTimingBufferPosition; a++){
         sampleDeltaT += encoderStepTiming[a];
       } 
@@ -55,7 +55,7 @@ boolean encoder::run(){
 }
 
 void encoder::resetEncoder(){
-  lastState = digitalRead(encoderPin);
+  lastState = boolean(digitalRead(encoderPin));
   lastMicros = micros();
   encoderStepTimingBufferPosition = 0;
   angularVelocity = 0;

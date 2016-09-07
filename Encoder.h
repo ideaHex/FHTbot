@@ -45,7 +45,7 @@ class encoder {
   double lastSampleDeltaT;
   int updateFrequency = 50;                     // update frequency in milli seconds
   unsigned long nextUpdate;                     // time of next update
-  int debounceMinStepTime = 2000;               // minimum step time in micro seconds
+  unsigned long debounceMinStepTime = 2000;               // minimum step time in micro seconds
   // private encoder functions
 
   
