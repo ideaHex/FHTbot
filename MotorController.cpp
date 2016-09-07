@@ -54,10 +54,8 @@ void motorController::update(int X, int Y){
   //int B = Y + int(steeringSensitivity*float(X*(Y<=0)*(X>0) - X*(Y>0))*(X>0));
   int A = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X<=0) )) + Y*(X>0);
   int B = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X>=0) )) + Y*(X<0);
-  motorADirection = reverse;
-  if (A <= 0)motorADirection = forward;
-  motorBDirection = reverse;
-  if (B <= 0)motorBDirection = forward;
+  if (A < 0){motorADirection = forward;}else{if (A > 0)motorADirection = reverse;} // if A = 0 coasting in same direction
+  if (B < 0){motorBDirection = forward;}else{if (B > 0)motorBDirection = reverse;} // if B = 0 coasting in same direction
   float float_MAX_range = float(MAX_range);
   float minTurn = 0.7;//float(makePositive(Y))/float_MAX_range - 0.2;
   float steeringA = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X<=0) ) + 1.0*(X>0);
