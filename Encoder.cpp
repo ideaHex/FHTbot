@@ -4,7 +4,7 @@
  */
 
  #include "Encoder.h"
-
+ 
  encoder::encoder(){
  }
  
@@ -12,36 +12,46 @@ void encoder::begin(uint8_t EncoderPin,uint8_t encoderWheelSlots){
   encoderPin = EncoderPin;
   pinMode(encoderPin, INPUT);
   slotsPerRevolution = encoderWheelSlots;
-  angularResolution = 360.0 / slotsPerRevolution;
+  angularResolution = 360.0 / slotsPerRevolution / 2.0;
   resetEncoder();
 }
 
-void encoder::run(){
+boolean encoder::run(){
   boolean encoderCurrentState = digitalRead(encoderPin);
   unsigned long currentMicros = micros();
-  if (encoderCurrentState != lastState){ // new step
+  int deltaMicros = int(currentMicros - lastMicros);
+  if (deltaMicros > TIME_OUT){
+      resetEncoder();
+      return false;
+    }
+  
+  if (encoderCurrentState != lastState && deltaMicros > debounceMinStepTime){ // new step
+    steps++;
+    sampleSteps++;
     lastState = encoderCurrentState;
-    encoderStepTiming[encoderStepTimingBufferPosition] = int(currentMicros - lastMicros);
+    encoderStepTiming[encoderStepTimingBufferPosition] = deltaMicros;
     // TODO: check timing of previous steps to test for missed steps
     instantaniousAngularVelocity = double( angularResolution / ( (encoderStepTiming[encoderStepTimingBufferPosition]) / 1000000.0) ); // degrees per second
     lastMicros = currentMicros;
-    //Serial.printf("a: %d \r\n",int(instantaniousAngularVelocity));
     encoderStepTimingBufferPosition++;
-    if (encoderStepTimingBufferPosition == MAX_STEP_TIMING_BUFFER){ // cyclic buffer
+    if (encoderStepTimingBufferPosition >= MAX_STEP_TIMING_BUFFER || millis() >= nextUpdate){
+      double sampleDeltaT = 0;
+      for (int a = 0; a < encoderStepTimingBufferPosition; a++){
+        sampleDeltaT += encoderStepTiming[a];
+      } 
+      double lastAngularVelocity = angularVelocity;
+      angularVelocity = angularResolution / (double(sampleDeltaT / double(encoderStepTimingBufferPosition)) / 1000000.0);// averaged over the buffer duration
+      angularAcceleration = (angularVelocity - lastAngularVelocity) / ((sampleDeltaT + lastSampleDeltaT) / 1000000.0);// dw/dt    degrees per second^2
+      lastSampleDeltaT = sampleDeltaT;
       encoderStepTimingBufferPosition = 0;
-      double velocityCount = 0;
-      for (int a = 0; a < MAX_STEP_TIMING_BUFFER; a++){
-        velocityCount += encoderStepTiming[a];
-      }
-      angularVelocity = angularResolution / (double(velocityCount / double(MAX_STEP_TIMING_BUFFER)) / 1000000.0);
-      //Serial.printf("av: %d deg/s \r\n" , int(velocityCount) );
-      double kph = (angularVelocity * ((70 * PI) / 360)) * 0.0036;
-      String speedKPH = "Av speed: ";
-      speedKPH += kph;
-      speedKPH += " Kph";
-      //Serial.println(speedKPH);
+      lastSampleSteps = sampleSteps;
+      sampleSteps = 0;
+      nextUpdate = millis() + updateFrequency;
+      return true;
     }
+    return true;
   }
+  return false;
 }
 
 void encoder::resetEncoder(){
@@ -49,12 +59,26 @@ void encoder::resetEncoder(){
   lastMicros = micros();
   encoderStepTimingBufferPosition = 0;
   angularVelocity = 0;
-  for (int a = 0; a < MAX_STEP_TIMING_BUFFER; a++){ // clear buffer
-    encoderStepTiming[a] = 0;
-  }
+  angularAcceleration = 0;
+  lastSampleDeltaT = 0;
+  steps = 0;
+  sampleSteps = 0;
+  lastSampleSteps = 0;
+  nextUpdate = lastMicros + updateFrequency;
 }
 
 double encoder::getAngularVelocity(){
   return angularVelocity;
+}
+
+unsigned long encoder::getSteps(){
+  return steps;
+}
+
+double encoder::getAngularAcceleration(){
+  return angularAcceleration;
+}
+int encoder::getSampleSteps(){
+  return lastSampleSteps;
 }
 

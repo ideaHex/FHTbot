@@ -505,11 +505,8 @@ VirtualJoystick.prototype._check3D = function()
         + ' dy:' + dy;
         moveit(dx,dy);
         var outputE2 = document.getElementById('resulttoo');
-        //var iframe = document.getElementById('feedback');
-        //var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-        //if (iframeDoc.readyState  == 'complete'){
         if (window.feedback.tmp !== undefined && window.feedback.dis !== undefined){
-        outputE2.innerHTML  = '<br>Temp: ' + window.feedback.tmp + ' ºC, Range: ' + window.feedback.dis +' mm, Speed: ' + window.feedback.kph + ' Kph';
+        outputE2.innerHTML  = '<br>Temp: ' + window.feedback.tmp + ' ºC, Range: ' + window.feedback.dis +' mm,<br>Spd: ' + window.feedback.kph + ' Kph, Acel: ' + window.feedback.acl + ' M/s^2, Moved: ' + window.feedback.movd + ' mm<br>Headding: ' + window.feedback.hed + ' º,<br>Max Loop Time: ' + window.feedback.mlt + ' uS';
         }
       },  100);
 

@@ -11,7 +11,7 @@
 #else
 #include <WProgram.h>
 #endif
-
+#include "Encoder.h"
 class motorController {
 
   public:
@@ -26,6 +26,12 @@ class motorController {
   void setPWMFrequency(int);
   void setPWMFrequency(int,int);
   void setMinimumSpeed(float);
+  void addEncoders(uint8_t,uint8_t);
+  void run();
+  double getheading();
+  double getSpeed();
+  double getTravel();
+  double getAcceleration();
   
   private:
   uint8_t mPA1;
@@ -45,6 +51,19 @@ class motorController {
   int PWMWriteRange = 1023; // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   float minMotorSpeed = 0.1;
   int lastX = 0, lastY = 0;
+  encoder encoderA;
+  encoder encoderB;
+  double encoderWheelSlots = 20;
+  float wheelDiameter = 70.5;//mm
+  double axleLength = 112.0; // distance between wheel centers
+  double axleCircumference = (axleLength * 2.0) * PI;
+  double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
+  double anglePerStep = (distancePerStep / axleCircumference) * 360.0;
+  double heading = 0.0;
+  #define forward 1
+  #define reverse 2
+  int motorADirection;
+  int motorBDirection;
   
   // private functions
   int getPWM1(int,float);
@@ -56,6 +75,7 @@ class motorController {
   void startBoost(int*,int*);
   int boostDuration = 150; //ms
   unsigned long boostEndTime;
+  
   
 };
 

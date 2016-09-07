@@ -5,7 +5,7 @@
  */
 
 #include "MotorController.h"
-
+#include "Encoder.h"
 
 // constructor for h bridge with enable pins for PWM
 motorController::motorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 , uint8_t PWM_A_pin,uint8_t motorB_pin_1 , uint8_t motorB_pin_2,uint8_t PWM_B_pin){
@@ -54,6 +54,10 @@ void motorController::update(int X, int Y){
   //int B = Y + int(steeringSensitivity*float(X*(Y<=0)*(X>0) - X*(Y>0))*(X>0));
   int A = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X<=0) )) + Y*(X>0);
   int B = Y;//int(Y * float( ((float(MAX_range/steeringSensitivity - makePositive(X))) / float(MAX_range/steeringSensitivity))*(X>=0) )) + Y*(X<0);
+  motorADirection = reverse;
+  if (A <= 0)motorADirection = forward;
+  motorBDirection = reverse;
+  if (B <= 0)motorBDirection = forward;
   float float_MAX_range = float(MAX_range);
   float minTurn = 0.7;//float(makePositive(Y))/float_MAX_range - 0.2;
   float steeringA = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X<=0) ) + 1.0*(X>0);
@@ -196,5 +200,41 @@ void motorController::startBoost(int *X ,int *Y){
   }
   lastX = *X;
   lastY = *Y;
+}
+void motorController::addEncoders(uint8_t A,uint8_t B){
+  encoderA.begin(A , encoderWheelSlots);
+  encoderB.begin(B , encoderWheelSlots);
+}
+void motorController::run(){
+  if (encoderA.run()){
+      if (motorADirection == forward)heading += anglePerStep;
+      else heading -= anglePerStep;
+    if (heading > 360)heading -= 360.0;
+    else if (heading < 0)heading += 360.0;
+   }
+   if (encoderB.run()){
+      if (motorBDirection == forward) heading -= anglePerStep;
+      else heading += anglePerStep;
+    if (heading > 360)heading -= 360.0;
+    else if (heading < 0)heading += 360.0;
+   }
+}
+double motorController::getheading(){
+  return heading;
+}
+double motorController::getSpeed(){
+  double velocity = (encoderA.getAngularVelocity() + encoderB.getAngularVelocity()) / 2.0; // average between both wheels
+         velocity = float(velocity * ((wheelDiameter * PI) / 360.0) * 0.0036);  // convert to Kph
+         return velocity;
+}
+double motorController::getTravel(){
+   int steps = (encoderA.getSteps() + encoderB.getSteps()) / 2.0;
+   int travel = int(steps * distancePerStep );
+       return travel;
+}
+double motorController::getAcceleration(){
+  double acceleration = (encoderA.getAngularAcceleration() + encoderB.getAngularAcceleration()) / 2.0;
+         acceleration = double(acceleration * ((wheelDiameter * PI) / 360.0) / 1000.0);
+         return acceleration;
 }
 

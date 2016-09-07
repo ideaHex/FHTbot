@@ -40,9 +40,9 @@ void pixelTest(void);
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
-const int motorRightA = D1;
+const int motorRightA = D3;
 const int motorRightB = D2;
-const int motorLeftEncoder = D3;
+const int motorLeftEncoder = D1;
 const int motorRightEncoder = D0;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
@@ -67,7 +67,7 @@ const int motorRightSpd =  D5;
 
 motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
 */
-WiFiServer server(80);                  // http only https is 443
+WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
@@ -76,8 +76,8 @@ byte clientTimeout = 150;
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
 NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4); // 6 pixels, output pin D4, function ignores pin
-encoder encoderA;
-encoder encoderB;
+int temperature = 0;
+int distance = 0;
 
 bool HeartBeatRcvd = false;
 
@@ -100,22 +100,23 @@ void CheckHeartBeat(void)
 
 void setup()
 {
-  system_update_cpu_freq(80);        // set cpu to 80MHZ or 160MHZ !
+  system_update_cpu_freq(160);        // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
   motors.setTrim(0.95,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
-  motors.setPWMFrequency(60);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  motors.setMinimumSpeed(0.07);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+  motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  motors.setMinimumSpeed(0.06);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 }
-int temperature = 0;
-int distance = 0;
+unsigned long maxLoopTime = 0;
+unsigned long lastMicrosTime;
 void loop()
 {
+  if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
+  lastMicrosTime = micros();
   // time dependant functions here
-   encoderA.run();
-   encoderB.run();
+   motors.run();
    ping.run();
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
@@ -123,13 +124,13 @@ void loop()
    }
    if (ping.gotDistance()){
     distance = ping.getDistance();
-    if (distance < 130){
-        motors.update(0,80);
+    if (distance < 200){
+        setColor(RgbColor(255,0,0));
+        motors.update(0,50);
       }
     //Serial.printf("distance: %d mm \r\n", distance);
    }
    dnsServer.processNextRequest();
-
    // client functions here
    if (clientStopped){
     client = server.available();
@@ -161,7 +162,9 @@ void loop()
     
     HeartBeatRcvd = true;               // recieved data, must be connected
     // driver assist
+    
     if (distance < 450 && dY < 0){
+    setColor(RgbColor(70,85,75));
       dX = 500 - distance;
       if (dY < -40 ){
         //dX = 0;
@@ -188,24 +191,27 @@ void loop()
             int dataLength = strlen_P(HTML_text);
             client.write_P(HTML_text , dataLength);
             delay(1);                   // to improve compatability with some browsers
+            lastMicrosTime = micros();
+            maxLoopTime = 0;
           }
           if (req.indexOf("feedback") != -1){
                 String s;
-                s = F("HTTP/1.1 200 OK\r\n"); 
-                s += F("Content-Type: text/html\r\n\r\n");
-                s += F("<meta http-equiv='refresh' content='1' />");
-                s += F("<!DOCTYPE HTML>\r\n<html>\r\n");
-              //  s += F("<head><style> body{color : White; text-shadow: 1px 1px Black;font-size: 20px; -webkit-user-select : none; -moz-user-select  : none; -khtml-user-select : none; -ms-user-select : none; user-select: none; -o-user-select:none; overflow:hidden;}</style></head>");
-                s += F("<body>");
-                s += F("<script> var tmp = '");//
-                s += String(temperature);
-                s += F("';var dis = '");
-                s += String(distance);
-                s += F("';");
-                s += F("var kph = '");
-                s += String( float(encoderA.getAngularVelocity() * ((70 * PI) / 360) * 0.0036) );
-                s += F("';");
-                s += F("</script></body></html>\n");
+                s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='1'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
+                s += ("var tmp=");
+                s += temperature;
+                s += (";var dis=");
+                s += distance;
+                s += (";var kph=");
+                s += motors.getSpeed();
+                s += (";var movd=");
+                s += motors.getTravel();
+                s += (";var acl=");
+                s += motors.getAcceleration();
+                s += (";var hed=");
+                s += motors.getheading();
+                s += (";var mlt=");
+                s += maxLoopTime;
+                s += (";</script></body></html>\n");
                 client.print(s);
           }
         }
@@ -250,20 +256,17 @@ void initHardware()
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
-  //ping.begin(D6,D7,9600);
   delay(200);
   Serial.swap();
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
   smile();
-  encoderA.begin(motorLeftEncoder , 40);
-  encoderB.begin(motorRightEncoder , 40);
+  motors.addEncoders(motorLeftEncoder,motorRightEncoder);
 }
 
 void pixelTest(){
-  // this resets all the neopixels to an off state
-    byte brightness = 50; // max is 255
+    byte brightness = 20; // max is 255
     strip.SetPixelColor(0, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(1, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(2, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
@@ -281,7 +284,8 @@ void smile(){
     strip.SetPixelColor(4, RgbColor(a,0,0));
     strip.SetPixelColor(5, RgbColor(a,0,0));
     strip.Show();
-    delay(3000);
+    //delay(2000);
+    sound();
     for ( b = 0; b <= a ; b++){
     strip.SetPixelColor(0, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
     strip.SetPixelColor(2, RgbColor(b*(b<0.5*a)+(a-b)*(b>=0.5*a),b,0));
@@ -291,5 +295,67 @@ void smile(){
     strip.Show();
     delay(4+a-b);
     }
+}
+void setColor(RgbColor color){
+    strip.SetPixelColor(0, color);
+    strip.SetPixelColor(1, color);
+    strip.SetPixelColor(2, color);
+    strip.SetPixelColor(3, color);
+    strip.SetPixelColor(4, color);
+    strip.SetPixelColor(5, color);
+    strip.Show();
+}
+void sound(){
+  motors.update(0,-1);
+  delay(1);
+  motors.setPWMFrequency(78000);
+  double a=0;
+  while (a<1000){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(250);
+  motors.update(0,-1000);
+  delayMicroseconds(250);
+  }
+  motors.update(0,0);
+  delay(10);
+  //motors.setPWMFrequency(78000);
+  a=0;
+  while (a<500){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(608);
+  motors.update(0,-1000);
+  delayMicroseconds(608);
+  }
+  motors.update(0,0);
+  delay(10);
+ // motors.setPWMFrequency(78000);
+  a=0;
+  while (a<1000){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(357);//714
+  motors.update(0,-1000);
+  delayMicroseconds(357);
+  }
+  motors.update(0,0);
+  delay(10);
+  for (a = 100; a < 3000; a+=1){
+  motors.setPWMFrequency(a);
+  motors.update(0,1000);
+  delayMicroseconds(100);
+  motors.update(0,-1000);
+  delayMicroseconds(100);
+  }
+  delay(0);
+  for ( a= 3000; a > 100; a-=0.50){
+  motors.setPWMFrequency(a);
+  motors.update(0,1000);
+  delayMicroseconds(50);
+  motors.update(0,-1000);
+  delayMicroseconds(50);
+  }
+  motors.update(0,0);
 }
 
