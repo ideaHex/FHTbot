@@ -64,7 +64,7 @@ void encoder::resetEncoder(){
   steps = 0;
   sampleSteps = 0;
   lastSampleSteps = 0;
-  nextUpdate = lastMicros + updateFrequency;
+  nextUpdate = millis() + updateFrequency;
 }
 
 double encoder::getAngularVelocity(){
