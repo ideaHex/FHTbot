@@ -54,7 +54,7 @@ class motorController {
   encoder encoderA;
   encoder encoderB;
   double encoderWheelSlots = 20;
-  float wheelDiameter = 64;//mm 70.5
+  float wheelDiameter = 64.8;//mm 70.5
   double axleLength = 97.0; // distance between wheel centers
   double axleCircumference = (axleLength * 2.0) * PI;
   double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
