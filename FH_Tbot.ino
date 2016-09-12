@@ -10,31 +10,20 @@
 #include "MotorController.h"
 #include "US100Ping.h"
 #include <NeoPixelBus.h>
+#include "Encoder.h"
+#include "NeoPixelAnimations.h"
 
 // WebPage
 #include "WebPage.h"
+#include "Images.h"
+#include "WebPage_StartPage.h"
+#include "WebPage_CreditsPage.h"
+#include "WebPage_AboutPage.h"
+#include "WebPage_ProgramMode.h"
 
 extern "C" { 
    #include "user_interface.h" 
  } 
-
-//////////////////////
-// RGB LEDs //
-//////////////////////
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-//   NEO_RGBW    Pixels are wired for RGBW bitstream (NeoPixel RGBW products)
-#define PIN D4
-#define NUMPIXELS      6
-NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6,D4);//6 [pixels on pin d4]
-int delayval = 500; // delay for half a second
-boolean useBlinkers = true;
-            
 
 
 //////////////////////
@@ -51,20 +40,24 @@ void initHardware(void);
 // Pin Definitions //
 /////////////////////
 
+// D4 is used for neoPixelBus (TXD1)
+
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
 const int motorRightA = D3;
 const int motorRightB = D2;
+const int motorLeftEncoder = D1;
+const int motorRightEncoder = D0;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
 /*
 // stepper with direction and speed pins, don't use D0 for speed
-const int motorLeftDir  = D2;
-const int motorLeftSpd  = D1;
-const int motorRightDir = D5;
-const int motorRightSpd = D6;
+const int motorLeftDir  = D3;
+const int motorLeftSpd  = D2;
+const int motorRightDir = D7;
+const int motorRightSpd = D8;
 
 motorController motors(motorLeftDir,D5,motorLeftSpd,motorRightDir,D4,motorRightSpd); 
 */
@@ -79,14 +72,17 @@ const int motorRightSpd =  D5;
 
 motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
 */
-WiFiServer server(80);                  // http only https is 443
+WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 US100Ping ping;
-byte clientTimeout = 150;
+int clientTimeout = 150;
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
+//NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4); // 6 pixels, output pin D4, function ignores pin
+int temperature = 0;
+int distance = 0;
 
 bool HeartBeatRcvd = false;
 
@@ -103,8 +99,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();
-    // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                          // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -169,42 +164,37 @@ void updateBlinkers(int indexOfX, int indexOfY){
 
 void setup()
 {
-  //system_update_cpu_freq(160);        // set cpu to 160MHZ !
+  system_update_cpu_freq(160);        // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
-  Stop();
   //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
-  //motors.setSteeringSensitivity(0.5);  // this setting is optional
-  motors.setPWMFrequency(50);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  //motors.setMinimumSpeed(0.25);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-    
-  strip.Begin();
-  strip.Show(); // Initialize all pixels to 'off'
-     //////////////////////////
- for(int i=0;i<NUMPIXELS;i++){
-
-    // strip.Color takes RGB values, from 0,0,0 up to 255,255,255
-    strip.SetPixelColor(i, RgbColor(0,40,0)); // Moderately bright green color.
-
-  }
-  strip.Show(); // This sends the updated pixel color to the hardware.
-  //delay(delayval); // Delay for a period of time (in milliseconds).
-    
-
-  
-  /////////////////////////////////////////////
-  
-  }
-
+  //motors.setSteeringSensitivity(0.9);  // this setting is optional
+  motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
+  motors.setMinimumSpeed(0.08);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+}
+unsigned long maxLoopTime = 0;
+unsigned long lastMicrosTime;
 void loop()
 {
+  if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
+  lastMicrosTime = micros();
   // time dependant functions here
+   motors.run();
    ping.run();
-   if (ping.gotTemperature()) Serial.printf("Temperature: %d C \r\n", ping.getTemperature());
-   if (ping.gotDistance()) Serial.printf("distance: %d mm \r\n", ping.getDistance());
+   if (ping.gotTemperature()){
+    temperature = ping.getTemperature();
+    //Serial.printf("Temperature: %d C \r\n", temperature);
+   }
+   if (ping.gotDistance()){
+    distance = ping.getDistance();
+    if (distance < 200){
+       // setColor(RgbColor(255,0,0));
+       // motors.update(0,50);
+      }
+    //Serial.printf("distance: %d mm \r\n", distance);
+   }
    dnsServer.processNextRequest();
-
    // client functions here
    if (clientStopped){
     client = server.available();
@@ -221,21 +211,30 @@ void loop()
   {
     return;
   }
-  
   // Read the first line of the request
   String req = client.readStringUntil('\r');
   //Serial.println(req);
   //Serial.println(client.readString());
-  client.flush();
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
-    
+    pixelTest();
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
     
+    HeartBeatRcvd = true;               // recieved data, must be connected
+    // driver assist
+    /*
+    if (distance < 450 && dY < 0){
+    setColor(RgbColor(70,85,75));
+      dX = 500 - distance;
+      if (dY < -40 ){
+        //dX = 0;
+        dY = -40;
+      }
+    }*/
     motors.update(dX,dY);
 
         
@@ -246,21 +245,96 @@ void loop()
     //Serial.print(F("Free Ram: "));
     //Serial.println(system_get_free_heap_size());
 
-    HeartBeatRcvd = true;               // recieved data, must be connected
-
     //Blinker Addon
     //Only operates if enabled in RGB options above
     if(useBlinkers == true){
       updateBlinkers(dX,dY);
     }
-
   }else{
-        if (req.indexOf("GET / HTTP/1.1") != -1){
-            Serial.println(F("Sending Page"));
-            client.write_P(HTML_text,strlen_P(HTML_text));
-            delay(1);                   // to improve compatability with some browsers
+        if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
+          int dataLength = strlen_P(startPage);
+            delay(1);
+            client.write_P(startPage , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(startPage1);
+            client.write_P(startPage1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("Credits") != -1){ // credits page
+          int dataLength = strlen_P(creditsPage);
+            delay(1);
+            client.write_P(creditsPage , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(creditsPage1);
+            client.write_P(creditsPage1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("Prog") != -1){ // credits page
+          int dataLength = strlen_P(programMode);
+            delay(1);
+            client.write_P(programMode , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("About") != -1){ // credits page
+          int dataLength = strlen_P(aboutPage);
+            delay(1);
+            client.write_P(aboutPage , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(aboutPage1);
+            client.write_P(aboutPage1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("Start") != -1){                // free drive mode
+          //req = client.readString();
+          //Serial.println(req);
+          //Serial.println(F("Sending Page"));
+          if (req.indexOf("Chrome") != -1){
+            //client.print("<html><head></head><body>Your browser is not fully supported</body></html>");
+          }
+            int dataLength = strlen_P(HTML_text);
+            delay(1);
+            client.write_P(HTML_text , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(HTML_text1);
+            client.write_P(HTML_text1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+            lastMicrosTime = micros();
+            maxLoopTime = 0;
+          }
+          if (req.indexOf("feedback") != -1){
+                String s;
+                s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='3'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
+                s += ("var tmp=");
+                s += temperature;
+                s += (";var dis=");
+                s += distance;
+                s += (";var kph=");
+                s += motors.getSpeed();
+                s += (";var movd=");
+                s += motors.getTravel();
+                s += (";var acl=");
+                s += motors.getAcceleration();
+                s += (";var hed=");
+                s += motors.getheading();
+                s += (";var mlt=");
+                s += maxLoopTime;
+                s += (";</script></body></html>\n");
+                client.print(s);
           }
         }
+         client.flush();
 }
 
 void setupWiFi()
@@ -297,12 +371,71 @@ void setupWiFi()
 
 void initHardware()
 {
-  Serial.begin(115200);
-  delay(100);
+  Serial.begin(9600);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  delay(200);
   Serial.swap();
-  //ping.begin(D7,D8,9600);
   ping.begin(Serial);
+  strip.Begin();
+  strip.Show();
+  smile();
+  motors.addEncoders(motorLeftEncoder,motorRightEncoder);
 }
+
+
+void sound(){
+  motors.update(0,-1);
+  delay(1);
+  motors.setPWMFrequency(78000);
+  double a=0;
+  while (a<1000){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(250);
+  motors.update(0,-1000);
+  delayMicroseconds(250);
+  }
+  motors.update(0,0);
+  delay(10);
+  //motors.setPWMFrequency(78000);
+  a=0;
+  while (a<500){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(608);
+  motors.update(0,-1000);
+  delayMicroseconds(608);
+  }
+  motors.update(0,0);
+  delay(10);
+ // motors.setPWMFrequency(78000);
+  a=0;
+  while (a<1000){
+    a++;
+  motors.update(0,1000);
+  delayMicroseconds(357);//714
+  motors.update(0,-1000);
+  delayMicroseconds(357);
+  }
+  motors.update(0,0);
+  delay(10);
+  for (a = 100; a < 3000; a+=1){
+  motors.setPWMFrequency(a);
+  motors.update(0,1000);
+  delayMicroseconds(100);
+  motors.update(0,-1000);
+  delayMicroseconds(100);
+  }
+  delay(0);
+  for ( a= 3000; a > 100; a-=0.50){
+  motors.setPWMFrequency(a);
+  motors.update(0,1000);
+  delayMicroseconds(50);
+  motors.update(0,-1000);
+  delayMicroseconds(50);
+  }
+  motors.update(0,0);
+}
+
