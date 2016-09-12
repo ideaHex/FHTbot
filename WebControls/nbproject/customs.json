@@ -1,0 +1,22 @@
+{
+    "attributes": {},
+    "elements": {
+        "field": {},
+        "category": {
+            "attributes": {
+                "colour": {},
+                "name": {},
+                "custom": {}
+            }
+        },
+        "shadow": {},
+        "value": {},
+        "block": {},
+        "xml": {
+            "attributes": {
+                "id": {},
+                "style": {}
+            }
+        }
+    }
+}
