@@ -16,7 +16,10 @@
 // WebPage
 #include "WebPage.h"
 #include "Images.h"
-#include "Webpage_StartPage.h"
+#include "WebPage_StartPage.h"
+#include "WebPage_CreditsPage.h"
+#include "WebPage_AboutPage.h"
+#include "WebPage_ProgramMode.h"
 
 extern "C" { 
    #include "user_interface.h" 
@@ -183,7 +186,7 @@ void loop()
     //Serial.println(system_get_free_heap_size());
 
   }else{
-        if (req.indexOf("GET / HTTP/1.1") != -1){ // startpage
+        if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
           int dataLength = strlen_P(startPage);
             delay(1);
             client.write_P(startPage , dataLength);
@@ -195,7 +198,37 @@ void loop()
             client.write_P(startPage1 , dataLength);
             delay(1);                                     // to improve compatability with some browsers
           }
-          if (req.indexOf("Start") != -1){
+          if (req.indexOf("Credits") != -1){ // credits page
+          int dataLength = strlen_P(creditsPage);
+            delay(1);
+            client.write_P(creditsPage , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(creditsPage1);
+            client.write_P(creditsPage1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("Prog") != -1){ // credits page
+          int dataLength = strlen_P(programMode);
+            delay(1);
+            client.write_P(programMode , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("About") != -1){ // credits page
+          int dataLength = strlen_P(aboutPage);
+            delay(1);
+            client.write_P(aboutPage , dataLength);
+            delay(1);                   
+            dataLength = strlen_P(hackerspaceImage);
+            client.write_P(hackerspaceImage , dataLength);
+            delay(1);
+            dataLength = strlen_P(aboutPage1);
+            client.write_P(aboutPage1 , dataLength);
+            delay(1);                                     // to improve compatability with some browsers
+          }
+          if (req.indexOf("Start") != -1){                // free drive mode
           //req = client.readString();
           //Serial.println(req);
           //Serial.println(F("Sending Page"));
