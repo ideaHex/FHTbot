@@ -102,7 +102,12 @@ and open the template in the editor.
         var blocklyArea = document.getElementById('blocklyArea');
         var blocklyDiv = document.getElementById('blocklyDiv');
         var workspace = Blockly.inject('blocklyDiv',
-                      {toolbox: document.getElementById('toolbox')});
+                      {toolbox: document.getElementById('toolbox'),
+                        grid:{spacing: 40,
+                            length: 5,
+                            colour: '#ccc',
+                            snap: true},
+                        trashcan: true});
         //Listener for screen resizing
         var onresize = function (e) {
             // Compute the absolute coordinates and dimensions of blocklyArea.
