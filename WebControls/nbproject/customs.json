@@ -30,5 +30,7 @@
             }
         }
     },
-    "attributes": {}
+    "attributes": {
+        "type": {}
+    }
 }
