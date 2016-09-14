@@ -42,7 +42,7 @@ h1 {
   <body>
     <div>
       <h1><span><font face="Comic Sans MS">About</font></span></h1>
-      <h3><span>Text Here</span></h3>
+      <h3><span><br>The software that has been heavily worked on by Tilden can be found on Git hub here. https://github.com/ideaHex/FH_Tbot</span></h3>
     </div>
     <br><br>
     <table style="width:100%"><tr>
