@@ -5,6 +5,7 @@
 
  
 #include <ESP8266WiFi.h>
+#include "FS.h"
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "MotorController.h"
@@ -35,6 +36,7 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 
 void setupWiFi(void);
 void initHardware(void);
+void sendFile(File);
 
 /////////////////////
 // Pin Definitions //
@@ -52,26 +54,6 @@ const int motorRightEncoder = D0;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
-/*
-// stepper with direction and speed pins, don't use D0 for speed
-const int motorLeftDir  = D3;
-const int motorLeftSpd  = D2;
-const int motorRightDir = D7;
-const int motorRightSpd = D8;
-
-motorController motors(motorLeftDir,D5,motorLeftSpd,motorRightDir,D4,motorRightSpd); 
-*/
-/*
-// stepper with 2 motor pins and a enable pin per motor, don't use D0 for speed
-const int motorLeftA    =  D1;
-const int motorLeftB    =  D0;
-const int motorLeftSpd  =  D2;
-const int motorRightA   =  D3;
-const int motorRightB   =  D4;
-const int motorRightSpd =  D5;
-
-motorController motors(motorLeftA,motorLeftB,motorLeftSpd,motorRightA,motorRightB,motorRightSpd); 
-*/
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -80,7 +62,6 @@ US100Ping ping;
 int clientTimeout = 150;
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
-//NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4); // 6 pixels, output pin D4, function ignores pin
 int temperature = 0;
 int distance = 0;
 
@@ -99,13 +80,13 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();                          // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                             // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
 void setup()
 {
-  system_update_cpu_freq(160);        // set cpu to 80MHZ or 160MHZ !
+  system_update_cpu_freq(160);          // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
@@ -125,7 +106,6 @@ void loop()
    ping.run();
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
-    //Serial.printf("Temperature: %d C \r\n", temperature);
    }
    if (ping.gotDistance()){
     distance = ping.getDistance();
@@ -133,7 +113,6 @@ void loop()
        // setColor(RgbColor(255,0,0));
        // motors.update(0,50);
       }
-    //Serial.printf("distance: %d mm \r\n", distance);
    }
    dnsServer.processNextRequest();
    // client functions here
@@ -177,71 +156,73 @@ void loop()
       }
     }*/
     motors.update(dX,dY);
-    
-    //Serial.print(F("DX: "));
-    //Serial.print(dX);
-    //Serial.print(F(" DY: "));
-    //Serial.println(dY);
-    //Serial.print(F("Free Ram: "));
-    //Serial.println(system_get_free_heap_size());
-
   }else{
         if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
           int dataLength = strlen_P(startPage);
-            delay(1);
+            yield();
             client.write_P(startPage , dataLength);
-            delay(1);                   
+            yield();
             dataLength = strlen_P(hackerspaceImage);
             client.write_P(hackerspaceImage , dataLength);
-            delay(1);
+            yield();
             dataLength = strlen_P(startPage1);
             client.write_P(startPage1 , dataLength);
             delay(1);                                     // to improve compatability with some browsers
           }
-          if (req.indexOf("Credits") != -1){ // credits page
+          String fileString = req.substring(4, (req.length() - 9));
+          if (fileString.indexOf("png") != -1){
+            File dataFile = SPIFFS.open(fileString, "r");
+            sendFile(dataFile);
+            dataFile.close();
+          }
+          if (req.indexOf("Credits") != -1){              // credits page
           int dataLength = strlen_P(creditsPage);
-            delay(1);
+            yield();
             client.write_P(creditsPage , dataLength);
-            delay(1);                   
+            yield();                   
             dataLength = strlen_P(hackerspaceImage);
             client.write_P(hackerspaceImage , dataLength);
-            delay(1);
+            yield();
             dataLength = strlen_P(creditsPage1);
             client.write_P(creditsPage1 , dataLength);
             delay(1);                                     // to improve compatability with some browsers
           }
           if (req.indexOf("Prog") != -1){ // credits page
           int dataLength = strlen_P(programMode);
-            delay(1);
+            yield();
             client.write_P(programMode , dataLength);
             delay(1);                                     // to improve compatability with some browsers
           }
           if (req.indexOf("About") != -1){ // credits page
           int dataLength = strlen_P(aboutPage);
-            delay(1);
+            yield();
             client.write_P(aboutPage , dataLength);
-            delay(1);                   
+            yield();                   
             dataLength = strlen_P(hackerspaceImage);
             client.write_P(hackerspaceImage , dataLength);
-            delay(1);
+            yield();
             dataLength = strlen_P(aboutPage1);
             client.write_P(aboutPage1 , dataLength);
             delay(1);                                     // to improve compatability with some browsers
           }
           if (req.indexOf("Start") != -1){                // free drive mode
-          //req = client.readString();
-          //Serial.println(req);
-          //Serial.println(F("Sending Page"));
-          if (req.indexOf("Chrome") != -1){
+            boolean Chrome = false;
+            if (req.indexOf("Chrome") != -1){
+              Chrome = true;
             //client.print("<html><head></head><body>Your browser is not fully supported</body></html>");
-          }
+            }
             int dataLength = strlen_P(HTML_text);
-            delay(1);
+            yield();
             client.write_P(HTML_text , dataLength);
-            delay(1);                   
+            yield();
+            if (!Chrome){
             dataLength = strlen_P(hackerspaceImage);
             client.write_P(hackerspaceImage , dataLength);
-            delay(1);
+            }else{
+              dataLength = strlen_P(hackerspaceImageChrome);
+              client.write_P(hackerspaceImageChrome , dataLength);
+            }
+            yield();
             dataLength = strlen_P(HTML_text1);
             client.write_P(HTML_text1 , dataLength);
             delay(1);                                     // to improve compatability with some browsers
@@ -250,7 +231,7 @@ void loop()
           }
           if (req.indexOf("feedback") != -1){
                 String s;
-                s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='3'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
+                s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='1'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
                 s += ("var tmp=");
                 s += temperature;
                 s += (";var dis=");
@@ -310,6 +291,7 @@ void initHardware()
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  SPIFFS.begin();
   delay(200);
   Serial.swap();
   ping.begin(Serial);
@@ -372,5 +354,19 @@ void sound(){
   delayMicroseconds(50);
   }
   motors.update(0,0);
+}
+void sendFile(File theBuffer){ // breaks string into packets
+  int bufferLength = theBuffer.size();
+  if (bufferLength < 2920){
+    client.write(theBuffer,bufferLength);
+    return;
+  }
+  while (bufferLength > 2920){
+    client.write(theBuffer,2920);
+    bufferLength -= 2920;
+  }
+  if (bufferLength > 0){
+    client.write(theBuffer,bufferLength);
+  }
 }
 

@@ -15,7 +15,8 @@ const char HTML_text[] PROGMEM = R"=====(<!doctype html>
       margin    : 0;
       background-color: #333;)=====";
       
-const char HTML_text1[] PROGMEM = R"=====(color: white;
+const char HTML_text1[] PROGMEM = R"=====(
+      color: white;
       font-size: 20px;
       -webkit-user-select : none;
       -moz-user-select  : none;

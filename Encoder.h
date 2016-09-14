@@ -17,8 +17,8 @@ class encoder {
   public:
   encoder();
   void begin(uint8_t,uint8_t);
-  boolean run();        // returns true when data is ready
-  void resetEncoder();  // when direction is stopped / reversed clear data
+  boolean run();                                // returns true when data is ready
+  void resetEncoder();                          // when direction is stopped / reversed clear data
   double getAngularVelocity();
   unsigned long getSteps();
   double getAngularAcceleration();
@@ -27,7 +27,7 @@ class encoder {
   private:
 
   #define MAX_STEP_TIMING_BUFFER 200
-  #define TIME_OUT 100000                       // encoder time out in micro seconds
+  #define TIME_OUT 100000                        // encoder time out in micro seconds
   
   uint8_t encoderPin;
   uint8_t slotsPerRevolution;
@@ -45,7 +45,7 @@ class encoder {
   double lastSampleDeltaT;
   int updateFrequency = 50;                     // update frequency in milli seconds
   unsigned long nextUpdate;                     // time of next update
-  unsigned long debounceMinStepTime = 2000;               // minimum step time in micro seconds
+  unsigned long debounceMinStepTime = 2000;     // minimum step time in micro seconds
   // private encoder functions
 
   

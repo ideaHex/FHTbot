@@ -46,7 +46,7 @@ h1 {
       <h3><span>Damian Kleiss</span></h3><br>
       <h2><span>Software and Web Design</span></h2>
       <h3><span>Tilden Groves<br>
-      Alexander Rodinga</span></h3><br>
+      Alexander Battarbee</span></h3><br>
       <h2><span>Creative Inspiration</span></h2>
       <h3><span> </span></h3>
       <h2><span>External Code and Graphics</span></h2>
