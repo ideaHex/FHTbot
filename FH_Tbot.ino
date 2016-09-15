@@ -3,7 +3,6 @@
  * 
  */
 
- 
 #include <ESP8266WiFi.h>
 #include "FS.h"
 #include <DNSServer.h>
@@ -13,14 +12,6 @@
 #include <NeoPixelBus.h>
 #include "Encoder.h"
 #include "NeoPixelAnimations.h"
-
-// WebPage
-#include "WebPage.h"
-#include "Images.h"
-#include "WebPage_StartPage.h"
-#include "WebPage_CreditsPage.h"
-#include "WebPage_AboutPage.h"
-#include "WebPage_ProgramMode.h"
 
 extern "C" { 
    #include "user_interface.h" 
@@ -37,6 +28,7 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 void setupWiFi(void);
 void initHardware(void);
 void sendFile(File);
+void loadIndexPage(void);
 
 /////////////////////
 // Pin Definitions //
@@ -64,7 +56,7 @@ bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
 int temperature = 0;
 int distance = 0;
-
+boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 
 void Stop(void)
@@ -94,6 +86,13 @@ void setup()
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
   motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
   motors.setMinimumSpeed(0.08);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+   
+  motors.playNote(NOTE_G4,250);
+  motors.playNote(NOTE_F4,250);
+  motors.playNote(NOTE_E4,250);
+  motors.playNote(NOTE_A4,500);
+  motors.playNote(NOTE_E4,250);
+  motors.playNote(NOTE_A4,1000);
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -109,10 +108,12 @@ void loop()
    }
    if (ping.gotDistance()){
     distance = ping.getDistance();
-    if (distance < 200){
-       // setColor(RgbColor(255,0,0));
-       // motors.update(0,50);
-      }
+    if (driverAssist){
+      if (distance < 200){
+         setColor(RgbColor(255,0,0));
+         motors.update(0,50);
+        }
+    }
    }
    dnsServer.processNextRequest();
    // client functions here
@@ -146,88 +147,30 @@ void loop()
     
     HeartBeatRcvd = true;               // recieved data, must be connected
     // driver assist
-    /*
-    if (distance < 450 && dY < 0){
-    setColor(RgbColor(70,85,75));
-      dX = 500 - distance;
-      if (dY < -40 ){
-        //dX = 0;
-        dY = -40;
+    if (driverAssist){
+      if (distance < 450 && dY < 0){
+      setColor(RgbColor(70,85,75));
+        dX = 500 - distance;
+        if (dY < -40 ){
+          //dX = 0;
+          dY = -40;
+        }
       }
-    }*/
+    }
     motors.update(dX,dY);
   }else{
+        String fileString = req.substring(4, (req.length() - 9));
+        
         if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
-          int dataLength = strlen_P(startPage);
-            yield();
-            client.write_P(startPage , dataLength);
-            yield();
-            dataLength = strlen_P(hackerspaceImage);
-            client.write_P(hackerspaceImage , dataLength);
-            yield();
-            dataLength = strlen_P(startPage1);
-            client.write_P(startPage1 , dataLength);
-            delay(1);                                     // to improve compatability with some browsers
+            loadIndexPage();
+            return;
           }
-          String fileString = req.substring(4, (req.length() - 9));
-          if (fileString.indexOf("png") != -1){
-            File dataFile = SPIFFS.open(fileString, "r");
-            sendFile(dataFile);
-            dataFile.close();
-          }
-          if (req.indexOf("Credits") != -1){              // credits page
-          int dataLength = strlen_P(creditsPage);
-            yield();
-            client.write_P(creditsPage , dataLength);
-            yield();                   
-            dataLength = strlen_P(hackerspaceImage);
-            client.write_P(hackerspaceImage , dataLength);
-            yield();
-            dataLength = strlen_P(creditsPage1);
-            client.write_P(creditsPage1 , dataLength);
-            delay(1);                                     // to improve compatability with some browsers
-          }
-          if (req.indexOf("Prog") != -1){ // credits page
-          int dataLength = strlen_P(programMode);
-            yield();
-            client.write_P(programMode , dataLength);
-            delay(1);                                     // to improve compatability with some browsers
-          }
-          if (req.indexOf("About") != -1){ // credits page
-          int dataLength = strlen_P(aboutPage);
-            yield();
-            client.write_P(aboutPage , dataLength);
-            yield();                   
-            dataLength = strlen_P(hackerspaceImage);
-            client.write_P(hackerspaceImage , dataLength);
-            yield();
-            dataLength = strlen_P(aboutPage1);
-            client.write_P(aboutPage1 , dataLength);
-            delay(1);                                     // to improve compatability with some browsers
-          }
-          if (req.indexOf("Start") != -1){                // free drive mode
-            boolean Chrome = false;
-            if (req.indexOf("Chrome") != -1){
-              Chrome = true;
-            //client.print("<html><head></head><body>Your browser is not fully supported</body></html>");
-            }
-            int dataLength = strlen_P(HTML_text);
-            yield();
-            client.write_P(HTML_text , dataLength);
-            yield();
-            if (!Chrome){
-            dataLength = strlen_P(hackerspaceImage);
-            client.write_P(hackerspaceImage , dataLength);
-            }else{
-              dataLength = strlen_P(hackerspaceImageChrome);
-              client.write_P(hackerspaceImageChrome , dataLength);
-            }
-            yield();
-            dataLength = strlen_P(HTML_text1);
-            client.write_P(HTML_text1 , dataLength);
-            delay(1);                                     // to improve compatability with some browsers
-            lastMicrosTime = micros();
-            maxLoopTime = 0;
+         if (req.indexOf("DriverAssist") != -1){
+              File dataFile = SPIFFS.open("/Start.html", "r");
+              sendFile(dataFile);
+              dataFile.close();
+              driverAssist = true;
+              return;
           }
           if (req.indexOf("feedback") != -1){
                 String s;
@@ -248,7 +191,16 @@ void loop()
                 s += maxLoopTime;
                 s += (";</script></body></html>\n");
                 client.print(s);
+                return;
           }
+          File dataFile = SPIFFS.open(fileString, "r");
+            if(dataFile){                                 // if the file exists
+              sendFile(dataFile);
+              dataFile.close();
+              lastMicrosTime = micros();
+              maxLoopTime = 0;
+              return;
+            }
         }
          client.flush();
 }
@@ -301,72 +253,27 @@ void initHardware()
   motors.addEncoders(motorLeftEncoder,motorRightEncoder);
 }
 
-
-void sound(){
-  motors.update(0,-1);
-  delay(1);
-  motors.setPWMFrequency(78000);
-  double a=0;
-  while (a<1000){
-    a++;
-  motors.update(0,1000);
-  delayMicroseconds(250);
-  motors.update(0,-1000);
-  delayMicroseconds(250);
-  }
-  motors.update(0,0);
-  delay(10);
-  //motors.setPWMFrequency(78000);
-  a=0;
-  while (a<500){
-    a++;
-  motors.update(0,1000);
-  delayMicroseconds(608);
-  motors.update(0,-1000);
-  delayMicroseconds(608);
-  }
-  motors.update(0,0);
-  delay(10);
- // motors.setPWMFrequency(78000);
-  a=0;
-  while (a<1000){
-    a++;
-  motors.update(0,1000);
-  delayMicroseconds(357);//714
-  motors.update(0,-1000);
-  delayMicroseconds(357);
-  }
-  motors.update(0,0);
-  delay(10);
-  for (a = 100; a < 3000; a+=1){
-  motors.setPWMFrequency(a);
-  motors.update(0,1000);
-  delayMicroseconds(100);
-  motors.update(0,-1000);
-  delayMicroseconds(100);
-  }
-  delay(0);
-  for ( a= 3000; a > 100; a-=0.50){
-  motors.setPWMFrequency(a);
-  motors.update(0,1000);
-  delayMicroseconds(50);
-  motors.update(0,-1000);
-  delayMicroseconds(50);
-  }
-  motors.update(0,0);
-}
 void sendFile(File theBuffer){ // breaks string into packets
   int bufferLength = theBuffer.size();
   if (bufferLength < 2920){
     client.write(theBuffer,bufferLength);
+    yield();
     return;
   }
   while (bufferLength > 2920){
     client.write(theBuffer,2920);
     bufferLength -= 2920;
+    yield();
   }
   if (bufferLength > 0){
     client.write(theBuffer,bufferLength);
+    yield();
   }
+}
+void loadIndexPage(){
+            driverAssist = false;
+            File dataFile = SPIFFS.open("/index.html", "r");
+            sendFile(dataFile);
+            dataFile.close();
 }
 
