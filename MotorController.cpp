@@ -235,4 +235,24 @@ double motorController::getAcceleration(){
          acceleration = double(acceleration * ((wheelDiameter * PI) / 360.0) / 1000.0);
          return acceleration;
 }
+void motorController::playNote(int note,int duration){
+  setPWMFrequency(78000);
+  yield();
+  update(0,-1);
+  delay(20);
+  double noteFrequency = 1.0 / note ;
+  noteFrequency *= 1000000.00;
+  double noteHalfDuration = noteFrequency * 0.5; 
+  double a=0;
+  while (a<(duration/(noteFrequency/1000.0))){
+    a++;
+  update(0,1000);
+  delayMicroseconds(noteHalfDuration);
+  update(0,-1000);
+  delayMicroseconds(noteHalfDuration);
+  }
+  update(0,0);
+  yield();
+  setPWMFrequency(PWMFrequency);
+}
 
