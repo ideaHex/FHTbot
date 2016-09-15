@@ -1,5 +1,14 @@
 {
     "elements": {
+        "next": {},
+        "mutation": {
+            "attributes": {
+                "at": {},
+                "else": {},
+                "elseif": {},
+                "statement": {}
+            }
+        },
         "field": {
             "attributes": {
                 "name": {}
@@ -12,14 +21,26 @@
                 "id": {}
             }
         },
+        "arg": {
+            "attributes": {
+                "name": {}
+            }
+        },
+        "statement": {
+            "attributes": {
+                "name": {}
+            }
+        },
         "block": {
             "attributes": {
+                "inline": {},
                 "type": {}
             }
         },
         "category": {
             "attributes": {
                 "colour": {},
+                "expanded": {},
                 "custom": {},
                 "name": {}
             }
@@ -28,7 +49,8 @@
             "attributes": {
                 "name": {}
             }
-        }
+        },
+        "sep": {}
     },
     "attributes": {
         "type": {}
