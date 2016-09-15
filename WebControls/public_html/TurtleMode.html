@@ -45,6 +45,10 @@ and open the template in the editor.
 
     </head>
     <body>
+        <p>
+            <button onclick="exeCode()">Parse JavaScript</button>
+            <button onclick="stepCode()" id="stepButton" disabled="disabled">Step JavaScript</button>
+        </p>
         <div id="blocklyDiv" style="height: 95%; width: 95%; padding: auto"></div>
     <xml id="toolbox" style="display: none">
         <category name="Logic">
@@ -368,6 +372,41 @@ and open the template in the editor.
                         colour: '#ccc',
                         snap: true},
                     trashcan: true});
+
+        //Setup the interpreter
+        var jsInterpreter = null;
+        function initApi(interpreter, scope) {
+            // Add an API function for the alert() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(alert(text));
+            };
+            interpreter.setProperty(scope, 'alert',
+                    interpreter.createNativeFunction(wrapper));
+
+            // Add an API function for the prompt() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(prompt(text));
+            };
+            interpreter.setProperty(scope, 'prompt',
+                    interpreter.createNativeFunction(wrapper));
+
+            // Add an API function for highlighting blocks.
+            var wrapper = function (id) {
+                id = id ? id.toString() : '';
+                return interpreter.createPrimitive(highlightBlock(id));
+            };
+            interpreter.setProperty(scope, 'highlightBlock',
+                    interpreter.createNativeFunction(wrapper));
+        }
+        var highlightPause = false;
+
+        function highlightBlock(id) {
+            workspace.highlightBlock(id);
+            highlightPause = true;
+        }
+
         //Listener for screen resizing
         var onresize = function (e) {
             // Compute the absolute coordinates and dimensions of blocklyArea.
@@ -398,15 +437,38 @@ and open the template in the editor.
         //Execution of Code
         //Code is contained in intepreted sandbox
         function exeCode() {
-            var interpreterInstance = new Interpreter(Blockly.JavaScript.workspaceToCode(workspace));
-            interpreterInstance.run();
-            //Looping function that executes blocks every 10ms so execution is visible.
-            function nextStep() {
-                if (interpreterInstance.step()) {
-                    window.setTimeout(nextStep, 10);
+            Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+            Blockly.JavaScript.addReservedWords('highlightBlock');
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            jsInterpreter = new Interpreter(code, initApi);
+
+            alert('Ready to execute this code:\n\n' + code);
+            document.getElementById('stepButton').disabled = '';
+            highlightPause = false;
+            workspace.traceOn(true);
+            workspace.highlightBlock(null);
+
+
+        }
+        //Execution of code is stepped through by this function
+        function stepCode() {
+            try {
+                var ok = jsInterpreter.step();
+            } finally {
+                if (!ok) {
+                    // Program complete, no more code to execute.
+                    document.getElementById('stepButton').disabled = 'disabled';
+                    return;
                 }
             }
-            nextStep();
+            if (highlightPause) {
+                // A block has been highlighted.  Pause execution here.
+                highlightPause = false;
+            } else {
+                // Keep executing until a highlight statement is reached.
+                stepCode();
+            }
+
         }
 
     </script>
