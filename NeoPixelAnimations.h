@@ -1,6 +1,7 @@
 #include <NeoPixelBus.h>
 
 NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4);
+int makePositive(int);
 
 void pixelTest(){
     byte brightness = 20; // max is 255
@@ -40,4 +41,70 @@ void setColor(RgbColor color){
     strip.SetPixelColor(4, color);
     strip.SetPixelColor(5, color);
     strip.Show();
+}
+
+/**
+ * Flashes forward LEDs to indicate direction of travel.
+ * Should scale to larger LED counts (assuming two rows).
+ * Stupid LED Trick mostly.
+ * param int indexOfX: x axis on Joystick, left or right.
+ * param int indexOfY: y axis on Joystick, forward or back.
+ */
+void updateBlinkers(int indexOfX, int indexOfY){
+  int NUMPIXELS = 6;
+  //Creates array for pixels
+  RgbColor px[NUMPIXELS];
+  for(int i = 0; i < NUMPIXELS; i++){
+    px[i] = RgbColor(0,0,0);
+  }
+  //Pick which variable is greater in magnitude.
+    //If X>Y the result should be 0
+    if (makePositive(indexOfX) > 30 ){
+      if(indexOfX < 0 ){
+        //Update Left
+        //px[(NUMPIXELS/2 - 1)] = RgbColor(255,127,0);
+        //px[NUMPIXELS - 1] =  RgbColor(255,127,0);
+        px[2] = RgbColor(80,40,0);
+        px[5] = RgbColor(80,40,0);
+      }else if (indexOfX > 0){
+        //update Right
+        //px[0] =  RgbColor(255,127,0);
+        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
+        px[0] =  RgbColor(80,40,0);
+        px[3] = RgbColor(80,40,0);
+      }else{
+        //Equals 0 no indication        
+      }      
+    }else{
+      if(indexOfY < 0 ){
+        //px[(NUMPIXELS/2) - 2] = RgbColor(255,127,0);
+        //px[(NUMPIXELS/2) - 1] = RgbColor(255,127,0);
+        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
+        px[0] = RgbColor(80,40,0);
+        px[1] = RgbColor(80,40,0);
+        px[2] = RgbColor(80,40,0);
+      }else if (indexOfY > 0){
+        //px[(NUMPIXELS) - 2] = RgbColor(255,127,0);
+        //px[(NUMPIXELS) - 1] = RgbColor(255,127,0);
+        //px[(NUMPIXELS)] = RgbColor(255,127,0);        
+        px[3] = RgbColor(80,40,0);
+        px[4] = RgbColor(80,40,0);
+        px[5] = RgbColor(80,40,0);
+      }else{
+        //Equals 0 no indication
+      }
+    }
+    
+    for(int i = 0; i< NUMPIXELS; i++){
+      // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
+      strip.SetPixelColor(i, px[i]); // Orange colour.
+      //delay(delayval); // Delay for a period of time (in milliseconds).
+    }
+    strip.Show(); // This sends the updated pixel color to the hardware.
+}
+int makePositive(int number){
+  if (number < 0){
+    number = -number;
+  }
+  return number;
 }

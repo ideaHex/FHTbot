@@ -65,6 +65,8 @@ class motorController {
   #define reverse 2
   int motorADirection;
   int motorBDirection;
+  unsigned long boostEndTime;
+  int boostDuration = 150; //ms
   
   // private functions
   int getPWM1(int,float);
@@ -74,8 +76,6 @@ class motorController {
   int makePositive(int);
   float makePositive(float);
   void startBoost(int*,int*);
-  int boostDuration = 150; //ms
-  unsigned long boostEndTime;
   
   
 };
