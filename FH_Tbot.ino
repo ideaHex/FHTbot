@@ -86,13 +86,13 @@ void setup()
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
   motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
   motors.setMinimumSpeed(0.08);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-   
-  motors.playNote(NOTE_G4,250);
-  motors.playNote(NOTE_F4,250);
-  motors.playNote(NOTE_E4,250);
-  motors.playNote(NOTE_A4,500);
-  motors.playNote(NOTE_E4,250);
-  motors.playNote(NOTE_A4,1000);
+
+  motors.playNote(NOTE_C5,200);
+  motors.playNote(NOTE_E5,200);
+  motors.playNote(NOTE_G5,200);
+  motors.playNote(NOTE_A5,400);
+  motors.playNote(NOTE_G5,200);
+  motors.playNote(NOTE_A5,800);
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -139,7 +139,6 @@ void loop()
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
-    pixelTest();
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
@@ -148,6 +147,7 @@ void loop()
     HeartBeatRcvd = true;               // recieved data, must be connected
     // driver assist
     if (driverAssist){
+      updateBlinkers(dX,dY);
       if (distance < 450 && dY < 0){
       setColor(RgbColor(70,85,75));
         dX = 500 - distance;
@@ -156,6 +156,8 @@ void loop()
           dY = -40;
         }
       }
+    }else{
+      pixelTest();
     }
     motors.update(dX,dY);
   }else{
@@ -172,7 +174,7 @@ void loop()
               driverAssist = true;
               return;
           }
-          if (req.indexOf("feedback") != -1){
+          if (req.indexOf("feedback") != -1){             // send feedback to drive webpage
                 String s;
                 s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='1'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
                 s += ("var tmp=");
