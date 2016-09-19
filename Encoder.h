@@ -12,6 +12,7 @@
 #include <WProgram.h>
 #endif
 
+
 class encoder {
 
   public:
@@ -23,6 +24,8 @@ class encoder {
   unsigned long getSteps();
   double getAngularAcceleration();
   int getSampleSteps();
+  void pinChanged(void); // static 
+
 
   private:
 
@@ -46,8 +49,9 @@ class encoder {
   int updateFrequency = 50;                     // update frequency in milli seconds
   unsigned long nextUpdate;                     // time of next update
   unsigned long debounceMinStepTime = 2000;     // minimum step time in micro seconds
-  // private encoder functions
 
+  // private encoder functions
+  boolean interuptChanged = false;
   
 };
 

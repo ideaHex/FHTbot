@@ -4,7 +4,7 @@
  */
 
  #include "Encoder.h"
- 
+
  encoder::encoder(){
  }
  
@@ -17,7 +17,7 @@ void encoder::begin(uint8_t EncoderPin,uint8_t encoderWheelSlots){
 }
 
 boolean encoder::run(){
-  boolean encoderCurrentState = boolean(digitalRead(encoderPin));
+  //boolean encoderCurrentState = boolean(digitalRead(encoderPin));
   unsigned long currentMicros = micros();
   unsigned long deltaMicros = currentMicros - lastMicros;
   if (deltaMicros > TIME_OUT){
@@ -25,10 +25,12 @@ boolean encoder::run(){
       return false;
     }
   
-  if (encoderCurrentState != lastState && deltaMicros > debounceMinStepTime){ // new step
+  //if (encoderCurrentState != lastState && deltaMicros > debounceMinStepTime){ // new step
+   if ( interuptChanged && deltaMicros > debounceMinStepTime){ // new step
+    interuptChanged = false;
     steps++;
     sampleSteps++;
-    lastState = encoderCurrentState;
+    lastState = !lastState;//encoderCurrentState;
     encoderStepTiming[encoderStepTimingBufferPosition] = deltaMicros;
     // TODO: check timing of previous steps to test for missed steps
     instantaniousAngularVelocity = double( angularResolution / ( (encoderStepTiming[encoderStepTimingBufferPosition]) / 1000000.0) ); // degrees per second
@@ -51,6 +53,7 @@ boolean encoder::run(){
     }
     return true;
   }
+  interuptChanged = false;
   return false;
 }
 
@@ -80,5 +83,8 @@ double encoder::getAngularAcceleration(){
 }
 int encoder::getSampleSteps(){
   return lastSampleSteps;
+}
+void encoder::pinChanged(){
+  interuptChanged = true;
 }
 
