@@ -33,6 +33,8 @@ class motorController {
   double getTravel();
   double getAcceleration();
   void playNote(int,int);
+  void encoderA_Step();
+  void encoderB_Step();
   
   private:
   uint8_t mPA1;

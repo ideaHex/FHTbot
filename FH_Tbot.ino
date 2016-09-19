@@ -42,7 +42,7 @@ const int motorLeftB  = D6;
 const int motorRightA = D3;
 const int motorRightB = D2;
 const int motorLeftEncoder = D1;
-const int motorRightEncoder = D0;
+const int motorRightEncoder = D7;
 
 motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
 
@@ -241,41 +241,51 @@ void setupWiFi()
 
 void initHardware()
 {
-  Serial.begin(9600);
+  Serial.begin(9600);               // 9600 to work with US-100
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-  Serial.swap();
+  //Serial.swap();
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
   smile();
   motors.addEncoders(motorLeftEncoder,motorRightEncoder);
+  attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
+  attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
 }
 
 void sendFile(File theBuffer){ // breaks string into packets
   int bufferLength = theBuffer.size();
   if (bufferLength < 2920){
     client.write(theBuffer,bufferLength);
-    yield();
+    //yield();
     return;
   }
   while (bufferLength > 2920){
     client.write(theBuffer,2920);
     bufferLength -= 2920;
-    yield();
+    //yield();
   }
   if (bufferLength > 0){
     client.write(theBuffer,bufferLength);
-    yield();
+    //yield();
   }
 }
 void loadIndexPage(){
-            driverAssist = false;
-            File dataFile = SPIFFS.open("/index.html", "r");
-            sendFile(dataFile);
-            dataFile.close();
+     driverAssist = false;
+     File dataFile = SPIFFS.open("/index.html", "r");
+     sendFile(dataFile);
+     dataFile.close();
+}
+void motorLeftEncoderInterruptHandler(){
+  motors.encoderA_Step();
+  motors.run();
+}
+void motorRightEncoderInterruptHandler(){
+  motors.encoderB_Step();
+  motors.run();
 }
 

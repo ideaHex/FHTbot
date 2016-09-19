@@ -25,10 +25,8 @@
   }
     </style>
   </head>
-  <body>
+  <body onload="pageLoaded()">
     <div>
-      <audio id="audio" controls style="text-shadow: 0px 0px Black;text-color:Black;"><source src="car.mp3" type="audio/mp3"></source>
-    </audio>
       <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</font></h1>
       <p align="center">
       Welcome to the Flinders / hackerspace at tonsley bot web control interface.<br>
@@ -51,10 +49,14 @@
     </table>
     <script>
   	//var button = document.getElementById("button");
-  	var audio = document.getElementById("audio");
+  	//var audio = document.getElementById("audio");
   	//var onClick = function(){ audio.play();}
   	//button.addEventListener("click",onClick,false);
-	audio.play();
+	//audio.play();
+	function pageLoaded()
+	  {
+		
+	  };
   </script>
 </body>
 </html>

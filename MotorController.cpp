@@ -255,4 +255,10 @@ void motorController::playNote(int note,int duration){
   update(0,0);
   delay(30);
 }
+void motorController::encoderA_Step(){
+  encoderA.pinChanged();
+}
+void motorController::encoderB_Step(){
+  encoderB.pinChanged();
+}
 
