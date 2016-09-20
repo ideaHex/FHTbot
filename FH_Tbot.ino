@@ -85,7 +85,7 @@ void setup()
   //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
   motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  motors.setMinimumSpeed(0.08);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
+  motors.setMinimumSpeed(0.12);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
 
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
@@ -106,13 +106,17 @@ void loop()
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
    }
+   int lastDistance = distance;
    if (ping.gotDistance()){
     distance = ping.getDistance();
     if (driverAssist){
-      if (distance < 200){
-         setColor(RgbColor(255,0,0));
-         motors.update(0,50);
-        }
+      int testPing = makePositive(lastDistance - distance);
+      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
+        if (distance < 200){
+          setColor(RgbColor(255,0,0));
+          motors.update(0,50);
+          }
+      }
     }
    }
    dnsServer.processNextRequest();
@@ -134,6 +138,7 @@ void loop()
   }
   // Read the first line of the request
   String req = client.readStringUntil('\r');
+  //Serial.println("");
   //Serial.println(req);
   //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
@@ -144,16 +149,18 @@ void loop()
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
     
-    HeartBeatRcvd = true;               // recieved data, must be connected
+    HeartBeatRcvd = true;                                           // recieved data, must be connected
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
-      if (distance < 450 && dY < 0){
-      setColor(RgbColor(70,85,75));
-        dX = 500 - distance;
-        if (dY < -40 ){
-          //dX = 0;
-          dY = -40;
+      int testPing = makePositive(lastDistance - distance);
+      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
+        if (distance < 450 && dY < 0){
+        setColor(RgbColor(70,85,75));
+          dX = 500 - distance;
+          if (dY < -40 ){
+            dY = -40;
+          }
         }
       }
     }else{
@@ -162,14 +169,14 @@ void loop()
     motors.update(dX,dY);
   }else{
         String fileString = req.substring(4, (req.length() - 9));
-        
+        client.flush();
         if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
             loadIndexPage();
             return;
           }
          if (req.indexOf("DriverAssist") != -1){
-              File dataFile = SPIFFS.open("/Start.html", "r");
-              sendFile(dataFile);
+              File dataFile = SPIFFS.open("/Start.html.gz", "r");
+              sendFile(dataFile,true);
               dataFile.close();
               driverAssist = true;
               return;
@@ -197,7 +204,11 @@ void loop()
           }
           File dataFile = SPIFFS.open(fileString, "r");
             if(dataFile){                                 // if the file exists
-              sendFile(dataFile);
+              if (fileString.indexOf(".gz") != -1){
+                sendFile(dataFile,true);
+              }else{
+              sendFile(dataFile,false);
+              }
               dataFile.close();
               lastMicrosTime = micros();
               maxLoopTime = 0;
@@ -225,7 +236,7 @@ void setupWiFi()
   IPAddress apIP(192, 168, 1, 1);
   WiFi.softAPConfig(apIP, apIP, subnet);
   if (enableCompatibilityMode){
-    wifi_set_phy_mode(PHY_MODE_11B);    // Note: ESP8266 soft-AP only support bg.
+    wifi_set_phy_mode(PHY_MODE_11B);            // Note: ESP8266 soft-AP only support bg.
     const char *pw = "";
     WiFi.softAP(AP_NameChar, pw , channel , 0 );
   }else{
@@ -247,7 +258,6 @@ void initHardware()
   Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-  //Serial.swap();
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
@@ -257,27 +267,25 @@ void initHardware()
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
 }
 
-void sendFile(File theBuffer){ // breaks string into packets
+void sendFile(File theBuffer , boolean encrypted){ // breaks string into packets
   int bufferLength = theBuffer.size();
+    sendHeadder(bufferLength,encrypted);
   if (bufferLength < 2920){
     client.write(theBuffer,bufferLength);
-    //yield();
     return;
   }
   while (bufferLength > 2920){
     client.write(theBuffer,2920);
     bufferLength -= 2920;
-    //yield();
   }
   if (bufferLength > 0){
     client.write(theBuffer,bufferLength);
-    //yield();
   }
 }
 void loadIndexPage(){
      driverAssist = false;
-     File dataFile = SPIFFS.open("/index.html", "r");
-     sendFile(dataFile);
+     File dataFile = SPIFFS.open("/index.html.gz", "r");
+     sendFile(dataFile,true);
      dataFile.close();
 }
 void motorLeftEncoderInterruptHandler(){
@@ -287,5 +295,18 @@ void motorLeftEncoderInterruptHandler(){
 void motorRightEncoderInterruptHandler(){
   motors.encoderB_Step();
   motors.run();
+}
+void sendHeadder(int fileSize, boolean gzipped){
+  if (gzipped){
+    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
+    s += fileSize;
+    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: gzip\r\n\r\n");
+    client.print(s);
+  }else{
+    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
+    s += fileSize;
+    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n");
+    client.print(s);
+  }
 }
 

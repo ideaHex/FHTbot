@@ -33,7 +33,7 @@ class US100Ping {
   void startPing();
   void startTemperature();
 
-  byte pingInterval = 24;                       // minimum time between pings
+  byte pingInterval = 24;                       // minimum time between pings default:24
   byte globalUpdateSpeed = 2;                   // limit cpu overhead
   int tempInterval = 5000;                      // time between tests for temperature
   byte sensorTimeout = 255;                     // sensor timeout dont touch
