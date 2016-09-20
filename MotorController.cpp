@@ -236,10 +236,10 @@ double motorController::getAcceleration(){
          return acceleration;
 }
 void motorController::playNote(int note,int duration){
-  setPWMFrequency(78000);
+  analogWriteFreq(78000);
   yield();
   update(0,-1);
-  delay(20);
+  delay(1);
   double noteFrequency = 1.0 / note ;
   noteFrequency *= 1000000.00;
   double noteHalfDuration = noteFrequency * 0.5; 
@@ -251,8 +251,14 @@ void motorController::playNote(int note,int duration){
   update(0,-1000);
   delayMicroseconds(noteHalfDuration);
   }
+  analogWriteFreq(PWMFrequency);
   update(0,0);
-  yield();
-  setPWMFrequency(PWMFrequency);
+  delay(30);
+}
+void motorController::encoderA_Step(){
+  encoderA.pinChanged();
+}
+void motorController::encoderB_Step(){
+  encoderB.pinChanged();
 }
 
