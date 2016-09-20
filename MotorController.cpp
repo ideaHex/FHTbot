@@ -57,7 +57,7 @@ void motorController::update(int X, int Y){
   if (A < 0){motorADirection = forward;}else{if (A > 0)motorADirection = reverse;} // if A = 0 coasting in same direction
   if (B < 0){motorBDirection = forward;}else{if (B > 0)motorBDirection = reverse;} // if B = 0 coasting in same direction
   float float_MAX_range = float(MAX_range);
-  float minTurn = 0.7;//float(makePositive(Y))/float_MAX_range - 0.2;
+  float minTurn = 0.5;//float(makePositive(Y))/float_MAX_range - 0.2;
   float steeringA = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X<=0) ) + 1.0*(X>0);
   float steeringB = float( (float(float_MAX_range/steeringSensitivity - float(makePositive(X))) / float(float_MAX_range/steeringSensitivity))*float(X>=0) ) + 1.0*(X<0);
   if (steeringA < minTurn) steeringA = minTurn; // limit turning to prevent spinout at high speed
