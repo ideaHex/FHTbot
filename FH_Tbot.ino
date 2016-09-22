@@ -28,7 +28,6 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 void setupWiFi(void);
 void initHardware(void);
 void sendFile(File);
-void loadIndexPage(void);
 
 /////////////////////
 // Pin Definitions //
@@ -86,13 +85,14 @@ void setup()
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
   motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
   motors.setMinimumSpeed(0.12);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-
+/*
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
+  */
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -170,15 +170,10 @@ void loop()
   }else{
         String fileString = req.substring(4, (req.length() - 9));
         client.flush();
-        if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
-            loadIndexPage();
-            return;
-          }
          if (req.indexOf("DriverAssist") != -1){
-              File dataFile = SPIFFS.open("/Start.html.gz", "r");
-              sendFile(dataFile,true);
-              dataFile.close();
               driverAssist = true;
+              fileString = "/Start.html";
+              sendFile(fileString);
               return;
           }
           if (req.indexOf("feedback") != -1){             // send feedback to drive webpage
@@ -202,18 +197,7 @@ void loop()
                 client.print(s);
                 return;
           }
-          File dataFile = SPIFFS.open(fileString, "r");
-            if(dataFile){                                 // if the file exists
-              if (fileString.indexOf(".gz") != -1){
-                sendFile(dataFile,true);
-              }else{
-              sendFile(dataFile,false);
-              }
-              dataFile.close();
-              lastMicrosTime = micros();
-              maxLoopTime = 0;
-              return;
-            }
+          sendFile(fileString);
         }
          client.flush();
 }
@@ -262,14 +246,71 @@ void initHardware()
   strip.Begin();
   strip.Show();
   smile();
+  // setup motors and encoders
   motors.addEncoders(motorLeftEncoder,motorRightEncoder);
+  pinMode(motorLeftEncoder, INPUT);
+  pinMode(motorRightEncoder, INPUT);
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
 }
 
-void sendFile(File theBuffer , boolean encrypted){ // breaks string into packets
-  int bufferLength = theBuffer.size();
-    sendHeadder(bufferLength,encrypted);
+void motorLeftEncoderInterruptHandler(){
+  motors.encoderA_Step();
+  motors.run();
+}
+void motorRightEncoderInterruptHandler(){
+  motors.encoderB_Step();
+  motors.run();
+}
+
+void sendFile(String path){
+// get content type
+String dataType = F("text/html; charset=utf-8");
+if(path.endsWith("/")){ path += "index.html";driverAssist = false;}
+
+if(path.endsWith(".src")) path = path.substring(0, path.lastIndexOf("."));
+else if(path.endsWith(".htm")) dataType = F("text/html; charset=utf-8");
+else if(path.endsWith(".png")) dataType = F("image/png");
+else if(path.endsWith(".js")) dataType = F("application/javascript");
+else if(path.endsWith(".css")) dataType = F("text/css");
+else if(path.endsWith(".gif")) dataType = F("image/gif");
+else if(path.endsWith(".jpg")) dataType = F("image/jpeg");
+else if(path.endsWith(".ico")) dataType = F("image/x-icon");
+else if(path.endsWith(".xml")) dataType = F("text/xml");
+else if(path.endsWith(".pdf")) dataType = F("application/pdf");
+else if(path.endsWith(".zip")) dataType = F("application/zip");
+
+// check if theres a .gz'd version and send that instead
+String gzPath = path + ".gz";
+File theBuffer = SPIFFS.open(gzPath, "r");
+if (theBuffer){            // test to see if there is a gz version of the file
+  path = gzPath;
+}else{
+  theBuffer.close();
+  theBuffer = SPIFFS.open(path, "r");
+  if (!theBuffer){
+    theBuffer.close();
+    Serial.println("");
+    Serial.println(F("Failed to load File from SPIFFS"));
+    Serial.println(path);
+    return; // failed to read file
+  }
+}
+int bufferLength = theBuffer.size();
+// make header
+String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
+    s += bufferLength;
+    s += F("\r\nContent-Type: ");
+    s += dataType;
+    s += F("\r\nX-Content-Type-Options: nosniff"); // last one added
+  if (path.endsWith(".gz")){
+    s += F("\r\nContent-Encoding: gzip\r\n\r\n");
+  }else{
+    s += F("\r\n\r\n");
+  }
+      client.print(s);                            // send header
+      
+// send the file
   if (bufferLength < 2920){
     client.write(theBuffer,bufferLength);
     return;
@@ -281,32 +322,8 @@ void sendFile(File theBuffer , boolean encrypted){ // breaks string into packets
   if (bufferLength > 0){
     client.write(theBuffer,bufferLength);
   }
-}
-void loadIndexPage(){
-     driverAssist = false;
-     File dataFile = SPIFFS.open("/index.html.gz", "r");
-     sendFile(dataFile,true);
-     dataFile.close();
-}
-void motorLeftEncoderInterruptHandler(){
-  motors.encoderA_Step();
-  motors.run();
-}
-void motorRightEncoderInterruptHandler(){
-  motors.encoderB_Step();
-  motors.run();
-}
-void sendHeadder(int fileSize, boolean gzipped){
-  if (gzipped){
-    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
-    s += fileSize;
-    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: gzip\r\n\r\n");
-    client.print(s);
-  }else{
-    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
-    s += fileSize;
-    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n");
-    client.print(s);
-  }
+  theBuffer.close();
+  lastMicrosTime = micros();
+  maxLoopTime = 0;
 }
 
