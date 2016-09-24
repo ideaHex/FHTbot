@@ -108,3 +108,17 @@ int makePositive(int number){
   }
   return number;
 }
+void sendingFilePixels(int at){
+  if (at > 5){
+    at = 0;
+  }
+  for (int a = 0; a < 6; a++){
+    if ( at == a){
+      strip.SetPixelColor(a, RgbColor(0,40,0));
+    }else{
+      strip.SetPixelColor(a, RgbColor(0,0,0));
+    }
+  }
+  strip.Show();
+}
+
