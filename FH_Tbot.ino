@@ -50,17 +50,19 @@ WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 US100Ping ping;
-int clientTimeout = 150;
+int clientTimeout = 150;                 // default 150
 bool clientStopped = true;
 unsigned long nextClientTimeout = 0;
 int temperature = 0;
 int distance = 0;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
+String closeConnectionHeader = "";
 
 void Stop(void)
 {
   motors.update(0,0);
+  setColor(RgbColor(0,0,0));             // turn off led's to save power
 }
 
 void CheckHeartBeat(void)
@@ -93,6 +95,8 @@ void setup()
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
   */
+  closeConnectionHeader += F("HTTP/1.1 200 OK\r\ncache-control: private\r\nContent-Type: text/html\r\nConnection: Close\r\n\r\n");
+
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -138,6 +142,8 @@ void loop()
   }
   // Read the first line of the request
   String req = client.readStringUntil('\r');
+  client.readString();// keep client happy
+  //String req = server.available().readStringUntil('\r');
   //Serial.println("");
   //Serial.println(req);
   //Serial.println(client.readString());
@@ -148,7 +154,6 @@ void loop()
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
-    
     HeartBeatRcvd = true;                                           // recieved data, must be connected
     // driver assist
     if (driverAssist){
@@ -170,13 +175,13 @@ void loop()
   }else{
         String fileString = req.substring(4, (req.length() - 9));
         client.flush();
-         if (req.indexOf("DriverAssist") != -1){
+         if (fileString.indexOf("DriverAssist") != -1){
               driverAssist = true;
               fileString = "/Start.html";
               sendFile(fileString);
               return;
           }
-          if (req.indexOf("feedback") != -1){             // send feedback to drive webpage
+          if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
                 String s;
                 s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='1'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
                 s += ("var tmp=");
@@ -264,7 +269,9 @@ void motorRightEncoderInterruptHandler(){
 }
 
 void sendFile(String path){
+  String originalPath = path;
 // get content type
+clientStopped = true;
 String dataType = F("text/html; charset=utf-8");
 if(path.endsWith("/")){ path += "index.html";driverAssist = false;}
 
@@ -283,47 +290,49 @@ else if(path.endsWith(".zip")) dataType = F("application/zip");
 // check if theres a .gz'd version and send that instead
 String gzPath = path + ".gz";
 File theBuffer = SPIFFS.open(gzPath, "r");
-if (theBuffer){            // test to see if there is a gz version of the file
-  path = gzPath;
-}else{
+if (theBuffer){                         // test to see if there is a .gz version of the file
+  path = gzPath;                        // got it, use this path
+}else{                                  // not here so load the standard file
   theBuffer.close();
   theBuffer = SPIFFS.open(path, "r");
-  if (!theBuffer){
+  if (!theBuffer){                      // this one dosn't exist either, abort.
     theBuffer.close();
-    Serial.println("");
-    Serial.println(F("Failed to load File from SPIFFS"));
+    Serial.println(F("\r\nFailed to load File from SPIFFS"));
     Serial.println(path);
     return; // failed to read file
   }
 }
 int bufferLength = theBuffer.size();
 // make header
-String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
+String s = F("HTTP/1.1 200 OK\r\nAccept-Ranges: bytes\r\ncache-control: private\r\ncontent-length: ");
     s += bufferLength;
-    s += F("\r\nContent-Type: ");
+    s += F("\r\ncontent-type: ");
     s += dataType;
-    s += F("\r\nX-Content-Type-Options: nosniff"); // last one added
+    s += F("\r\nconnection: close\r\nX-Content-Type-Options: nosniff"); // last one added
   if (path.endsWith(".gz")){
     s += F("\r\nContent-Encoding: gzip\r\n\r\n");
   }else{
     s += F("\r\n\r\n");
   }
-      client.print(s);                            // send header
-      
-// send the file
-  if (bufferLength < 2920){
-    client.write(theBuffer,bufferLength);
+  Serial.println("");
+  Serial.println(path);
+  if(!client.print(s)){// send header
+    theBuffer.close();
+    Serial.println("Could not send header, aborting file");
     return;
   }
-  while (bufferLength > 2920){
-    client.write(theBuffer,2920);
-    bufferLength -= 2920;
-  }
-  if (bufferLength > 0){
-    client.write(theBuffer,bufferLength);
+    // send the file
+  while (bufferLength > 0){
+    int bytesSent = client.write(theBuffer,2920); // default packet size 2920
+    bufferLength -= bytesSent;
+    Serial.println("Sent :" + String(bytesSent) + " Left :" + String(bufferLength));
+    if (!bytesSent){
+      Serial.println("failed to send file");
+      break;  // failed to send file
+    }
   }
   theBuffer.close();
+  delay(1);
   lastMicrosTime = micros();
   maxLoopTime = 0;
 }
-
