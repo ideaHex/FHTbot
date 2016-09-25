@@ -82,7 +82,7 @@ div.rangeImage {
 }
     </style>
   </head>
-  <body draggable="false" ondragstart="return false;" ondrop="return false;" onload="pageLoaded()">
+  <body draggable="false" ondragstart="return false;" ondrop="return false;" onLoad="pageLoaded()">
     <div id="container">
       <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</font></h1>
       <p align="center">
@@ -514,9 +514,10 @@ VirtualJoystick.prototype._check3D = function()
       var xhttp = new XMLHttpRequest();
       function moveit(dx,dy) 
       {
-        xhttp.abort();
-        xhttp.open("GET", "/X" + dx + "/Y" + dy + "Connection: close\r\n\r\n", true);
-        // xhttp.timeout = 100;
+        //xhttp.abort();
+		//+ "Connection: close\r\n\r\n"
+		
+        xhttp.open("GET", "/X" + dx + "/Y" + dy, true);
         xhttp.send();
       };
 	  function pageLoaded()

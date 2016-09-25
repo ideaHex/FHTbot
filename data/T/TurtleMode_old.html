@@ -44,7 +44,7 @@ and open the template in the editor.
         </style>
 
     </head>
-    <body onload="pageLoaded()">
+    <body>
         <p>
             <button onclick="exeCode()">Parse JavaScript</button>
             <button onclick="stepCode()" id="stepButton" disabled="disabled">Step JavaScript</button>
@@ -365,8 +365,7 @@ and open the template in the editor.
     <script src="js/msg/js/en.js" type="text/javascript"></script>
     <script src="js/acorn.js" type="text/javascript"></script>
     <script>
-function pageLoaded()
-	  {
+
         //Blockly Injection and positioning
         var blocklyArea = document.getElementById('blocklyArea');
         var blocklyDiv = document.getElementById('blocklyDiv');
@@ -474,7 +473,6 @@ function pageLoaded()
                 stepCode();
             }
         }
-	  };
     </script>
 </body>
 </html>
