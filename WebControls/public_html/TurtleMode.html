@@ -38,6 +38,7 @@ and open the template in the editor.
             }
             #blocklyArea {
                 height: 99%;
+                width: 100%;
                 background: #fc9;
                 text-align: center;
             }
@@ -403,6 +404,13 @@ and open the template in the editor.
             };
             interpreter.setProperty(scope, 'highlightBlock',
                     interpreter.createNativeFunction(wrapper));
+            // Add an API function for the sendText() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(sendText(text));
+            };
+            interpreter.setProperty(scope, 'sendText',
+                    interpreter.createNativeFunction(wrapper));
         }
         var highlightPause = false;
 
@@ -474,6 +482,19 @@ and open the template in the editor.
             }
 
         }
+        
+        /**
+         * Sends text to the bot to execute
+         * @param {type} text
+         * @returns {void}
+         */
+        function sendText(text){
+            xhttp.abort();
+                xhttp.open("GET", "/" + text, true);
+                // xhttp.timeout = 100;
+                xhttp.send();
+        }
+        
 
     </script>
 </body>
