@@ -8,16 +8,12 @@
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
-#else
-#include <WProgram.h>
 #endif
-//#include <SoftwareSerial.h>
 
 class US100Ping {
 
   public:
   US100Ping();
-  void begin(uint8_t,uint8_t,int);              // software serial begin function(crashes wifi when recieving data at the same time client data is recieved 04/08/2016)
   void begin(HardwareSerial& s);                // hardware serial begin function
   void run();
   int getDistance();

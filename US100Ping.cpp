@@ -4,16 +4,8 @@
  */
 
 #include "US100Ping.h"
-//#include <SoftwareSerial.h>
-US100Ping::US100Ping(){
-}
 
-void US100Ping::begin(uint8_t RX, uint8_t TX, int baud){
-  //swSer = new SoftwareSerial(RX, TX); // (RX, TX, false, 256) RX,TX,invert,bufferSize
-  swSer->begin(baud);
-  delay(100);                                     // Give Software Serial time to start
-  startTemperature();
-  nextMillisPing = millis() + pingInterval;
+US100Ping::US100Ping(){
 }
 
 void US100Ping::begin(HardwareSerial& s){

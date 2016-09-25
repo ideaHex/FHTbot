@@ -1,6 +1,10 @@
-
+/*
+ * 
+ * 
+ */
+//#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
-#include "FS.h"
+#include <FS.h>
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "MotorController.h"
@@ -24,7 +28,7 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 void setupWiFi(void);
 void initHardware(void);
 void sendFile(File);
-void loadIndexPage(void);
+String getContentType(String);
 
 /////////////////////
 // Pin Definitions //
@@ -47,17 +51,18 @@ WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 US100Ping ping;
-int clientTimeout = 150;
-bool clientStopped = true;
-unsigned long nextClientTimeout = 0;
 int temperature = 0;
 int distance = 0;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
-
+String closeConnectionHeader = "";
+#define MAX_SRV_CLIENTS 20              // maximum client connections
+WiFiClient serverClients[MAX_SRV_CLIENTS];
+int currentClient = 0;
 void Stop(void)
 {
   motors.update(0,0);
+  setColor(RgbColor(0,0,0));             // turn off led's to save power
 }
 
 void CheckHeartBeat(void)
@@ -82,13 +87,16 @@ void setup()
   //motors.setSteeringSensitivity(0.9);  // this setting is optional
   motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
   motors.setMinimumSpeed(0.12);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-
+/*
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
+  */
+  closeConnectionHeader += F("HTTP/1.1 200 OK\r\ncache-control: none\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
+
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -117,34 +125,54 @@ void loop()
    }
    dnsServer.processNextRequest();
    // client functions here
-   if (clientStopped){
-    client = server.available();
-    clientStopped = false;
-    nextClientTimeout = millis() + clientTimeout;
-   }else{
-    if (!client.connected() || millis() > nextClientTimeout){
-      client.stop();
-      clientStopped = true;
+  while (server.hasClient()){
+    //Serial.println("New client");
+    for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
+      //find free/disconnected spot
+      if (!serverClients[i] || !serverClients[i].connected()){
+        if(serverClients[i]) serverClients[i].stop();
+        serverClients[i] = server.available();
+        //Serial.print("New client: "); Serial.println(i);
+        return;
+      }
     }
-   }
-   
-  if (!client.available())
-  {
-    return;
+    //no free/disconnected spot so reject
+    //Serial.println(F("\r\nNo Free Clients ....."));
+    //WiFiClient serverClient = server.available();
+    //serverClient.stop();
   }
-  // Read the first line of the request
-  String req = client.readStringUntil('\r');
-  //Serial.println("");
-  //Serial.println(req);
+  //check clients for data
+  String req = "";
+  for(uint8_t i = currentClient; i < MAX_SRV_CLIENTS; i++){// start at current client to keep in order
+    if (serverClients[i] && serverClients[i].connected()){
+      if(serverClients[i].available()){
+        if (serverClients[i].available()){
+          req = serverClients[i].readStringUntil('\r');   // Read the first line of the request
+          serverClients[i].flush();
+          currentClient = i;
+          break;
+        }
+      }
+    }
+    currentClient = 0;
+  }
+ 
+  if (!req.length()){// empty request
+      return;
+      }
+  //Serial.println("\r\n" + req);
   //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
+    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    delay(1);
+    //Serial.print(F("Ram:"));
+    //Serial.println(system_get_free_heap_size());
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
-    
     HeartBeatRcvd = true;                                           // recieved data, must be connected
     // driver assist
     if (driverAssist){
@@ -165,21 +193,15 @@ void loop()
     motors.update(dX,dY);
   }else{
         String fileString = req.substring(4, (req.length() - 9));
-        client.flush();
-        if (req.indexOf("GET / HTTP/1.1") != -1){         // start page
-            loadIndexPage();
-            return;
-          }
-         if (req.indexOf("DriverAssist") != -1){
-              File dataFile = SPIFFS.open("/Start.html.gz", "r");
-              sendFile(dataFile,true);
-              dataFile.close();
+         if (fileString.indexOf("DriverAssist") != -1){
               driverAssist = true;
+              fileString = "/Start.html";
+              sendFile(fileString);
               return;
           }
-          if (req.indexOf("feedback") != -1){             // send feedback to drive webpage
-                String s;
-                s = ("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<meta http-equiv='refresh' content='1'><!DOCTYPE HTML>\r\n<html>\r\n<body><script>");
+          if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
+                String s,h;
+                s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='0.1'></head><body><script>");
                 s += ("var tmp=");
                 s += temperature;
                 s += (";var dis=");
@@ -194,24 +216,17 @@ void loop()
                 s += motors.getheading();
                 s += (";var mlt=");
                 s += maxLoopTime;
-                s += (";</script></body></html>\n");
-                client.print(s);
+                s += (";</script></body></html>");
+                h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
+                h += s.length();
+                h += F("\r\n\r\n");
+                String ss = h + s;
+                serverClients[currentClient].write(ss.c_str(),ss.length());
+                delay(1);
                 return;
           }
-          File dataFile = SPIFFS.open(fileString, "r");
-            if(dataFile){                                 // if the file exists
-              if (fileString.indexOf(".gz") != -1){
-                sendFile(dataFile,true);
-              }else{
-              sendFile(dataFile,false);
-              }
-              dataFile.close();
-              lastMicrosTime = micros();
-              maxLoopTime = 0;
-              return;
-            }
+          sendFile(fileString);
         }
-         client.flush();
 }
 
 void setupWiFi()
@@ -242,7 +257,8 @@ void setupWiFi()
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
-  
+  server.setNoDelay(true);
+  //client.setTimeout(30);            // read timeout
   //WiFi.printDiag(Serial);
 }
 
@@ -258,32 +274,14 @@ void initHardware()
   strip.Begin();
   strip.Show();
   smile();
+  // setup motors and encoders
   motors.addEncoders(motorLeftEncoder,motorRightEncoder);
+  pinMode(motorLeftEncoder, INPUT);
+  pinMode(motorRightEncoder, INPUT);
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
 }
 
-void sendFile(File theBuffer , boolean encrypted){ // breaks string into packets
-  int bufferLength = theBuffer.size();
-    sendHeadder(bufferLength,encrypted);
-  if (bufferLength < 2920){
-    client.write(theBuffer,bufferLength);
-    return;
-  }
-  while (bufferLength > 2920){
-    client.write(theBuffer,2920);
-    bufferLength -= 2920;
-  }
-  if (bufferLength > 0){
-    client.write(theBuffer,bufferLength);
-  }
-}
-void loadIndexPage(){
-     driverAssist = false;
-     File dataFile = SPIFFS.open("/index.html.gz", "r");
-     sendFile(dataFile,true);
-     dataFile.close();
-}
 void motorLeftEncoderInterruptHandler(){
   motors.encoderA_Step();
   motors.run();
@@ -292,17 +290,65 @@ void motorRightEncoderInterruptHandler(){
   motors.encoderB_Step();
   motors.run();
 }
-void sendHeadder(int fileSize, boolean gzipped){
-  if (gzipped){
-    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
-    s += fileSize;
-    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Encoding: gzip\r\n\r\n");
-    client.print(s);
-  }else{
-    String s = F("HTTP/1.1 200 OK\r\ncache-control: private\r\ncontent-length:");
-    s += fileSize;
-    s += F("\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n");
-    client.print(s);
+
+void sendFile(String path){
+// get content type
+if(path.endsWith("/")){ path += "index.html";driverAssist = false;}
+String dataType = getContentType(path);
+  
+// check if theres a .gz'd version and send that instead
+String gzPath = path + ".gz";
+File theBuffer;
+if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version of the file
+  theBuffer = SPIFFS.open(gzPath, "r");
+  path = gzPath;                        // got it, use this path
+}else{                                  // not here so load the standard file
+  theBuffer = SPIFFS.open(path, "r");
+  if (!theBuffer){                      // this one dosn't exist either, abort.
+    theBuffer.close();
+    return; // failed to read file
   }
 }
 
+// make header
+String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length: ");
+    s += theBuffer.size();
+    s += F("\r\ncontent-type: ");
+    s += dataType;
+    s += F("\r\nconnection: close"); // last one added X-Content-Type-Options: nosniff\r\n
+  if (path.endsWith(".gz")){
+    s += F("\r\nContent-Encoding: gzip\r\n\r\n");
+  }else{
+    s += F("\r\n\r\n");
+  }
+     // send the file
+  serverClients[currentClient].write(s.c_str(),s.length());
+  delay(1);
+  serverClients[currentClient].write(theBuffer,2920);
+  delay(1);
+
+  theBuffer.close();
+  lastMicrosTime = micros();
+  maxLoopTime = 0;
+}
+
+String getContentType(String path){ // get content type
+String dataType = F("text/html"); // text/html; charset=utf-8
+String lowerPath = path.substring(path.length()-4,path.length());
+lowerPath.toLowerCase();
+
+if(lowerPath.endsWith(".src")) lowerPath = lowerPath.substring(0, path.lastIndexOf("."));
+else if(lowerPath.endsWith(".html")) dataType = F("text/html");
+else if(lowerPath.endsWith(".htm")) dataType = F("text/html");
+else if(lowerPath.endsWith(".png")) dataType = F("image/png");
+else if(lowerPath.endsWith(".js")) dataType = F("application/javascript");
+else if(lowerPath.endsWith(".css")) dataType = F("text/css");
+else if(lowerPath.endsWith(".gif")) dataType = F("image/gif");
+else if(lowerPath.endsWith(".jpg")) dataType = F("image/jpeg");
+else if(lowerPath.endsWith(".ico")) dataType = F("image/x-icon");
+else if(lowerPath.endsWith(".xml")) dataType = F("text/xml");
+else if(lowerPath.endsWith(".pdf")) dataType = F("application/x-pdf");
+else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
+else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
+return dataType;
+}
