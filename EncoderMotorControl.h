@@ -4,14 +4,12 @@
  * 
  */
 
-
+//#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #ifndef encoderMotorControl_h
 #define encoderMotorControl_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include <Arduino.h>
-#else
-#include <WProgram.h>
 #endif
 
 class encoderMotorController {
@@ -42,8 +40,8 @@ class encoderMotorController {
   unsigned long lastMicros;                      // time of last update
   int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER]; // micro seconds of each step
   int encoderStepTimingBufferPosition[2];
-  unsigned long steps[2];
-  unsigned long totalSteps[2];                       
+  volatile unsigned long steps[2];
+  volatile unsigned long totalSteps[2];                       
   unsigned long debounceMinStepTime = 2000;       // minimum step time in micro seconds
   double lastSampleDeltaT[2];
 
