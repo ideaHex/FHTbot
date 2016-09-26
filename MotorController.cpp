@@ -205,15 +205,17 @@ void motorController::addEncoders(uint8_t A,uint8_t B){
 }
 void motorController::run(){
   if (encoderA.run()){
-      if (motorADirection == forward)heading += anglePerStep;
-      else heading -= anglePerStep;
+    heading += (0 + 1) * motorADirection * anglePerStep;
+ //     if (motorADirection == forward)heading += anglePerStep;
+ //     else heading -= anglePerStep;
     if (heading > 360)heading -= 360.0;
     else if (heading < 0)heading += 360.0;
     // update Grid X & Y
    }
    if (encoderB.run()){
-      if (motorBDirection == forward) heading -= anglePerStep;
-      else heading += anglePerStep;
+    heading += 1 * motorBDirection * -anglePerStep;
+   //   if (motorBDirection == forward) heading -= anglePerStep;
+   //   else heading += anglePerStep;
     if (heading > 360)heading -= 360.0;
     else if (heading < 0)heading += 360.0;
    }
