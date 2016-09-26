@@ -407,7 +407,7 @@ and open the template in the editor.
             // Add an API function for the sendText() block.
             var wrapper = function (text) {
                 text = text ? text.toString() : '';
-                return interpreter.createPrimitive(sendText(text));
+                sendText(text);
             };
             interpreter.setProperty(scope, 'sendText',
                     interpreter.createNativeFunction(wrapper));
