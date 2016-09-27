@@ -49,6 +49,7 @@ and open the template in the editor.
         <p>
             <button onclick="exeCode()">Parse JavaScript</button>
             <button onclick="stepCode()" id="stepButton" disabled="disabled">Step JavaScript</button>
+            <button onclick="runCode()">Run JavaScript</button>
         </p>
         <div id="blocklyDiv" style="height: 95%; width: 95%; padding: auto"></div>
     <xml id="toolbox" style="display: none">
@@ -137,24 +138,6 @@ and open the template in the editor.
             </block>
             <block type="math_random_float"></block>
         </category>
-        <category name="Lists">
-            <block type="lists_create_empty"></block>
-            <block type="lists_create_with"></block>
-            <block type="lists_repeat">
-                <value name="NUM">
-                    <block type="math_number">
-                        <field name="NUM">5</field>
-                    </block>
-                </value>
-            </block>
-            <block type="lists_length"></block>
-            <block type="lists_isEmpty"></block>
-            <block type="lists_indexOf"></block>
-            <block type="lists_getIndex"></block>
-            <block type="lists_setIndex"></block>
-        </category>
-        <category name="Variables" custom="VARIABLE"></category>
-        <category name="Functions" custom="PROCEDURE"></category>
         <sep></sep>
         <category name="Bot Commands">
             <block type="bot_turn_left"></block>
@@ -164,204 +147,28 @@ and open the template in the editor.
             <block type="bot_stop"></block>
         </category>
         <sep></sep>
-        <category name="Library" expanded="true">
-            <category name="Randomize">
-                <block type="procedures_defnoreturn">
-                    <mutation>
-                        <arg name="list"></arg>
-                    </mutation>
-                    <field name="NAME">randomize</field>
-                    <statement name="STACK">
-                        <block type="controls_for" inline="true">
-                            <field name="VAR">x</field>
-                            <value name="FROM">
-                                <block type="math_number">
-                                    <field name="NUM">1</field>
-                                </block>
-                            </value>
-                            <value name="TO">
-                                <block type="lists_length" inline="false">
-                                    <value name="VALUE">
-                                        <block type="variables_get">
-                                            <field name="VAR">list</field>
-                                        </block>
-                                    </value>
-                                </block>
-                            </value>
-                            <value name="BY">
-                                <block type="math_number">
-                                    <field name="NUM">1</field>
-                                </block>
-                            </value>
-                            <statement name="DO">
-                                <block type="variables_set" inline="false">
-                                    <field name="VAR">y</field>
-                                    <value name="VALUE">
-                                        <block type="math_random_int" inline="true">
-                                            <value name="FROM">
-                                                <block type="math_number">
-                                                    <field name="NUM">1</field>
-                                                </block>
-                                            </value>
-                                            <value name="TO">
-                                                <block type="lists_length" inline="false">
-                                                    <value name="VALUE">
-                                                        <block type="variables_get">
-                                                            <field name="VAR">list</field>
-                                                        </block>
-                                                    </value>
-                                                </block>
-                                            </value>
-                                        </block>
-                                    </value>
-                                    <next>
-                                        <block type="variables_set" inline="false">
-                                            <field name="VAR">temp</field>
-                                            <value name="VALUE">
-                                                <block type="lists_getIndex" inline="true">
-                                                    <mutation statement="false" at="true"></mutation>
-                                                    <field name="MODE">GET</field>
-                                                    <field name="WHERE">FROM_START</field>
-                                                    <value name="AT">
-                                                        <block type="variables_get">
-                                                            <field name="VAR">y</field>
-                                                        </block>
-                                                    </value>
-                                                    <value name="VALUE">
-                                                        <block type="variables_get">
-                                                            <field name="VAR">list</field>
-                                                        </block>
-                                                    </value>
-                                                </block>
-                                            </value>
-                                            <next>
-                                                <block type="lists_setIndex" inline="false">
-                                                    <value name="AT">
-                                                        <block type="variables_get">
-                                                            <field name="VAR">y</field>
-                                                        </block>
-                                                    </value>
-                                                    <value name="LIST">
-                                                        <block type="variables_get">
-                                                            <field name="VAR">list</field>
-                                                        </block>
-                                                    </value>
-                                                    <value name="TO">
-                                                        <block type="lists_getIndex" inline="true">
-                                                            <mutation statement="false" at="true"></mutation>
-                                                            <field name="MODE">GET</field>
-                                                            <field name="WHERE">FROM_START</field>
-                                                            <value name="AT">
-                                                                <block type="variables_get">
-                                                                    <field name="VAR">x</field>
-                                                                </block>
-                                                            </value>
-                                                            <value name="VALUE">
-                                                                <block type="variables_get">
-                                                                    <field name="VAR">list</field>
-                                                                </block>
-                                                            </value>
-                                                        </block>
-                                                    </value>
-                                                    <next>
-                                                        <block type="lists_setIndex" inline="false">
-                                                            <value name="AT">
-                                                                <block type="variables_get">
-                                                                    <field name="VAR">x</field>
-                                                                </block>
-                                                            </value>
-                                                            <value name="LIST">
-                                                                <block type="variables_get">
-                                                                    <field name="VAR">list</field>
-                                                                </block>
-                                                            </value>
-                                                            <value name="TO">
-                                                                <block type="variables_get">
-                                                                    <field name="VAR">temp</field>
-                                                                </block>
-                                                            </value>
-                                                        </block>
-                                                    </next>
-                                                </block>
-                                            </next>
-                                        </block>
-                                    </next>
-                                </block>
-                            </statement>
-                        </block>
-                    </statement>
-                </block>
-            </category>
-            <category name="Jabberwocky">
-                <block type="text_print">
-                    <value name="TEXT">
-                        <block type="text">
-                            <field name="TEXT">'Twas brillig, and the slithy toves</field>
+        <category name="Advanced" expanded="false">
+            <category name="Lists">
+                <block type="lists_create_empty"></block>
+                <block type="lists_create_with"></block>
+                <block type="lists_repeat">
+                    <value name="NUM">
+                        <block type="math_number">
+                            <field name="NUM">5</field>
                         </block>
                     </value>
-                    <next>
-                        <block type="text_print">
-                            <value name="TEXT">
-                                <block type="text">
-                                    <field name="TEXT">  Did gyre and gimble in the wabe:</field>
-                                </block>
-                            </value>
-                            <next>
-                                <block type="text_print">
-                                    <value name="TEXT">
-                                        <block type="text">
-                                            <field name="TEXT">All mimsy were the borogroves,</field>
-                                        </block>
-                                    </value>
-                                    <next>
-                                        <block type="text_print">
-                                            <value name="TEXT">
-                                                <block type="text">
-                                                    <field name="TEXT">  And the mome raths outgrabe.</field>
-                                                </block>
-                                            </value>
-                                        </block>
-                                    </next>
-                                </block>
-                            </next>
-                        </block>
-                    </next>
                 </block>
-                <block type="text_print">
-                    <value name="TEXT">
-                        <block type="text">
-                            <field name="TEXT">"Beware the Jabberwock, my son!</field>
-                        </block>
-                    </value>
-                    <next>
-                        <block type="text_print">
-                            <value name="TEXT">
-                                <block type="text">
-                                    <field name="TEXT">  The jaws that bite, the claws that catch!</field>
-                                </block>
-                            </value>
-                            <next>
-                                <block type="text_print">
-                                    <value name="TEXT">
-                                        <block type="text">
-                                            <field name="TEXT">Beware the Jubjub bird, and shun</field>
-                                        </block>
-                                    </value>
-                                    <next>
-                                        <block type="text_print">
-                                            <value name="TEXT">
-                                                <block type="text">
-                                                    <field name="TEXT">  The frumious Bandersnatch!"</field>
-                                                </block>
-                                            </value>
-                                        </block>
-                                    </next>
-                                </block>
-                            </next>
-                        </block>
-                    </next>
-                </block>
+                <block type="lists_length"></block>
+                <block type="lists_isEmpty"></block>
+                <block type="lists_indexOf"></block>
+                <block type="lists_getIndex"></block>
+                <block type="lists_setIndex"></block>
             </category>
+            <category name="Variables" custom="VARIABLE"></category>
+            <category name="Functions" custom="PROCEDURE"></category>
+        </category>
+        <sep></sep>
+        <category name="Library" expanded="false">
         </category>
     </xml>
     <script src="js/blockly_compressed.js" type="text/javascript"></script>
@@ -372,136 +179,141 @@ and open the template in the editor.
     <script src="js/botJS/bot.js" type="text/javascript"></script>
     <script>
 
-        //Blockly Injection and positioning
-        var blocklyArea = document.getElementById('blocklyArea');
-        var blocklyDiv = document.getElementById('blocklyDiv');
-        var workspace = Blockly.inject('blocklyDiv',
-                      {toolbox: document.getElementById('toolbox'),
-                    grid: {spacing: 40,
-                        length: 5,
-                        colour: '#ccc',
-                        snap: true},
-                    trashcan: true});
+                //Blockly Injection and positioning
+                var blocklyArea = document.getElementById('blocklyArea');
+                var blocklyDiv = document.getElementById('blocklyDiv');
+                var workspace = Blockly.inject('blocklyDiv',
+                              {toolbox: document.getElementById('toolbox'),
+                            grid: {spacing: 40,
+                                length: 5,
+                                colour: '#ccc',
+                                snap: true},
+                            trashcan: true});
+                //Setup XHTTP
+                var xhttp = new XMLHttpRequest();
+                //Setup the interpreter
+                var jsInterpreter = null;
+                function initApi(interpreter, scope) {
+                    // Add an API function for the alert() block.
+                    var wrapper = function (text) {
+                        text = text ? text.toString() : '';
+                        return interpreter.createPrimitive(alert(text));
+                    };
+                    interpreter.setProperty(scope, 'alert',
+                            interpreter.createNativeFunction(wrapper));
 
-        //Setup the interpreter
-        var jsInterpreter = null;
-        function initApi(interpreter, scope) {
-            // Add an API function for the alert() block.
-            var wrapper = function (text) {
-                text = text ? text.toString() : '';
-                return interpreter.createPrimitive(alert(text));
-            };
-            interpreter.setProperty(scope, 'alert',
-                    interpreter.createNativeFunction(wrapper));
+                    // Add an API function for the prompt() block.
+                    var wrapper = function (text) {
+                        text = text ? text.toString() : '';
+                        return interpreter.createPrimitive(prompt(text));
+                    };
+                    interpreter.setProperty(scope, 'prompt',
+                            interpreter.createNativeFunction(wrapper));
 
-            // Add an API function for the prompt() block.
-            var wrapper = function (text) {
-                text = text ? text.toString() : '';
-                return interpreter.createPrimitive(prompt(text));
-            };
-            interpreter.setProperty(scope, 'prompt',
-                    interpreter.createNativeFunction(wrapper));
-
-            // Add an API function for highlighting blocks.
-            var wrapper = function (id) {
-                id = id ? id.toString() : '';
-                return interpreter.createPrimitive(highlightBlock(id));
-            };
-            interpreter.setProperty(scope, 'highlightBlock',
-                    interpreter.createNativeFunction(wrapper));
-            // Add an API function for the sendText() block.
-            var wrapper = function (text) {
-                text = text ? text.toString() : '';
-                sendText(text);
-            };
-            interpreter.setProperty(scope, 'sendText',
-                    interpreter.createNativeFunction(wrapper));
-        }
-        var highlightPause = false;
-
-        function highlightBlock(id) {
-            workspace.highlightBlock(id);
-            highlightPause = true;
-        }
-
-        //Listener for screen resizing
-        var onresize = function (e) {
-            // Compute the absolute coordinates and dimensions of blocklyArea.
-            var element = blocklyArea;
-            var x = 0;
-            var y = 0;
-            do {
-                x += element.offsetLeft;
-                y += element.offsetTop;
-                element = element.offsetParent;
-            } while (element);
-            // Position blocklyDiv over blocklyArea.
-            blocklyDiv.style.left = x + 'px';
-            blocklyDiv.style.top = y + 'px';
-            blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
-            blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
-        };
-        window.addEventListener('resize', onresize, false);
-        onresize();
-        Blockly.svgResize(workspace);
-        //Generation on change.
-        function myUpdateFunction(event) {
-            var code = Blockly.JavaScript.workspaceToCode(workspace);
-            document.getElementById('textarea').value = code;
-        }
-        workspace.addChangeListener(myUpdateFunction);
-
-        //Execution of Code
-        //Code is contained in intepreted sandbox
-        function exeCode() {
-            Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
-            Blockly.JavaScript.addReservedWords('highlightBlock');
-            var code = Blockly.JavaScript.workspaceToCode(workspace);
-            jsInterpreter = new Interpreter(code, initApi);
-
-            alert('Ready to execute this code:\n\n' + code);
-            document.getElementById('stepButton').disabled = '';
-            highlightPause = false;
-            workspace.traceOn(true);
-            workspace.highlightBlock(null);
-
-
-        }
-        //Execution of code is stepped through by this function
-        function stepCode() {
-            try {
-                var ok = jsInterpreter.step();
-            } finally {
-                if (!ok) {
-                    // Program complete, no more code to execute.
-                    document.getElementById('stepButton').disabled = 'disabled';
-                    return;
+                    // Add an API function for highlighting blocks.
+                    var wrapper = function (id) {
+                        id = id ? id.toString() : '';
+                        return interpreter.createPrimitive(highlightBlock(id));
+                    };
+                    interpreter.setProperty(scope, 'highlightBlock',
+                            interpreter.createNativeFunction(wrapper));
+                    // Add an API function for the sendText() block.
+                    var wrapper = function (text) {
+                        text = text ? text.toString() : '';
+                        console.log("Output from interpreter:" + text);
+                        sendText(text);
+                    };
+                    interpreter.setProperty(scope, 'sendText',
+                            interpreter.createNativeFunction(wrapper));
                 }
-            }
-            if (highlightPause) {
-                // A block has been highlighted.  Pause execution here.
-                highlightPause = false;
-            } else {
-                // Keep executing until a highlight statement is reached.
-                stepCode();
-            }
+                var highlightPause = false;
 
-        }
-        
-        /**
-         * Sends text to the bot to execute
-         * @param {type} text
-         * @returns {void}
-         */
-        function sendText(text){
-            xhttp.abort();
-                console.log(text);
-                xhttp.open("GET", "/" + text, true);                
-                // xhttp.timeout = 100;
-                xhttp.send();
-        }
-        
+                function highlightBlock(id) {
+                    workspace.highlightBlock(id);
+                    highlightPause = true;
+                }
 
+                //Listener for screen resizing
+                var onresize = function (e) {
+                    // Compute the absolute coordinates and dimensions of blocklyArea.
+                    var element = blocklyArea;
+                    var x = 0;
+                    var y = 0;
+                    do {
+                        x += element.offsetLeft;
+                        y += element.offsetTop;
+                        element = element.offsetParent;
+                    } while (element);
+                    // Position blocklyDiv over blocklyArea.
+                    blocklyDiv.style.left = x + 'px';
+                    blocklyDiv.style.top = y + 'px';
+                    blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
+                    blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
+                };
+                window.addEventListener('resize', onresize, false);
+                onresize();
+                Blockly.svgResize(workspace);
+                //Generation on change.
+                function myUpdateFunction(event) {
+                    var code = Blockly.JavaScript.workspaceToCode(workspace);
+                    document.getElementById('textarea').value = code;
+                }
+                workspace.addChangeListener(myUpdateFunction);
+
+                //Execution of Code
+                //Code is contained in intepreted sandbox
+                function exeCode() {
+                    Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
+                    Blockly.JavaScript.addReservedWords('highlightBlock');
+                    var code = Blockly.JavaScript.workspaceToCode(workspace);
+                    jsInterpreter = new Interpreter(code, initApi);
+
+                    alert('Ready to execute this code:\n\n' + code);
+                    document.getElementById('stepButton').disabled = '';
+                    highlightPause = false;
+                    workspace.traceOn(true);
+                    workspace.highlightBlock(null);
+
+
+                }
+                //Execution of code is stepped through by this function
+                function stepCode() {
+                    try {
+                        var ok = jsInterpreter.step();
+                    } finally {
+                        if (!ok) {
+                            // Program complete, no more code to execute.
+                            document.getElementById('stepButton').disabled = 'disabled';
+                            return;
+                        }
+                    }
+                    if (highlightPause) {
+                        // A block has been highlighted.  Pause execution here.
+                        highlightPause = false;
+                    } else {
+                        // Keep executing until a highlight statement is reached.
+                        stepCode();
+                    }
+
+                }
+
+                function runCode() {
+                    //disable('disabled');
+                    jsInterpreter.run();
+                }
+
+                /**
+                 * Sends text to the bot to execute
+                 * @param {type} text
+                 * @returns {void}
+                 */
+                function sendText(text) {
+                    xhttp.abort();
+                    console.log(text);
+                    xhttp.open("GET", "/" + text, true);
+                    // xhttp.timeout = 100;
+                    xhttp.send();
+                }
     </script>
 </body>
 </html>
