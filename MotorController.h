@@ -62,7 +62,7 @@ class motorController {
   double anglePerStep = (distancePerStep / axleCircumference) * 360.0;
   double heading = 0.0;
   #define forward 1
-  #define reverse 2
+  #define reverse -1
   int motorADirection;
   int motorBDirection;
   unsigned long boostEndTime;

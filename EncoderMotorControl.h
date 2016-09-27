@@ -15,19 +15,22 @@
 class encoderMotorController {
 
   public:
-  encoderMotorController(uint8_t , uint8_t  , uint8_t ,uint8_t  , uint8_t ,uint8_t );       //constructor
-  void playNote(int,int);                                                                   // Play notes through motors
+  encoderMotorController(uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t);        //constructor
+  void playNote(int, int);                                                                  // Play notes through motors
   void manualDrive(int, int);                                                               // manual drive mode intput
   void update();                                                                            // use ticker to call this every updateFrequency from loop function
   int updateFrequency = 50;                                                                 // update frequency in milli seconds
+  void startCommandSet(String);                                                             // get command set from string
+  void cancelCommandSet();
 
   private:
 
   #define MAX_STEP_TIMING_BUFFER 200
   #define TIME_OUT 100000                         // encoder time out in micro seconds
   int MAX_range = 500;                            // maximum input from controller, higher values will be capped
-  float MAX_Speed = 2;                            // in KPH
+  double MAX_Speed = 1.8;                         // in KPH
   float minMotorSpeed = 0.12;                     // as a normal (range from 0.0 to 1.0)
+  double MIN_Speed = MAX_Speed * minMotorSpeed;   // minimum speed in KPH
   void motorAStep();                              // process interrupt change
   void motorBStep();
   void reverseMotorA();
@@ -37,12 +40,13 @@ class encoderMotorController {
   uint8_t motorAPin2;
   uint8_t motorBPin1;
   uint8_t motorBPin2;
-  unsigned long lastMicros;                      // time of last update
-  int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER]; // micro seconds of each step
+  volatile unsigned long lastMicros[2];                // time of last step
+  unsigned long lastUpdateMicros;                      // time of last update
+  int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER];    // micro seconds of each step
   int encoderStepTimingBufferPosition[2];
   volatile unsigned long steps[2];
   volatile unsigned long totalSteps[2];                       
-  unsigned long debounceMinStepTime = 2000;       // minimum step time in micro seconds
+  volatile unsigned long debounceMinStepTime = 2000;         // minimum step time in micro seconds
   double lastSampleDeltaT[2];
 
   double encoderWheelSlots = 20;
@@ -50,19 +54,22 @@ class encoderMotorController {
   double axleLength = 93.8;                       // distance between wheel centers in mm
   double axleCircumference = (axleLength * 2.0) * PI;
   double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
-  double anglePerStep = (distancePerStep / axleCircumference) * 360.0;
-  double heading = 0.0;
-  int PWMFrequency = 40;                        //Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
+  volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
+  double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
+  volatile double heading = 0.0;
+  double MAX_heading_Change = 45.0;               // in degrees per second
+  int PWMFrequency = 40;                          // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                       // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   int lastX = 0, lastY = 0;
   #define forward 1
   #define reverse -1
-  int motorDirection[2];
+  volatile int motorDirection[2];
   unsigned long boostEndTime;
   int boostDuration = 150;                        // in mS
   double botTargetSpeed = 0.0;                    // in KPH
   double wheelTargetSpeed[2] = {0,0};             // in KPH
   double botCurrentSpeed;                         // in KPH
+  double wheelSpeed[0];
   double targetHeading = 0.0;                     // in degrees
   long botTargetDistance = 0;                     // in mm
   long wheelTargetDistance[2] = {0,0};            // in mm
@@ -78,10 +85,10 @@ class encoderMotorController {
   int makePositive(int);
   void step(int);
   void updateGrid(int);
-  void startCommandSet(String);
   boolean getNextCommand();
-  void cancelCommandSet();
-  
+  void allStop();
+  void setMotorSpeed(int, int);
+  void PID();
 };
 
 /*************************************************
