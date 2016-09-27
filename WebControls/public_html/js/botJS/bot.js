@@ -1,8 +1,9 @@
 /**
  * Custom Blocks for Blockly, for the FH_Tbot Project
  */
+console.log("Loading custom blocks");
 
-var leftTurnJSON = {
+var botTurnLeftJson = {
     "type": "bot_turn_left",
     "message0": "Bot Turn Left: %1",
     "args0": [
@@ -19,15 +20,21 @@ var leftTurnJSON = {
     "helpUrl": "http://www.example.com/"
 };
 
+Blockly.Blocks['bot_turn_left'] ={
+  init: function(){
+      this.jsonInit(botTurnLeftJson);
+      //Any further JS modification to the BLOCK is done here.
+  }  
+};
+
 Blockly.JavaScript['bot_turn_left'] = function (block) {
     var angle_left_turn = block.getFieldValue('Left Turn');
-    var value_name = Blockly.JavaScript.valueToCode(block, 'NAME', Blockly.JavaScript.ORDER_ATOMIC);
     // TODO: Assemble JavaScript into code variable.
-    var code = 'setOutput(' + 'L' + argument0 + ');\n';
+    var code = 'setOutput(' + '\"L\" +' + angle_left_turn + ');\n';
     return code;
 };
 
-var rightTurnJSON = {
+var botTurnRightJson = {
     "type": "bot_turn_right",
     "message0": "Bot Turn Right: %1",
     "args0": [
@@ -44,10 +51,17 @@ var rightTurnJSON = {
     "helpUrl": "http://www.example.com/"
 };
 
+Blockly.Blocks['bot_turn_right'] ={
+  init: function(){
+      this.jsonInit(botTurnRightJson);
+      //Any further JS modification to the BLOCK is done here.
+  }  
+};
+
 Blockly.JavaScript['bot_turn_right'] = function (block) {
     var angle_rightangle = block.getFieldValue('rightAngle');
     // TODO: Assemble JavaScript into code variable.
-    var code = 'setOutput(' + 'R' + argument0 + ');\n';
+    var code = 'setOutput(' + '\"R\" +' + angle_rightangle + ');\n';
     return code;
 };
 
@@ -68,10 +82,17 @@ var bot_move_forwardJSON = {
     "helpUrl": "http://www.example.com/"
 };
 
+Blockly.Blocks['bot_move_forward'] ={
+  init: function(){
+      this.jsonInit(bot_move_forwardJSON);
+      //Any further JS modification to the BLOCK is done here.
+  }  
+};
+
 Blockly.JavaScript['bot_move_forward'] = function(block) {
   var number_forwardtravel = block.getFieldValue('forwardTravel');
   // TODO: Assemble JavaScript into code variable.
-  var code = 'setOutput(' + 'F' + argument0 + ');\n';
+  var code = 'setOutput(' + '\"F\" +' + number_forwardtravel + ');\n';
   return code;
 };
 
@@ -92,30 +113,19 @@ var bot_move_backwardJSON = {
     "helpUrl": "http://www.example.com/"
 };
 
+Blockly.Blocks['bot_move_backward'] ={
+  init: function(){
+      this.jsonInit(bot_move_backwardJSON);
+      //Any further JS modification to the BLOCK is done here.
+  }  
+};
+
 Blockly.JavaScript['bot_move_backward'] = function(block) {
   var number_forwardtravel = block.getFieldValue('forwardTravel');
   // TODO: Assemble JavaScript into code variable.
-  var code = 'setOutput(' + 'B' + argument0 + ');\n';
+  var code = 'setOutput(' + '\"B\" +' + number_forwardtravel + ');\n';
   return code;
 };
-
-var sendTextJSON = {
-    "type": "send_to_bot",
-    "message0": "Send to Bot ⇒",
-    "previousStatement": "String",
-    "colour": 120,
-    "tooltip": "",
-    "helpUrl": "http://www.example.com/"
-};
-
-
-Blockly.JavaScript['send_to_bot'] = function (block) {
-    // TODO: Assemble JavaScript into code variable.
-    var code = 'setOutput(' + +');\n';
-    return code;
-};
-
-
 
 var botStopJSON = {
   "type": "bot_stop",
@@ -127,8 +137,15 @@ var botStopJSON = {
   "helpUrl": "http://www.example.com/"
 };
 
+Blockly.Blocks['bot_stop'] ={
+  init: function(){
+      this.jsonInit(botStopJSON);
+      //Any further JS modification to the BLOCK is done here.
+  }  
+};
+
 Blockly.JavaScript['bot_stop'] = function(block) {
   // TODO: Assemble JavaScript into code variable.
-  var code = 'setOutput(' + AS +');\n';
+  var code = 'setOutput(' + '\"AS\" +' +');\n';
   return code;
 };

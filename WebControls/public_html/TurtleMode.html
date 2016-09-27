@@ -157,7 +157,11 @@ and open the template in the editor.
         <category name="Functions" custom="PROCEDURE"></category>
         <sep></sep>
         <category name="Bot Commands">
-            
+            <block type="bot_turn_left"></block>
+            <block type="bot_turn_right"></block>
+            <block type="bot_move_forward"></block>
+            <block type="bot_move_backward"></block>
+            <block type="bot_stop"></block>
         </category>
         <sep></sep>
         <category name="Library" expanded="true">
@@ -365,6 +369,7 @@ and open the template in the editor.
     <script src="js/blocks_compressed.js" type="text/javascript"></script>
     <script src="js/msg/js/en.js" type="text/javascript"></script>
     <script src="js/acorn_interpreter.js" type="text/javascript"></script>
+    <script src="js/botJS/bot.js" type="text/javascript"></script>
     <script>
 
         //Blockly Injection and positioning
@@ -490,7 +495,8 @@ and open the template in the editor.
          */
         function sendText(text){
             xhttp.abort();
-                xhttp.open("GET", "/" + text, true);
+                console.log(text);
+                xhttp.open("GET", "/" + text, true);                
                 // xhttp.timeout = 100;
                 xhttp.send();
         }
