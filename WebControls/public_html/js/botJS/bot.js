@@ -28,9 +28,9 @@ Blockly.Blocks['bot_turn_left'] ={
 };
 
 Blockly.JavaScript['bot_turn_left'] = function (block) {
-    var angle_left_turn = block.getFieldValue('Left Turn');
+    var angle_leftangle = block.getFieldValue('leftAngle');
     // TODO: Assemble JavaScript into code variable.
-    var code = 'setOutput(' + '\"L\" +' + angle_left_turn + ');\n';
+    var code = 'setOutput(' + '\"L\" +' + angle_leftangle + ');\n';
     return code;
 };
 
@@ -75,8 +75,8 @@ var bot_move_forwardJSON = {
             "value": 0
         }
     ],
-    "previousStatement": null,
-    "nextStatement": null,
+    "previousStatement": "null",
+    "nextStatement": "null",
     "colour": 90,
     "tooltip": "",
     "helpUrl": "http://www.example.com/"
@@ -106,8 +106,8 @@ var bot_move_backwardJSON = {
             "value": 0
         }
     ],
-    "previousStatement": null,
-    "nextStatement": null,
+    "previousStatement": "null",
+    "nextStatement": "null",
     "colour": 20,
     "tooltip": "",
     "helpUrl": "http://www.example.com/"
@@ -121,9 +121,9 @@ Blockly.Blocks['bot_move_backward'] ={
 };
 
 Blockly.JavaScript['bot_move_backward'] = function(block) {
-  var number_forwardtravel = block.getFieldValue('forwardTravel');
+  var number_backwardtravel = block.getFieldValue('backwardTravel');
   // TODO: Assemble JavaScript into code variable.
-  var code = 'setOutput(' + '\"B\" +' + number_forwardtravel + ');\n';
+  var code = 'setOutput(' + '\"B\" +' + number_backwardtravel + ');\n';
   return code;
 };
 
@@ -146,6 +146,6 @@ Blockly.Blocks['bot_stop'] ={
 
 Blockly.JavaScript['bot_stop'] = function(block) {
   // TODO: Assemble JavaScript into code variable.
-  var code = 'setOutput(' + '\"AS\" +' +');\n';
+  var code = 'setOutput(' + '\"AS\"' +');\n';
   return code;
 };
