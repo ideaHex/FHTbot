@@ -26,6 +26,7 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
     totalSteps[a] = 0;
     lastMicros[a] = micros();
     wheelSpeed[a] = 0;
+    motorDirection[a] = forward;
   }
 }
  float encoderMotorController::checkNormal(float normal){
@@ -43,7 +44,6 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
 
 void encoderMotorController::playNote(int note,int duration){
   analogWriteFreq(78000);
-  yield();
   delay(1);
   double noteFrequency = 1.0 / note ;
   noteFrequency *= 1000000.00;
@@ -69,13 +69,6 @@ void encoderMotorController::playNote(int note,int duration){
   analogWrite(motorBPin2,0);
   delay(30);
 }
-void encoderMotorController::motorAStep(){
-  step(0);
-}
-
-void encoderMotorController::motorBStep(){
-  step(1);
-}
 
 void encoderMotorController::step(int encoder){
   // debounce
@@ -87,7 +80,7 @@ void encoderMotorController::step(int encoder){
   updateGrid(encoder);
   
   // update heading + steps
-    heading += (encoder * motorDirection[encoder] * -anglePerStep ) + ( (encoder + 1) * motorDirection[encoder] * anglePerStep );
+    heading += ((encoder == 1) * motorDirection[encoder] * -anglePerStep ) + ( (encoder == 0 ) * motorDirection[encoder] * anglePerStep );
     if (heading > 360)heading -= 360.0;
     else if (heading < 0)heading += 360.0;
     totalSteps[encoder]++;
@@ -110,59 +103,65 @@ void encoderMotorController::manualDrive(int X, int Y){
   if (!lastX && !lastY) targetHeading = heading;                               // start from standstill, based on input not speed
   lastX = X;
   lastY = Y;
-
+  
   if (Y < 0){motorDirection[0] = forward; motorDirection[1] = forward;}
   else if (Y > 0) {motorDirection[0] = reverse; motorDirection[1] = reverse;} // if Y = 0 coasting in same direction
 
-  botTargetSpeed = (makePositive(Y) > 0) * ( (double(Y) / double(MAX_range) * (MAX_Speed - MIN_Speed) ) + MIN_Speed );    // cannot drop below min speed if Y != 0
+  botTargetSpeed = -1.0 * (Y !=0 ) * ( ((double(Y) / double(MAX_range)) * double(MAX_Speed - MIN_Speed) ) + double(MIN_Speed * (Y > 0)) - double(MIN_Speed * (Y < 0)));    // cannot drop below min speed if Y != 0
 
-  // TODO: calculate heading change in degrees per second from X and update target heading
+  //  calculate heading change in degrees per second from X and update target heading
   double targetDegreesPerSecond = double(X) / double(MAX_range) * MAX_heading_Change;
-  
-  // TODO: calculate new motor speeds from the above and feed into PID for PWM of each motor
+  //  calculate new motor speeds from the above and feed into PID for PWM of each motor
   double distanceInOneSecond = botTargetSpeed / 3600.0; // km / sec, calculate the target distance traveled in a straight line at the targes speed for 1 second
    //       calculate the target distance each wheel needs to travel to get the new heading in 1 second
-  double wheelADistance = distanceInOneSecond + ( (targetDegreesPerSecond * motorDirection[0] * 0.5) * distancePerDegreeChange );//in km / sec
-  double wheelBDistance = distanceInOneSecond - ( (targetDegreesPerSecond * motorDirection[1] * 0.5) * distancePerDegreeChange );
-  wheelTargetSpeed[0] = wheelADistance * 3600.0;// km/hr
-  wheelTargetSpeed[1] = wheelBDistance * 3600.0;// km/hr
+  double wheelADistance = distanceInOneSecond + ( (targetDegreesPerSecond * motorDirection[0] * 0.5) * (distancePerStep/anglePerStep)/360000.0 );//in km / sec distancePerDegreeChange
+  double wheelBDistance = distanceInOneSecond - ( (targetDegreesPerSecond * motorDirection[1] * 0.5) * (distancePerStep/anglePerStep)/360000.0 );
+  wheelTargetSpeed[0] = wheelADistance * 3600;// km/hr
+  wheelTargetSpeed[1] = wheelBDistance * 3600;// km/hr
+
   // check direction so encoders know which way to count and motors know which way to go
+  // TODO: when motors change direction let PID know so it dosen't over accelerate
+    //       if motor reversed set motor direction
+  if (wheelTargetSpeed[0] > 0 ){
+    if(Y)motorDirection[0] = forward;  //  if(Y !=0 ) to stop change in direction every update
+  }
   if (wheelTargetSpeed[0] < 0){
     wheelTargetSpeed[0] = -wheelTargetSpeed[0];
-    motorDirection[0] = !motorDirection[0];
+    if(Y)motorDirection[0] = reverse;
+  }
+   if (wheelTargetSpeed[1] > 0 ){
+    if(Y)motorDirection[1] = forward;
   }
     if (wheelTargetSpeed[1] < 0){
     wheelTargetSpeed[1] = -wheelTargetSpeed[1];
-    motorDirection[1] = !motorDirection[1];
+    if(Y)motorDirection[1] = reverse;
   }
   // check to see if target is below max
   if (wheelTargetSpeed[0] > MAX_Speed){
-    wheelTargetSpeed[1] -= MAX_Speed - wheelTargetSpeed[0];
+    wheelTargetSpeed[1] -= wheelTargetSpeed[0] - MAX_Speed;
     wheelTargetSpeed[0] = MAX_Speed;
   }
    if (wheelTargetSpeed[1] > MAX_Speed){
-    wheelTargetSpeed[0] -= MAX_Speed - wheelTargetSpeed[1];
+    wheelTargetSpeed[0] -= wheelTargetSpeed[1] - MAX_Speed;
     wheelTargetSpeed[1] = MAX_Speed;
   }
-  //       correct for either wheel not exceeding its min speed or 0
+
+  //     TODO::  correct for either wheel not exceeding its min speed or 0
   
   //       should be able to set timer now so the target heading can be calculated in the next update. Target heading +- targetDegreesPerSecond / 1000ms * actual time in ms
-  //       if motor reversed set motor direction
-  
-  
-  // TODO: update PWM of the motors through PID ?? or wait for update ?
+  // temporary functions
+    if ((wheelTargetSpeed[0] > 0) && (wheelTargetSpeed[0] < MIN_Speed) )wheelTargetSpeed[0] = MIN_Speed;
+    if ((wheelTargetSpeed[1] > 0) && (wheelTargetSpeed[1] < MIN_Speed) )wheelTargetSpeed[1] = MIN_Speed;
 }
 
-  void encoderMotorController::reverseMotorA(){
-    // swap pins
+  void encoderMotorController::reverseMotorA(){    // swap pins
     uint8_t holder;
     holder = motorAPin1;
     motorAPin1 = motorAPin2;
     motorAPin2 = holder;
   }
   
-  void encoderMotorController::reverseMotorB(){
-        // swap pins
+  void encoderMotorController::reverseMotorB(){    // swap pins
     uint8_t holder;
     holder = motorBPin1;
     motorBPin1 = motorBPin2;
@@ -176,8 +175,7 @@ void encoderMotorController::updateGrid(int encoder){
 
 void encoderMotorController::startCommandSet(String theCommandSet){
   commandSet = theCommandSet;
-  if (commandSet.indexOf("data") == -1){
-    // error, no data found or invalid string
+  if (commandSet.indexOf("data") == -1){ // error, no data found or invalid string
     return;
   }
   commandSet.remove(0,5); // trimm data & comma from front of string
@@ -197,28 +195,28 @@ boolean encoderMotorController::getNextCommand(){
     return false;
   }
   // TODO: set targets for command here, direction speed distance etc..
-  
   return true;
 }
 
 void encoderMotorController::cancelCommandSet(){
+  allStop();
   commandSet.remove(0);
   commandSetHasCommands = 0;
 }
 
 void encoderMotorController::update(){
-  lastUpdateMicros = micros();
   unsigned long lastDeltaT = micros() - lastUpdateMicros;
-  botCurrentSpeed = ((( (double(steps[0]) + double(steps[1]) ) * distancePerStep) * 0.5) / double(lastDeltaT)) / 3600.0; // km / hr
-  wheelSpeed[0] = double(steps[0]) * distancePerStep / double(lastDeltaT) / 3600.0;
-  wheelSpeed[1] = double(steps[1]) * distancePerStep / double(lastDeltaT) / 3600.0;
+  lastUpdateMicros = micros();
+  botCurrentSpeed = ( (( double(steps[0] + steps[1]) * distancePerStep) * 0.5) / double(lastDeltaT)) * 3600; // km / hr
+  wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaT) * 3600.0;
+  wheelSpeed[1] = (double(steps[1]) * distancePerStep) / double(lastDeltaT) * 3600.0;
   
   steps[0] = 0;
   steps[1] = 0;
   
   // TODO:  if current command done call commandSetHasCommands = getNextCommand();
   //        assume done if error is less than 1% ?
-  
+  PID();
 }
 
 void encoderMotorController::allStop(){
@@ -226,15 +224,14 @@ void encoderMotorController::allStop(){
   //       set target speed to 0 so PID can slow to stop.
 }
 
-void encoderMotorController::setMotorSpeed(int PWMA, int PWMB){
+void encoderMotorController::setMotorSpeed(){
   analogWrite(motorAPin1,PWMA * (motorDirection[0] < 0) );
   analogWrite(motorAPin2,PWMA * (motorDirection[0] > 0) );
-  analogWrite(motorBPin1,PWMB * (motorDirection[1] > 0) );
-  analogWrite(motorBPin2,PWMB * (motorDirection[1] < 0) );
+  analogWrite(motorBPin1,PWMB * (motorDirection[1] < 0) );
+  analogWrite(motorBPin2,PWMB * (motorDirection[1] > 0) );
 }
 
 void encoderMotorController::PID(){
-  int PWMA,PWMB;
   //TODO: calculate PID for motor PWM baced on motor target speed
   // currently being called every 50 mS (20 Hz)
   // wheelSpeed[0];               // is current left motor speed in km / hr
@@ -244,6 +241,53 @@ void encoderMotorController::PID(){
   // MAX_Speed;                   // is bot maximum speed
   // MIN_Speed;                   // minimum speed to prevent stall, takes about 50% more to overcome starting torque
 
-  setMotorSpeed(PWMA, PWMB);      // output pwm to motors range is 0 - 1023
+// The following functions are a temporary fix for testing
+
+      double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
+      double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
+
+      int PWMChange = 20;
+      if (!wheelTargetSpeed[0] && !wheelTargetSpeed[1]){
+          if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
+          if (PWMA > 256){
+            PWMA = 256;
+            PWMB = 256;
+          }
+      PWMChange *= 2;
+      if (PWMA < 200){
+        PWMChange = int(PWMChange * 0.25);
+      }
+    }
+      if (errorA > 0.01 && PWMA < (1023 - PWMChange)){
+        PWMA += PWMChange;
+      }
+      if (errorA < -0.01 && PWMA > PWMChange){
+        PWMA -= PWMChange;
+      }
+      if (errorB > 0.01 && PWMB < (1023 - PWMChange)){
+        PWMB += PWMChange;
+      }
+      if (errorB < -0.01 && PWMB > PWMChange){
+        PWMB -= PWMChange;
+      }
+   if ((PWMA < minMotorSpeed * 1023) && (wheelTargetSpeed[0] < MIN_Speed)){
+    PWMA = 0;
+   }
+   if ((PWMB < minMotorSpeed * 1023) && (wheelTargetSpeed[1] < MIN_Speed)){
+    PWMB = 0;
+   }
+  setMotorSpeed();      // output pwm to motors range is 0 - 1023
+}
+double encoderMotorController::getSpeed(){
+  return botCurrentSpeed;
+}
+double encoderMotorController::getheading(){
+  return heading;
+}
+double encoderMotorController::getTravel(){
+  return (totalSteps[0]+totalSteps[1]) / 2.0 * distancePerStep;
+}
+double encoderMotorController::getAcceleration(){
+  return 0;
 }
 
