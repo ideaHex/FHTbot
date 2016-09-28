@@ -19,23 +19,26 @@ class encoderMotorController {
   void playNote(int, int);                                                                  // Play notes through motors
   void manualDrive(int, int);                                                               // manual drive mode intput
   void update();                                                                            // use ticker to call this every updateFrequency from loop function
-  int updateFrequency = 50;                                                                 // update frequency in milli seconds
+  int updateFrequency = 25;                                                                 // update frequency in milli seconds
   void startCommandSet(String);                                                             // get command set from string
   void cancelCommandSet();
+  void step(int);
+  
+  double getheading();
+  double getSpeed();
+  double getTravel();
+  double getAcceleration();
+  void reverseMotorA();
+  void reverseMotorB();
 
   private:
 
   #define MAX_STEP_TIMING_BUFFER 200
-  #define TIME_OUT 100000                         // encoder time out in micro seconds
-  int MAX_range = 500;                            // maximum input from controller, higher values will be capped
-  double MAX_Speed = 1.8;                         // in KPH
-  float minMotorSpeed = 0.12;                     // as a normal (range from 0.0 to 1.0)
-  double MIN_Speed = MAX_Speed * minMotorSpeed;   // minimum speed in KPH
-  void motorAStep();                              // process interrupt change
-  void motorBStep();
-  void reverseMotorA();
-  void reverseMotorB();
-
+  #define TIME_OUT 100000                              // encoder time out in micro seconds
+  int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
+  double MAX_Speed = 2.2;                              // in KPH
+  double MIN_Speed = 0.3;                              // minimum speed in KPH
+  float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
   uint8_t motorAPin1;
   uint8_t motorAPin2;
   uint8_t motorBPin1;
@@ -46,48 +49,49 @@ class encoderMotorController {
   int encoderStepTimingBufferPosition[2];
   volatile unsigned long steps[2];
   volatile unsigned long totalSteps[2];                       
-  volatile unsigned long debounceMinStepTime = 2000;         // minimum step time in micro seconds
+  volatile unsigned long debounceMinStepTime = 2000;   // minimum step time in micro seconds
   double lastSampleDeltaT[2];
 
   double encoderWheelSlots = 20;
-  float wheelDiameter = 64.6;                     // in mm
-  double axleLength = 93.8;                       // distance between wheel centers in mm
+  float wheelDiameter = 64.6;                          // in mm
+  double axleLength = 93.8;                            // distance between wheel centers in mm
   double axleCircumference = (axleLength * 2.0) * PI;
   double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile double heading = 0.0;
-  double MAX_heading_Change = 45.0;               // in degrees per second
-  int PWMFrequency = 40;                          // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
-  int PWMWriteRange = 1023;                       // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
+  double MAX_heading_Change = 90.0;                    // in degrees per second
+  int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
+  int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   int lastX = 0, lastY = 0;
   #define forward 1
   #define reverse -1
   volatile int motorDirection[2];
   unsigned long boostEndTime;
-  int boostDuration = 150;                        // in mS
-  double botTargetSpeed = 0.0;                    // in KPH
-  double wheelTargetSpeed[2] = {0,0};             // in KPH
-  double botCurrentSpeed;                         // in KPH
+  int boostDuration = 150;                             // in mS
+  double botTargetSpeed = 0.0;                         // in KPH
+  double wheelTargetSpeed[2] = {0,0};                  // in KPH
+  double botCurrentSpeed;                              // in KPH
   double wheelSpeed[0];
-  double targetHeading = 0.0;                     // in degrees
-  long botTargetDistance = 0;                     // in mm
-  long wheelTargetDistance[2] = {0,0};            // in mm
+  double targetHeading = 0.0;                          // in degrees
+  long botTargetDistance = 0;                          // in mm
+  long wheelTargetDistance[2] = {0,0};                 // in mm
   long botTargetSteps = 0;
   long wheelTargetSteps[2] = {0,0};
-  double gridX = 0.0;                             // grid coords
+  double gridX = 0.0;                                  // grid coords
   double gridY = 0.0;
-  String commandSet;                              // string to hold incomming commands
+  String commandSet;                                   // string to hold incomming commands
   boolean commandSetHasCommands = false;
+  int PWMA = 0;
+  int PWMB = 0;
   
   // private functions
   float checkNormal(float);
   int makePositive(int);
-  void step(int);
   void updateGrid(int);
   boolean getNextCommand();
   void allStop();
-  void setMotorSpeed(int, int);
+  void setMotorSpeed();
   void PID();
 };
 

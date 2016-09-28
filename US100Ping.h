@@ -45,7 +45,4 @@ class US100Ping {
   unsigned long currentMillis = millis();
 };
 
-
-
-
 #endif
