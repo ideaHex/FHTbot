@@ -75,7 +75,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();                             // Serial.println("Connection lost STOP!!!!!!");
+    //Stop();                             // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -85,13 +85,16 @@ void setup()
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
+  /*
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
-  closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");// \r\ncontent-length: 0\r\ncache-control: none\r\nContent-Type: text/html\r\n
+  */
+  closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
+ // motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -154,6 +157,7 @@ void loop()
   if (!req.length()){// empty request
       return;
       }
+  HeartBeatRcvd = true;                                           // recieved data, must be connected
   //Serial.println("\r\n" + req);
   //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
@@ -167,7 +171,6 @@ void loop()
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
-    HeartBeatRcvd = true;                                           // recieved data, must be connected
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
@@ -200,6 +203,11 @@ void loop()
           if (fileString.indexOf("Start.html") != -1){
               driverAssist = false;
               sendFile(fileString);
+              return;
+          }
+          if (fileString.indexOf("data,") != -1){
+              fileString.trim();
+              motors.startCommandSet(fileString);
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
@@ -276,7 +284,7 @@ void initHardware()
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
-  smile();
+  //smile();
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
@@ -284,10 +292,10 @@ void initHardware()
 }
 
 void motorLeftEncoderInterruptHandler(){
-  motors.step(0);
+  motors.takeStep(0);
 }
 void motorRightEncoderInterruptHandler(){
- motors.step(1);
+ motors.takeStep(1);
 }
 
 void updateMotors(){
