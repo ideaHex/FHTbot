@@ -36,10 +36,13 @@ class encoderMotorController {
   #define MAX_STEP_TIMING_BUFFER 50
   #define TIME_OUT 100000                              // encoder time out in micro seconds
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
-  volatile double MAX_Speed = 2.2;                              // in KPH
-  volatile double MIN_Speed = 0.46;                              // minimum speed in KPH
+  volatile double MAX_Speed = 2.2;                     // in KPH
+  volatile double MIN_Speed = 0.36;                     // minimum speed in KPH
   float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
   double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
+  volatile unsigned int timeOfLastStep[2];
+  volatile unsigned int timeOfCurrentStep[2];
+  double minCalculatedSpeed = MIN_Speed * 0.2;         // if speed drops 20% below minimum speed is considered 0 KPH
   uint8_t motorAPin1;
   uint8_t motorAPin2;
   uint8_t motorBPin1;
@@ -60,6 +63,7 @@ class encoderMotorController {
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
+  volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
   volatile double heading = 0.0;
   double MAX_heading_Change = 90.0;                    // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
@@ -76,14 +80,14 @@ class encoderMotorController {
   unsigned long boostEndTime;
   int boostDuration = 150;                             // in mS
   double botTargetSpeed = 0.0;                         // in KPH
-  volatile double wheelTargetSpeed[2] = {0,0};                  // in KPH
+  volatile double wheelTargetSpeed[2];                  // in KPH
   volatile double botCurrentSpeed;                              // in KPH
   double wheelSpeed[2];
   double targetHeading = -1.0;                          // in degrees
   volatile long botTargetDistance = 0;                          // in mm
-  long wheelTargetDistance[2] = {0,0};                 // in mm
+  long wheelTargetDistance[2];                 // in mm
   long botTargetSteps = 0;
-  long wheelTargetSteps[2] = {0,0};
+  long wheelTargetSteps[2];
   double gridX = 0.0;                                  // grid coords
   double gridY = 0.0;
   String commandSet;                                   // string to hold incomming commands
@@ -92,6 +96,8 @@ class encoderMotorController {
   int PWMA = 0;
   int PWMB = 0;
   double targetDegreesPerSecond = 0;
+  unsigned long nextCommandMillis = 0;
+  unsigned long delaybetweenCommands = 1000;
   
   // private functions
   float checkNormal(float);
