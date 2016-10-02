@@ -94,7 +94,7 @@ void setup()
   motors.playNote(NOTE_A5,800);
   */
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
- // motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
+  motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
