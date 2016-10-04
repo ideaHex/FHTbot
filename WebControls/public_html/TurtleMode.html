@@ -38,7 +38,7 @@
                 background-color: #333;
                 width: 195px;
                 height: 133px;
-                background-image: url(hacad.png);
+                background-image: url("../hacad.png");
                 width: 100%;
                 height: 100%;
                 color: black;
@@ -269,7 +269,7 @@
 
                 var bot_move_forwardJSON = {
                     "type": "bot_move_forward",
-                    "message0": "Travel forward  %1 mm",
+                    "message0": "Travel forward  %1 cm",
                     "args0": [
                         {
                             "type": "field_number",
@@ -300,7 +300,7 @@
 
                 var bot_move_backwardJSON = {
                     "type": "bot_move_backward",
-                    "message0": "Travel backward  %1 mm",
+                    "message0": "Travel backward  %1 cm",
                     "args0": [
                         {
                             "type": "field_number",
@@ -495,7 +495,7 @@
          */
         function runBot() {
             if (botQueue !== "") {
-                xhttp.abort();
+                //xhttp.abort();
                 console.log();
                 xhttp.open("GET", "/data," + botQueue, true);
                 // xhttp.timeout = 100;
@@ -512,7 +512,7 @@
         function pageLoaded() {
             setInterval(function () {
                 HB();
-            }, 210);
+            }, 100);
         }
     
     </script>
