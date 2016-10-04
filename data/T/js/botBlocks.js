@@ -1,8 +1,6 @@
 /**
  * Custom Blocks for Blockly, for the FH_Tbot Project
  */
-console.log("Loading custom blocks");
-
 var botTurnLeftJson = {
     "type": "bot_turn_left",
     "message0": "Bot Turn Left: %1",
@@ -30,7 +28,7 @@ Blockly.Blocks['bot_turn_left'] ={
 Blockly.JavaScript['bot_turn_left'] = function (block) {
     var angle_leftangle = block.getFieldValue('leftAngle');
     // TODO: Assemble JavaScript into code variable.
-    var code = 'sendText(' + '\"L,\" +' + angle_leftangle + '\",\"' + ');\n';
+    var code = 'addCommand(' + '\"L\"); addCommand(' + angle_leftangle + ');\n';
     return code;
 };
 
@@ -61,7 +59,7 @@ Blockly.Blocks['bot_turn_right'] ={
 Blockly.JavaScript['bot_turn_right'] = function (block) {
     var angle_rightangle = block.getFieldValue('rightAngle');
     // TODO: Assemble JavaScript into code variable.
-    var code = 'sendText(' + '\"R,\" +' + angle_rightangle + '\",\"' +');\n';
+    var code = 'addCommand(' + '\"R\"); addCommand(' + angle_rightangle +');\n';
     return code;
 };
 
@@ -92,7 +90,7 @@ Blockly.Blocks['bot_move_forward'] ={
 Blockly.JavaScript['bot_move_forward'] = function(block) {
   var number_forwardtravel = block.getFieldValue('forwardTravel');
   // TODO: Assemble JavaScript into code variable.
-  var code = 'sendText(' + '\"F,\" +' + number_forwardtravel + '\",\"' + ');\n';
+  var code = 'addCommand(' + '\"F\"); addCommand(' + number_forwardtravel + ');\n';
   return code;
 };
 
@@ -123,7 +121,7 @@ Blockly.Blocks['bot_move_backward'] ={
 Blockly.JavaScript['bot_move_backward'] = function(block) {
   var number_backwardtravel = block.getFieldValue('backwardTravel');
   // TODO: Assemble JavaScript into code variable.
-  var code = 'sendText(' + '\"B,\" +' + number_backwardtravel + '\",\"' + ');\n';
+  var code = 'addCommand(' + '\"B"); addCommand(' + number_backwardtravel + ');\n';
   return code;
 };
 
@@ -146,6 +144,29 @@ Blockly.Blocks['bot_stop'] ={
 
 Blockly.JavaScript['bot_stop'] = function(block) {
   // TODO: Assemble JavaScript into code variable.
-  var code = 'sendText(' + '\"AS,\"' +');\n';
+  var code = 'addCommand(' + '\"AS\"' +');\n';
   return code;
 };
+
+var botRunJSON = {
+  "type": "bot_run",
+  "message0": "Run Bot",
+  "previousStatement": null,
+  "nextStatement": null,
+  "colour": 0,
+  "tooltip": "Runs all the commands built up so far, but clears any commands currently running on the bot.",
+  "helpUrl": "http://www.example.com/"
+};
+
+Blockly.Blocks['bot_run'] ={
+  init: function(){
+      this.jsonInit(botRunJSON);      
+  }  
+};
+
+Blockly.JavaScript['bot_run'] = function(block) {
+  // TODO: Assemble JavaScript into code variable.
+  var code = 'runBot();\n';
+  return code;
+};
+

@@ -1,8 +1,25 @@
 <!DOCTYPE html>
 <!--
-To change this license header, choose License Headers in Project Properties.
-To change this template file, choose Tools | Templates
-and open the template in the editor.
+             Copyright (c) Alexander Battarbee 2016
+             
+             Permission is hereby granted, free of charge, to any person obtaining
+             a copy of this software and associated documentation files (the
+             "Software"), to deal in the Software without restriction, including
+             without limitation the rights to use, copy, modify, merge, publish,
+             distribute, sublicense, and/or sell copies of the Software, and to
+             permit persons to whom the Software is furnished to do so, subject to
+             the following conditions:
+             
+             The above copyright notice and this permission notice shall be
+             included in all copies or substantial portions of the Software.
+             
+             THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+             EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+             MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
+             IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+             LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+             OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+             WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 -->
 <html>
     <head>
@@ -47,9 +64,8 @@ and open the template in the editor.
     </head>
     <body>
         <p>
-            <button onclick="parseCode()">Parse JavaScript</button>
-            <button onclick="stepCode()" id="stepButton" disabled="disabled">Step JavaScript</button>
-            <button onclick="runCode()" id="runButton" disabled="disabled">Run JavaScript </button>
+            <button onclick="parseCode()">Parse JavaScript</button>            
+            <button onclick="runInterpreter()" id="runButton" disabled="disabled">Run JavaScript </button>
         </p>
         <div id="blocklyDiv" style="height: 95%; width: 95%; padding: auto"></div>
     <xml id="toolbox" style="display: none">
@@ -145,6 +161,7 @@ and open the template in the editor.
             <block type="bot_move_forward"></block>
             <block type="bot_move_backward"></block>
             <block type="bot_stop"></block>
+            <block type="bot_run"></block>
         </category>
         <sep></sep>
         <category name="Advanced" expanded="false">
@@ -191,6 +208,8 @@ and open the template in the editor.
                             trashcan: true});
                 //Setup XHTTP
                 var xhttp = new XMLHttpRequest();
+                //Setup Queue namespace
+                var botQueue = "";
                 //Setup the interpreter
                 var jsInterpreter = null;
                 function initApi(interpreter, scope) {
@@ -209,21 +228,21 @@ and open the template in the editor.
                     };
                     interpreter.setProperty(scope, 'prompt',
                             interpreter.createNativeFunction(wrapper));
-
-                    // Add an API function for highlighting blocks.
-                    var wrapper = function (id) {
-                        id = id ? id.toString() : '';
-                        return interpreter.createPrimitive(highlightBlock(id));
-                    };
-                    interpreter.setProperty(scope, 'highlightBlock',
-                            interpreter.createNativeFunction(wrapper));
-                    // Add an API function for the sendText() block.
+                    // Add an API function for the addCommand() block.
                     var wrapper = function (text) {
                         text = text ? text.toString() : '';
                         console.log("Output from interpreter:" + text);
-                        sendText(text);
+                        addCommand(text);
                     };
-                    interpreter.setProperty(scope, 'sendText',
+                    interpreter.setProperty(scope, 'addCommand',
+                            interpreter.createNativeFunction(wrapper));
+                    // Add an API function for the runBot() block.
+                    var wrapper = function (text) {
+                        text = text ? text.toString() : '';
+                        console.log("Sending run Command");
+                        runBot(text);
+                    };
+                    interpreter.setProperty(scope, 'runBot',
                             interpreter.createNativeFunction(wrapper));
                 }
                 var highlightPause = false;
@@ -263,58 +282,44 @@ and open the template in the editor.
                 //Execution of Code
                 //Code is contained in intepreted sandbox
                 function parseCode() {
-                    Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
-                    Blockly.JavaScript.addReservedWords('highlightBlock');
+                    armQueue();
                     var code = Blockly.JavaScript.workspaceToCode(workspace);
                     jsInterpreter = new Interpreter(code, initApi);
-
-                    alert('Ready to execute this code:\n\n' + code);
-                    document.getElementById('stepButton').disabled = '';
+                    alert('Ready to run this code:\n\n' + code);
                     document.getElementById('runButton').disabled = '';
-                    highlightPause = false;
-                    workspace.traceOn(true);
-                    workspace.highlightBlock(null);
-
-
-                }
-                //Execution of code is stepped through by this function
-                function stepCode() {
-                    try {
-                        var ok = jsInterpreter.step();
-                    } finally {
-                        if (!ok) {
-                            // Program complete, no more code to execute.
-                            document.getElementById('stepButton').disabled = 'disabled';
-                            return;
-                        }
-                    }
-                    if (highlightPause) {
-                        // A block has been highlighted.  Pause execution here.
-                        highlightPause = false;
-                    } else {
-                        // Keep executing until a highlight statement is reached.
-                        stepCode();
-                    }
-
+                    //workspace.traceOn(true);
+                    //workspace.highlightBlock(null);
                 }
 
-                function runCode() {
+                function runInterpreter() {
                     //disable('disabled');
                     jsInterpreter.run();
                     document.getElementById('runButton').disabled = 'disabled';
+                    runBot();
+                }
+
+                //QUEUE start with data, and keep adding on more.
+                function armQueue() {
+                    botQueue = "";
+                }
+
+                function addCommand(text) {
+                    botQueue += text + ",";
                 }
 
                 /**
                  * Sends text to the bot to execute
-                 * @param {type} text
                  * @returns {void}
                  */
-                function sendText(text) {
-                    xhttp.abort();
-                    console.log(text);
-                    xhttp.open("GET", "/" + text, true);
-                    // xhttp.timeout = 100;
-                    xhttp.send();
+                function runBot() {
+                    if (botQueue !== "") {
+                        xhttp.abort();
+                        console.log();
+                        xhttp.open("GET", "/data," + botQueue, true);
+                        // xhttp.timeout = 100;
+                        xhttp.send();
+                        armQueue();
+                    }
                 }
     </script>
 </body>
