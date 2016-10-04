@@ -62,7 +62,7 @@
         </style>
 
     </head>
-    <body>
+    <body onload="pageLoaded()">
         <p>
             <button onclick="parseCode()">Parse JavaScript</button>            
             <button onclick="runInterpreter()" id="runButton" disabled="disabled">Run JavaScript </button>
@@ -503,6 +503,18 @@
                 armQueue();
             }
         }
+        function HB() {
+            xhttp.open("GET", "/HB", true);
+            xhttp.send();
+        }
+        
+        //Heartbeat function
+        function pageLoaded() {
+            setInterval(function () {
+                HB();
+            }, 210);
+        }
+    
     </script>
 </body>
 </html>
