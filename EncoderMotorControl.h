@@ -57,17 +57,19 @@ class encoderMotorController {
   double lastSampleDeltaT[2];
 
   double encoderWheelSlots = 20;
-  float wheelDiameter = 64.6;                          // in mm
+  float wheelDiameter = 64.93592;//64.6;                          // in mm
   double axleLength = 93.8;                            // distance between wheel centers in mm
   double axleCircumference = (axleLength * 2.0) * PI;
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
+  volatile double startPWMBoost = minMotorSpeed * 1023 * 1.35;
   volatile double heading = 0.0;
-  double MAX_heading_Change = 90.0;                    // in degrees per second
+  double MAX_heading_Change = 110.0;                    // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
+  volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
   int lastX = 0, lastY = 0;
   #define forward 1
   #define reverse -1
@@ -77,8 +79,8 @@ class encoderMotorController {
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
-  unsigned long boostEndTime;
-  int boostDuration = 150;                             // in mS
+  //unsigned long boostEndTime;
+  //int boostDuration = 150;                             // in mS
   double botTargetSpeed = 0.0;                         // in KPH
   volatile double wheelTargetSpeed[2];                  // in KPH
   volatile double botCurrentSpeed;                              // in KPH
@@ -93,8 +95,8 @@ class encoderMotorController {
   String commandSet;                                   // string to hold incomming commands
   boolean commandSetHasCommands = false;
   boolean commandCompleted = false;
-  int PWMA = 0;
-  int PWMB = 0;
+  volatile int PWMA = 0;
+  volatile int PWMB = 0;
   double targetDegreesPerSecond = 0;
   unsigned long nextCommandMillis = 0;
   unsigned long delaybetweenCommands = 1000;
@@ -108,6 +110,7 @@ class encoderMotorController {
   void processCommand(String , double);
   void allStop();
   void setMotorSpeed();
+  void setMotorSpeed(int,int);
   void PID();
   void updateSteering(long);
 };
