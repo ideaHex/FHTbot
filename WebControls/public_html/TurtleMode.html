@@ -191,6 +191,8 @@ and open the template in the editor.
                             trashcan: true});
                 //Setup XHTTP
                 var xhttp = new XMLHttpRequest();
+                //Setup Queue namespace
+                var botQueue = "";
                 //Setup the interpreter
                 var jsInterpreter = null;
                 function initApi(interpreter, scope) {
@@ -263,6 +265,7 @@ and open the template in the editor.
                 //Execution of Code
                 //Code is contained in intepreted sandbox
                 function parseCode() {
+                    armQueue();
                     Blockly.JavaScript.STATEMENT_PREFIX = 'highlightBlock(%1);\n';
                     Blockly.JavaScript.addReservedWords('highlightBlock');
                     var code = Blockly.JavaScript.workspaceToCode(workspace);
@@ -302,20 +305,30 @@ and open the template in the editor.
                     //disable('disabled');
                     jsInterpreter.run();
                     document.getElementById('runButton').disabled = 'disabled';
+                    sendQueue();
                 }
 
+                function armQueue(){
+                    botQueue = "data,";
+                }
+                
+                function sendText(text){
+                    botQueue += text;
+                }
+                
                 /**
                  * Sends text to the bot to execute
-                 * @param {type} text
                  * @returns {void}
                  */
-                function sendText(text) {
+                function sendQueue() {
                     xhttp.abort();
-                    console.log(text);
-                    xhttp.open("GET", "/" + text, true);
+                    console.log();
+                    xhttp.open("GET", "/" + botQueue, true);
                     // xhttp.timeout = 100;
                     xhttp.send();
                 }
+                //QUEUE start with data, and keep adding on more.
+                
     </script>
 </body>
 </html>
