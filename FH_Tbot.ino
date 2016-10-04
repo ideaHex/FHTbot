@@ -75,7 +75,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    //Stop();                             // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                             // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -84,17 +84,16 @@ void setup()
   system_update_cpu_freq(160);          // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
-  HeartBeatTicker.attach_ms(500, CheckHeartBeat);
-  /*
+  HeartBeatTicker.attach_ms(750, CheckHeartBeat);
+  
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
-  */
+  
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
-  motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -205,7 +204,15 @@ void loop()
               sendFile(fileString);
               return;
           }
+          if (fileString.indexOf("/HB") != -1){
+            HeartBeatRcvd = true;
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+          }
           if (fileString.indexOf("data,") != -1){
+              serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("data,"));
               fileString.trim();
               motors.startCommandSet(fileString);
               return;
