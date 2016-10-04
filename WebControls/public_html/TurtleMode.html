@@ -193,134 +193,308 @@
     <script src="js/blocks.js" type="text/javascript"></script>
     <script src="js/msg/js/en.js" type="text/javascript"></script>
     <script src="js/acorn.js" type="text/javascript"></script>
-    <script src="js/botBlocks.js" type="text/javascript"></script>
+    <script>
+                /**
+                 * Custom Blocks for Blockly, for the FH_Tbot Project
+                 */
+                var botTurnLeftJson = {
+                    "type": "bot_turn_left",
+                    "message0": "Bot Turn Left: %1",
+                    "args0": [
+                        {
+                            "type": "field_angle",
+                            "name": "leftAngle",
+                            "angle": 90
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_turn_left'] = {
+                    init: function () {
+                        this.jsonInit(botTurnLeftJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_turn_left'] = function (block) {
+                    var angle_leftangle = block.getFieldValue('leftAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"L\"); addCommand(' + angle_leftangle + ');\n';
+                    return code;
+                };
+
+                var botTurnRightJson = {
+                    "type": "bot_turn_right",
+                    "message0": "Bot Turn Right: %1",
+                    "args0": [
+                        {
+                            "type": "field_angle",
+                            "name": "rightAngle",
+                            "angle": 90
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_turn_right'] = {
+                    init: function () {
+                        this.jsonInit(botTurnRightJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_turn_right'] = function (block) {
+                    var angle_rightangle = block.getFieldValue('rightAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"R\"); addCommand(' + angle_rightangle + ');\n';
+                    return code;
+                };
+
+                var bot_move_forwardJSON = {
+                    "type": "bot_move_forward",
+                    "message0": "Travel forward  %1 mm",
+                    "args0": [
+                        {
+                            "type": "field_number",
+                            "name": "forwardTravel",
+                            "value": 0
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_move_forward'] = {
+                    init: function () {
+                        this.jsonInit(bot_move_forwardJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_move_forward'] = function (block) {
+                    var number_forwardtravel = block.getFieldValue('forwardTravel');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(\"F\"); addCommand(' + number_forwardtravel + ');\n';
+                    return code;
+                };
+
+                var bot_move_backwardJSON = {
+                    "type": "bot_move_backward",
+                    "message0": "Travel backward  %1 mm",
+                    "args0": [
+                        {
+                            "type": "field_number",
+                            "name": "backwardTravel",
+                            "value": 0
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_move_backward'] = {
+                    init: function () {
+                        this.jsonInit(bot_move_backwardJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_move_backward'] = function (block) {
+                    var number_backwardtravel = block.getFieldValue('backwardTravel');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"B"); addCommand(' + number_backwardtravel + ');\n';
+                    return code;
+                };
+
+                var botStopJSON = {
+                    "type": "bot_stop",
+                    "message0": "Stop Bot",
+                    "previousStatement": null,
+                    "nextStatement": null,
+                    "colour": 0,
+                    "tooltip": "",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_stop'] = {
+                    init: function () {
+                        this.jsonInit(botStopJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_stop'] = function (block) {
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"AS\"' + ');\n';
+                    return code;
+                };
+
+                var botRunJSON = {
+                    "type": "bot_run",
+                    "message0": "Run Bot",
+                    "previousStatement": null,
+                    "nextStatement": null,
+                    "colour": 0,
+                    "tooltip": "Runs all the commands built up so far, but clears any commands currently running on the bot.",
+                    "helpUrl": "http://www.example.com/"
+                };
+
+                Blockly.Blocks['bot_run'] = {
+                    init: function () {
+                        this.jsonInit(botRunJSON);
+                    }
+                };
+
+                Blockly.JavaScript['bot_run'] = function (block) {
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'runBot();\n';
+                    return code;
+                };
+
+
+    </script>
     <script>
 
-                //Blockly Injection and positioning
-                var blocklyArea = document.getElementById('blocklyArea');
-                var blocklyDiv = document.getElementById('blocklyDiv');
-                var workspace = Blockly.inject('blocklyDiv',
-                              {toolbox: document.getElementById('toolbox'),
-                            grid: {spacing: 40,
-                                length: 5,
-                                colour: '#ccc',
-                                snap: true},
-                            trashcan: true});
-                //Setup XHTTP
-                var xhttp = new XMLHttpRequest();
-                //Setup Queue namespace
-                var botQueue = "";
-                //Setup the interpreter
-                var jsInterpreter = null;
-                function initApi(interpreter, scope) {
-                    // Add an API function for the alert() block.
-                    var wrapper = function (text) {
-                        text = text ? text.toString() : '';
-                        return interpreter.createPrimitive(alert(text));
-                    };
-                    interpreter.setProperty(scope, 'alert',
-                            interpreter.createNativeFunction(wrapper));
+        //Blockly Injection and positioning
+        var blocklyArea = document.getElementById('blocklyArea');
+        var blocklyDiv = document.getElementById('blocklyDiv');
+        var workspace = Blockly.inject('blocklyDiv',
+                      {toolbox: document.getElementById('toolbox'),
+                    grid: {spacing: 40,
+                        length: 5,
+                        colour: '#ccc',
+                        snap: true},
+                    trashcan: true});
+        //Setup XHTTP
+        var xhttp = new XMLHttpRequest();
+        //Setup Queue namespace
+        var botQueue = "";
+        //Setup the interpreter
+        var jsInterpreter = null;
+        function initApi(interpreter, scope) {
+            // Add an API function for the alert() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(alert(text));
+            };
+            interpreter.setProperty(scope, 'alert',
+                    interpreter.createNativeFunction(wrapper));
 
-                    // Add an API function for the prompt() block.
-                    var wrapper = function (text) {
-                        text = text ? text.toString() : '';
-                        return interpreter.createPrimitive(prompt(text));
-                    };
-                    interpreter.setProperty(scope, 'prompt',
-                            interpreter.createNativeFunction(wrapper));
-                    // Add an API function for the addCommand() block.
-                    var wrapper = function (text) {
-                        text = text ? text.toString() : '';
-                        console.log("Output from interpreter:" + text);
-                        addCommand(text);
-                    };
-                    interpreter.setProperty(scope, 'addCommand',
-                            interpreter.createNativeFunction(wrapper));
-                    // Add an API function for the runBot() block.
-                    var wrapper = function (text) {
-                        text = text ? text.toString() : '';
-                        console.log("Sending run Command");
-                        runBot(text);
-                    };
-                    interpreter.setProperty(scope, 'runBot',
-                            interpreter.createNativeFunction(wrapper));
-                }
-                var highlightPause = false;
+            // Add an API function for the prompt() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(prompt(text));
+            };
+            interpreter.setProperty(scope, 'prompt',
+                    interpreter.createNativeFunction(wrapper));
+            // Add an API function for the addCommand() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Output from interpreter:" + text);
+                addCommand(text);
+            };
+            interpreter.setProperty(scope, 'addCommand',
+                    interpreter.createNativeFunction(wrapper));
+            // Add an API function for the runBot() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Sending run Command");
+                runBot(text);
+            };
+            interpreter.setProperty(scope, 'runBot',
+                    interpreter.createNativeFunction(wrapper));
+        }
+        var highlightPause = false;
 
-                function highlightBlock(id) {
-                    workspace.highlightBlock(id);
-                    highlightPause = true;
-                }
+        function highlightBlock(id) {
+            workspace.highlightBlock(id);
+            highlightPause = true;
+        }
 
-                //Listener for screen resizing
-                var onresize = function (e) {
-                    // Compute the absolute coordinates and dimensions of blocklyArea.
-                    var element = blocklyArea;
-                    var x = 0;
-                    var y = 0;
-                    do {
-                        x += element.offsetLeft;
-                        y += element.offsetTop;
-                        element = element.offsetParent;
-                    } while (element);
-                    // Position blocklyDiv over blocklyArea.
-                    blocklyDiv.style.left = x + 'px';
-                    blocklyDiv.style.top = y + 'px';
-                    blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
-                    blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
-                };
-                window.addEventListener('resize', onresize, false);
-                onresize();
-                Blockly.svgResize(workspace);
-                //Generation on change.
-                function myUpdateFunction(event) {
-                    var code = Blockly.JavaScript.workspaceToCode(workspace);
-                    document.getElementById('textarea').value = code;
-                }
-                workspace.addChangeListener(myUpdateFunction);
+        //Listener for screen resizing
+        var onresize = function (e) {
+            // Compute the absolute coordinates and dimensions of blocklyArea.
+            var element = blocklyArea;
+            var x = 0;
+            var y = 0;
+            do {
+                x += element.offsetLeft;
+                y += element.offsetTop;
+                element = element.offsetParent;
+            } while (element);
+            // Position blocklyDiv over blocklyArea.
+            blocklyDiv.style.left = x + 'px';
+            blocklyDiv.style.top = y + 'px';
+            blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
+            blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
+        };
+        window.addEventListener('resize', onresize, false);
+        onresize();
+        Blockly.svgResize(workspace);
+        //Generation on change.
+        function myUpdateFunction(event) {
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            document.getElementById('textarea').value = code;
+        }
+        workspace.addChangeListener(myUpdateFunction);
 
-                //Execution of Code
-                //Code is contained in intepreted sandbox
-                function parseCode() {
-                    armQueue();
-                    var code = Blockly.JavaScript.workspaceToCode(workspace);
-                    jsInterpreter = new Interpreter(code, initApi);
-                    alert('Ready to run this code:\n\n' + code);
-                    document.getElementById('runButton').disabled = '';
-                    //workspace.traceOn(true);
-                    //workspace.highlightBlock(null);
-                }
+        //Execution of Code
+        //Code is contained in intepreted sandbox
+        function parseCode() {
+            armQueue();
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            jsInterpreter = new Interpreter(code, initApi);
+            alert('Ready to run this code:\n\n' + code);
+            document.getElementById('runButton').disabled = '';
+            //workspace.traceOn(true);
+            //workspace.highlightBlock(null);
+        }
 
-                function runInterpreter() {
-                    //disable('disabled');
-                    jsInterpreter.run();
-                    document.getElementById('runButton').disabled = 'disabled';
-                    runBot();
-                }
+        function runInterpreter() {
+            //disable('disabled');
+            jsInterpreter.run();
+            document.getElementById('runButton').disabled = 'disabled';
+            runBot();
+        }
 
-                //QUEUE start with data, and keep adding on more.
-                function armQueue() {
-                    botQueue = "";
-                }
+        //QUEUE start with data, and keep adding on more.
+        function armQueue() {
+            botQueue = "";
+        }
 
-                function addCommand(text) {
-                    botQueue += text + ",";
-                }
+        function addCommand(text) {
+            botQueue += text + ",";
+        }
 
-                /**
-                 * Sends text to the bot to execute
-                 * @returns {void}
-                 */
-                function runBot() {
-                    if (botQueue !== "") {
-                        xhttp.abort();
-                        console.log();
-                        xhttp.open("GET", "/data," + botQueue, true);
-                        // xhttp.timeout = 100;
-                        xhttp.send();
-                        armQueue();
-                    }
-                }
+        /**
+         * Sends text to the bot to execute
+         * @returns {void}
+         */
+        function runBot() {
+            if (botQueue !== "") {
+                xhttp.abort();
+                console.log();
+                xhttp.open("GET", "/data," + botQueue, true);
+                // xhttp.timeout = 100;
+                xhttp.send();
+                armQueue();
+            }
+        }
     </script>
 </body>
 </html>
