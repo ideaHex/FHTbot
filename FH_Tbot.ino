@@ -7,10 +7,9 @@
 #include <FS.h>
 #include <DNSServer.h>
 #include <Ticker.h>
-#include "MotorController.h"
+#include "EncoderMotorControl.h"
 #include "US100Ping.h"
 #include <NeoPixelBus.h>
-#include "Encoder.h"
 #include "NeoPixelAnimations.h"
 
 extern "C" { 
@@ -29,6 +28,7 @@ void setupWiFi(void);
 void initHardware(void);
 void sendFile(File);
 String getContentType(String);
+void updateMotors();
 
 /////////////////////
 // Pin Definitions //
@@ -44,7 +44,8 @@ const int motorRightB = D2;
 const int motorLeftEncoder = D1;
 const int motorRightEncoder = D7;
 
-motorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB);
+encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
+Ticker motorControllerTicker;
 
 WiFiServer server(80);
 WiFiClient client;
@@ -56,12 +57,13 @@ int distance = 0;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
-#define MAX_SRV_CLIENTS 20              // maximum client connections
+#define MAX_SRV_CLIENTS 10              // maximum client connections
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
+
 void Stop(void)
 {
-  motors.update(0,0);
+  motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off led's to save power
 }
 
@@ -73,7 +75,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();                             // Serial.println("Connection lost STOP!!!!!!");
+    //Stop();                             // Serial.println("Connection lost STOP!!!!!!");
   }
 }
 
@@ -83,11 +85,7 @@ void setup()
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(500, CheckHeartBeat);
-  //motors.setTrim(1.0,1.0);            // this setting is optional, it compensates for speed difference of motors eg (0.95,1.0), and it can reduce maximum speed of both eg (0.75,0.75);
-  //motors.setSteeringSensitivity(0.9);  // this setting is optional
-  motors.setPWMFrequency(40);           // this setting is optional, depending on power supply and H-Bridge this option will alter motor noise and torque.
-  motors.setMinimumSpeed(0.12);         // this setting is optional, default is 0.1(10%) to prevent motor from stalling at low speed
-/*
+  /*
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
@@ -95,8 +93,8 @@ void setup()
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
   */
-  closeConnectionHeader += F("HTTP/1.1 200 OK\r\ncache-control: none\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
-
+  closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
+  motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
 }
 unsigned long maxLoopTime = 0;
 unsigned long lastMicrosTime;
@@ -105,7 +103,6 @@ void loop()
   if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
   lastMicrosTime = micros();
   // time dependant functions here
-   motors.run();
    ping.run();
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
@@ -118,7 +115,7 @@ void loop()
       if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
         if (distance < 200){
           setColor(RgbColor(255,0,0));
-          motors.update(0,50);
+          motors.manualDrive(0,500);
           }
       }
     }
@@ -133,26 +130,26 @@ void loop()
         if(serverClients[i]) serverClients[i].stop();
         serverClients[i] = server.available();
         //Serial.print("New client: "); Serial.println(i);
+        //yield();
+        //break;
         return;
       }
     }
     //no free/disconnected spot so reject
     //Serial.println(F("\r\nNo Free Clients ....."));
-    //WiFiClient serverClient = server.available();
-    //serverClient.stop();
+   // WiFiClient serverClient = server.available();
+   // serverClient.stop();
   }
   //check clients for data
   String req = "";
   for(uint8_t i = currentClient; i < MAX_SRV_CLIENTS; i++){// start at current client to keep in order
     if (serverClients[i] && serverClients[i].connected()){
-      if(serverClients[i].available()){
         if (serverClients[i].available()){
           req = serverClients[i].readStringUntil('\r');   // Read the first line of the request
           serverClients[i].flush();
           currentClient = i;
           break;
         }
-      }
     }
     currentClient = 0;
   }
@@ -160,37 +157,41 @@ void loop()
   if (!req.length()){// empty request
       return;
       }
+  HeartBeatRcvd = true;                                           // recieved data, must be connected
   //Serial.println("\r\n" + req);
   //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
     serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-    delay(1);
+    yield();
     //Serial.print(F("Ram:"));
     //Serial.println(system_get_free_heap_size());
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
-    HeartBeatRcvd = true;                                           // recieved data, must be connected
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
       int testPing = makePositive(lastDistance - distance);
       if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
-        if (distance < 450 && dY < 0){
-        setColor(RgbColor(70,85,75));
-          dX = 500 - distance;
-          if (dY < -40 ){
-            dY = -40;
+        if (distance < 500 && distance > 199 && dY < 0){
+        setColor(RgbColor(90,105,95));
+          dX = 700 - distance;
+          if (dY < -200 ){
+            dY = -200;
           }
+        }
+        if (distance < 200){
+         setColor(RgbColor(255,0,0));
+          dY = 500;
         }
       }
     }else{
       pixelTest();
     }
-    motors.update(dX,dY);
+    motors.manualDrive(dX,dY);
   }else{
         String fileString = req.substring(4, (req.length() - 9));
          if (fileString.indexOf("DriverAssist") != -1){
@@ -199,9 +200,19 @@ void loop()
               sendFile(fileString);
               return;
           }
+          if (fileString.indexOf("Start.html") != -1){
+              driverAssist = false;
+              sendFile(fileString);
+              return;
+          }
+          if (fileString.indexOf("data,") != -1){
+              fileString.trim();
+              motors.startCommandSet(fileString);
+              return;
+          }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
                 String s,h;
-                s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='0.1'></head><body><script>");
+                s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
                 s += ("var tmp=");
                 s += temperature;
                 s += (";var dis=");
@@ -222,7 +233,7 @@ void loop()
                 h += F("\r\n\r\n");
                 String ss = h + s;
                 serverClients[currentClient].write(ss.c_str(),ss.length());
-                delay(1);
+                yield();
                 return;
           }
           sendFile(fileString);
@@ -273,22 +284,22 @@ void initHardware()
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
-  smile();
+  //smile();
   // setup motors and encoders
-  motors.addEncoders(motorLeftEncoder,motorRightEncoder);
-  pinMode(motorLeftEncoder, INPUT);
-  pinMode(motorRightEncoder, INPUT);
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
+  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);
 }
 
 void motorLeftEncoderInterruptHandler(){
-  motors.encoderA_Step();
-  motors.run();
+  motors.takeStep(0);
 }
 void motorRightEncoderInterruptHandler(){
-  motors.encoderB_Step();
-  motors.run();
+ motors.takeStep(1);
+}
+
+void updateMotors(){
+  motors.update();
 }
 
 void sendFile(String path){
@@ -306,6 +317,9 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
   theBuffer = SPIFFS.open(path, "r");
   if (!theBuffer){                      // this one dosn't exist either, abort.
     theBuffer.close();
+    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
+    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    yield();
     return; // failed to read file
   }
 }
@@ -322,10 +336,17 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
     s += F("\r\n\r\n");
   }
      // send the file
-  serverClients[currentClient].write(s.c_str(),s.length());
-  delay(1);
-  serverClients[currentClient].write(theBuffer,2920);
-  delay(1);
+  if( !serverClients[currentClient].write(s.c_str(),s.length()) ){
+    // failed to send
+    theBuffer.close();
+    return;
+  }
+  //yield();
+  int bufferLength = theBuffer.size();
+  if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
+    // failed to send all file
+  }
+  yield();
 
   theBuffer.close();
   lastMicrosTime = micros();
