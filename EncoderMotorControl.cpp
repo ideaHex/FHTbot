@@ -27,10 +27,14 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
     lastMicros[a] = micros();
     wheelSpeed[a] = 0;
     motorDirection[a] = forward;
+    timeOfFirstStep[a] = 0;
     timeOfLastStep[a] = 0;
     timeOfCurrentStep[a] = 0;
     wheelTargetSpeed[a] = 0;
+    boostOn[a] = false;
+    debounceMinStepTime[a] = (distancePerStep / (MAX_Speed/3600.0)) * 0.75;
   }
+
 }
  float encoderMotorController::checkNormal(float normal){
   if (normal > 1)normal = 1.0;
@@ -60,13 +64,13 @@ void encoderMotorController::playNote(int note,int duration){
   while (a<(duration/(noteFrequency/1000.0))){
     a++;
   analogWrite(motorAPin1,0);
-  analogWrite(motorAPin2,1023);
+  analogWrite(motorAPin2,PWMWriteRange);
   analogWrite(motorBPin1,0);
-  analogWrite(motorBPin2,1023);
+  analogWrite(motorBPin2,PWMWriteRange);
   delayMicroseconds(noteHalfDuration);
-  analogWrite(motorAPin1,1023);
+  analogWrite(motorAPin1,PWMWriteRange);
   analogWrite(motorAPin2,0);
-  analogWrite(motorBPin1,1023);
+  analogWrite(motorBPin1,PWMWriteRange);
   analogWrite(motorBPin2,0);
   delayMicroseconds(noteHalfDuration);
   }
@@ -80,7 +84,11 @@ void encoderMotorController::playNote(int note,int duration){
 
 void encoderMotorController::takeStep(int encoder){
   // debounce
-  if (micros() - lastMicros[encoder] < debounceMinStepTime){
+  if ((micros() - lastMicros[encoder]) < debounceMinStepTime[encoder]){
+//    if ((micros() - lastMicros[encoder]) > 1000){
+//    Serial.println();
+//    Serial.println((micros() - lastMicros[encoder]));
+//    }
     return;                                         // this is a bounce, ignore it
   }
   lastMicros[encoder] = micros();
@@ -93,15 +101,28 @@ void encoderMotorController::takeStep(int encoder){
     else if (heading < 0)heading += 360.0;
     totalSteps[encoder]++;
     steps[encoder]++;
+  // Stop overshoot on start / boost
+  if (boostOn[encoder] == true){ // first step after start
+      wheelSpeed[encoder] = MIN_Speed;
+      if (encoder == 0){
+        PWMA = minMotorSpeed * PWMWriteRange;
+      }else{
+        PWMB = minMotorSpeed * PWMWriteRange;
+      }
+      boostOn[encoder] = false;
+    }
 
   // update speed buffer / last pulse time 
   if ((micros() - timeOfCurrentStep[encoder]) > minCalculatedSpeedTimePerStep){  // beyond max time so reset minCalculatedSpeedTimePerStep
     timeOfLastStep[encoder] = micros();                   // reset timers
     timeOfCurrentStep[encoder] = timeOfLastStep[encoder];
+    timeOfFirstStep[encoder] = timeOfLastStep[encoder];
+    wheelSpeed[encoder] = 0;
   }else{
     timeOfLastStep[encoder] = timeOfCurrentStep[encoder];
     timeOfCurrentStep[encoder] = micros();
   }
+
   // update targets
 
   // TODO: check bot targets 
@@ -115,8 +136,8 @@ void encoderMotorController::takeStep(int encoder){
     if ((botTargetDistance - currentDistance) < 100){
       if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
           if (PWMA > 256){
-            PWMA = MIN_Speed/MAX_Speed*1023;
-            PWMB = MIN_Speed/MAX_Speed*1023;
+            PWMA = minMotorSpeed*PWMWriteRange;
+            PWMB = minMotorSpeed*PWMWriteRange;
             setMotorSpeed();
           }
       wheelTargetSpeed[0] = MIN_Speed;
@@ -353,34 +374,39 @@ void encoderMotorController::cancelCommandSet(){
 
 void encoderMotorController::update(){
   unsigned long lastDeltaT = micros() - lastUpdateMicros;
+  unsigned long lastDeltaTA = timeOfCurrentStep[0] - timeOfFirstStep[0];
+  unsigned long lastDeltaTB = timeOfCurrentStep[1] - timeOfFirstStep[1];
   lastUpdateMicros = micros();
-  botCurrentSpeed = ( (( double(steps[0] + steps[1]) * distancePerStep) * 0.5) / double(lastDeltaT)) * 3600.0; // km / hr
-  wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaT) * 3600.0;
-  wheelSpeed[1] = (double(steps[1]) * distancePerStep) / double(lastDeltaT) * 3600.0;
-  
+ // botCurrentSpeed = ( (( double(steps[0] + steps[1]) * distancePerStep) * 0.5) / double(lastDeltaT)) * 3600.0; // km / hr
+  if (steps[0] > 0)wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaTA) * 3600.0;
+  if (steps[1] > 0)wheelSpeed[1] = (double(steps[1]) * distancePerStep) / double(lastDeltaTB) * 3600.0;
+  //if(!lastDeltaTA)wheelSpeed[0] = 0;
+  //if(!lastDeltaTB)wheelSpeed[1] = 0;
+  botCurrentSpeed = (wheelSpeed[0] + wheelSpeed[1]) * 0.5;
+  //dynamically adjust debounce baced on wheel speed
+  //if (wheelSpeed[0]>MIN_Speed)debounceMinStepTime[0] = (distancePerStep / (wheelSpeed[0]/3600.0)) * 0.5;//wheelSpeed[0]/wheelTargetSpeed[0]
+  //if (wheelSpeed[1]>MIN_Speed)debounceMinStepTime[1] = (distancePerStep / (wheelSpeed[1]/3600.0)) * 0.5;
+ // if (lastDeltaTA == 0 && lastDeltaTB == 0)botCurrentSpeed = 0;
+  //Serial.println("A" + String(wheelSpeed[0]) + "B" + String(wheelSpeed[1]) + "Bs" + String(botCurrentSpeed) );
+  //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB) ) ;
+  //Serial.println("MSTA" + String(lastDeltaTA)+"SA" + String(steps[0]) );
+  //Serial.println("DBT" + String(debounceMinStepTime[0]) + "MSTA" + String(lastDeltaTA) );
   if ((micros() - timeOfCurrentStep[0]) > minCalculatedSpeedTimePerStep){  // beyond max time so reset minCalculatedSpeedTimePerStep
     timeOfLastStep[0] = micros();                   // reset timers
     timeOfCurrentStep[0] = timeOfLastStep[0];
+    timeOfFirstStep[0] = timeOfLastStep[0];
+    wheelSpeed[0] = 0;
     //Serial.println("STOP0");
   }
     if ((micros() - timeOfCurrentStep[1]) > minCalculatedSpeedTimePerStep){  // beyond max time so reset minCalculatedSpeedTimePerStep
     timeOfLastStep[1] = micros();                   // reset timers
     timeOfCurrentStep[1] = timeOfLastStep[1];
+    timeOfFirstStep[1] = timeOfLastStep[1];
+    wheelSpeed[1] = 0;
     //Serial.println("STOP1");
   }
-  if (steps[0] < 2 || steps[1] < 2){                                                 // speed = 0 either its slower than update time will allow for or it is 0
-    if ((steps[0] < 2) && (timeOfCurrentStep[0] != timeOfLastStep[0])){ // both timers are the same if its the first step in a sequence
-      wheelSpeed[0] = (double(distancePerStep) / double(timeOfCurrentStep[0] - timeOfLastStep[0]) ) * 3600.0;
-      //if ((double(distancePerStep) / double(millis() - timeOfLastStep[0]) * 3600.0) < minCalculatedSpeed) wheelSpeed[0] = 0;// if it where to make a step now is the speed above threshold
-    }
-       if ((steps[1] < 2) && (timeOfCurrentStep[1] != timeOfLastStep[1])){
-      wheelSpeed[1] = (double(distancePerStep) / double(timeOfCurrentStep[1] - timeOfLastStep[1]) ) * 3600.0;
-      //if ((double(distancePerStep) / double(millis() - timeOfLastStep[1]) * 3600.0) < minCalculatedSpeed) wheelSpeed[1] = 0;// if it where to make a step now is the speed above threshold
-    }
-      botCurrentSpeed = (wheelSpeed[0] + wheelSpeed[1]) * 0.5;                // not as accurate as an overage over time but better than 0 !
-    //  Serial.println("A"+String(wheelSpeed[0])+"B"+String(wheelSpeed[1]) );
-  }
-
+if (steps[0] > 0)timeOfFirstStep[0] = timeOfCurrentStep[0];
+if (steps[1] > 0)timeOfFirstStep[1] = timeOfCurrentStep[1];
   steps[0] = 0;
   steps[1] = 0;
   
@@ -414,6 +440,7 @@ void encoderMotorController::allStop(){
 }
 
 void encoderMotorController::setMotorSpeed(){
+
   analogWrite(motorAPin1,PWMA * (motorDirection[0] < 0) );
   analogWrite(motorAPin2,PWMA * (motorDirection[0] > 0) );
   analogWrite(motorBPin1,PWMB * (motorDirection[1] < 0) );
@@ -443,18 +470,15 @@ void encoderMotorController::PID(){
       double maxPWMChange = 40.0;
       int PWMChangeIncreaseA = int(maxPWMChange*( wheelTargetSpeed[0] / MAX_Speed) );
       int PWMChangeIncreaseB = int(maxPWMChange*( wheelTargetSpeed[1] / MAX_Speed) );
-      int PWMChangeDecreaseA = int((maxPWMChange)*( wheelTargetSpeed[0] / MAX_Speed) * 0.5 );//2;
-      int PWMChangeDecreaseB = int((maxPWMChange)*( wheelTargetSpeed[1] / MAX_Speed) * 0.5 );//2;
+      int PWMChangeDecreaseA = int((maxPWMChange)*( wheelTargetSpeed[0] / MAX_Speed) * 0.6 );//2;
+      int PWMChangeDecreaseB = int((maxPWMChange)*( wheelTargetSpeed[1] / MAX_Speed) * 0.6 );//2;
 
-//      double headingToTarget = targetHeading - heading;
-//      if (headingToTarget > 180)headingToTarget-=360;
-//      if (headingToTarget < -180)headingToTarget+=360;
       //PWMChange = int(PWMChange * 0.5) + int( (double(PWMChange)*0.5 * (botTargetSpeed / MAX_Speed)));
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
-        PWMChangeIncreaseA = 12;
-        PWMChangeIncreaseB = 12;
-        PWMChangeDecreaseA = 10;
-        PWMChangeDecreaseB = 10;
+        PWMChangeIncreaseA = 6;
+        PWMChangeIncreaseB = 6;
+        PWMChangeDecreaseA = 2;
+        PWMChangeDecreaseB = 2;
       }
       if (!wheelTargetSpeed[0] && !wheelTargetSpeed[1]){
           if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
@@ -470,32 +494,42 @@ void encoderMotorController::PID(){
     }
       if ((PWMA == 0) && (wheelTargetSpeed[0] >= MIN_Speed)){
         PWMA = startPWMBoost; // start boost
-       // Serial.println("Boost0");
+        timeOfLastStep[0] = micros();
+        timeOfCurrentStep[0] = timeOfLastStep[0];
+        boostOn[0] = true;
+        errorA = 0;
       }
       if ((PWMB == 0) && (wheelTargetSpeed[1] >= MIN_Speed)){
         PWMB = startPWMBoost;
-       // Serial.println("Boost1");
+        timeOfLastStep[1] = micros();
+        timeOfCurrentStep[1] = timeOfLastStep[1];
+        boostOn[1] = true;
+        errorB = 0;
       }
    
-      if (errorA > 0.1 && PWMA < (1023 - PWMChangeIncreaseA)){
+      if (errorA > 0.1){
         PWMA += PWMChangeIncreaseA;
+        if (PWMA > PWMWriteRange)PWMA = PWMWriteRange;
       }
-      if (errorA < -0.1 && PWMA > PWMChangeDecreaseA){
+      if (errorA < -0.1){
         PWMA -= PWMChangeDecreaseA;
+        if (PWMA < 0)PWMA = 0;
       }
-      if (errorB > 0.1 && PWMB < (1023 - PWMChangeIncreaseB)){
+      if (errorB > 0.1){
         PWMB += PWMChangeIncreaseB;
+        if (PWMB > PWMWriteRange)PWMB = PWMWriteRange;
       }
-      if (errorB < -0.1 && PWMB > PWMChangeDecreaseB){
+      if (errorB < -0.1){
         PWMB -= PWMChangeDecreaseB;
+        if (PWMB < 0)PWMB = 0;
       }
-   if ((PWMA < minMotorSpeed * 1023) && (wheelTargetSpeed[0] < MIN_Speed)){
+   if ((PWMA < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[0] < MIN_Speed)){
     PWMA = 0;
    }
-   if ((PWMB < minMotorSpeed * 1023) && (wheelTargetSpeed[1] < MIN_Speed)){
+   if ((PWMB < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[1] < MIN_Speed)){
     PWMB = 0;
    }
-   
+
   setMotorSpeed();      // output pwm to motors range is 0 - 1023
 }
 double encoderMotorController::getSpeed(){
@@ -545,12 +579,7 @@ void encoderMotorController::updateSteering(long delatT){
         if (PWMB > startPWMBoost){
           PWMB = startPWMBoost;
         }
-        if (PWMA < minPWM){
-          PWMA = minPWM;
-        }
-        if (PWMB < minPWM){
-          PWMB = minPWM;
-        }
+
         if (positiveHeadingToTarget >= MAX_heading_Change){ // greater than can change in 1 second
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
@@ -572,12 +601,6 @@ void encoderMotorController::updateSteering(long delatT){
         if (PWMB > startPWMBoost){
           PWMB = startPWMBoost;
         }
-        if (PWMA < minPWM){
-          PWMA = minPWM;
-        }
-        if (PWMB < minPWM){
-          PWMB = minPWM;
-        }
         if (positiveHeadingToTarget >= MAX_heading_Change){ // greater than can change in 1 second
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
@@ -592,7 +615,7 @@ void encoderMotorController::updateSteering(long delatT){
       }
     }
 
-   if (positiveHeadingToTarget > anglePerStep * 2.5 && (botTurnDirection == none)){ // change speed to correct heading for bot drive
+   if (positiveHeadingToTarget > anglePerStep * 1.1 && (botTurnDirection == none)){ // change speed to correct heading for bot drive
     if (botTurnDirection == none && botTargetSpeed){ // only when moving at least min speed
         wheelTargetSpeed[0] = botTargetSpeed;
         wheelTargetSpeed[1] = botTargetSpeed;
@@ -608,15 +631,9 @@ void encoderMotorController::updateSteering(long delatT){
         if (headingToTarget > 0 ){ // need to turn right
             wheelTargetSpeed[0] += (thisSpeed * double(botTargetDirection));
             wheelTargetSpeed[1] -= (thisSpeed * double(botTargetDirection));
-//            if (slow){
-//              setMotorSpeed(1023,0); // tiny break
-//            }
         }else{
             wheelTargetSpeed[0] -= (thisSpeed * double(botTargetDirection));
             wheelTargetSpeed[1] += (thisSpeed * double(botTargetDirection));
-//            if (slow){
-//              setMotorSpeed(0,1023); // tiny break
-//            }
         }
         if (wheelTargetSpeed[0] < MIN_Speed){ // correct speeds
          // wheelTargetSpeed[1] += (MIN_Speed - wheelTargetSpeed[0]);

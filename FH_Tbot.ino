@@ -75,7 +75,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();                             // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                             
   }
 }
 
@@ -84,15 +84,15 @@ void setup()
   system_update_cpu_freq(160);          // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
-  HeartBeatTicker.attach_ms(750, CheckHeartBeat);
-  
+  HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
+  /*
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
-  
+  */
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
 }
 unsigned long maxLoopTime = 0;
@@ -177,9 +177,9 @@ void loop()
       if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
         if (distance < 500 && distance > 199 && dY < 0){
         setColor(RgbColor(90,105,95));
-          dX = 700 - distance;
-          if (dY < -200 ){
-            dY = -200;
+          dX = 700 ;//- distance;
+          if (dY < -170 ){
+            dY = -170;
           }
         }
         if (distance < 200){
