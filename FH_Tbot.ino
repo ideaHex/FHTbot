@@ -60,11 +60,14 @@ String closeConnectionHeader = "";
 #define MAX_SRV_CLIENTS 10              // maximum client connections
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
+boolean pingOn = false;
+int lastDistance = 0;
 
 void Stop(void)
 {
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off led's to save power
+  pingOn = false;                        // turn off ping to save power
 }
 
 void CheckHeartBeat(void)
@@ -85,28 +88,29 @@ void setup()
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
-  /*
+  
   motors.playNote(NOTE_C5,200);
   motors.playNote(NOTE_E5,200);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,400);
   motors.playNote(NOTE_G5,200);
   motors.playNote(NOTE_A5,800);
-  */
+  
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
 }
-unsigned long maxLoopTime = 0;
-unsigned long lastMicrosTime;
+//unsigned long maxLoopTime = 0;
+//unsigned long lastMicrosTime;
 void loop()
 {
-  if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
-  lastMicrosTime = micros();
+  //if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
+  //lastMicrosTime = micros();
   // time dependant functions here
+  if (pingOn){
    ping.run();
    if (ping.gotTemperature()){
     temperature = ping.getTemperature();
    }
-   int lastDistance = distance;
+   lastDistance = distance;
    if (ping.gotDistance()){
     distance = ping.getDistance();
     if (driverAssist){
@@ -119,6 +123,7 @@ void loop()
       }
     }
    }
+  }
    dnsServer.processNextRequest();
    // client functions here
   while (server.hasClient()){
@@ -162,6 +167,9 @@ void loop()
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
+    pingOn = true;
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;//TODO: turn ping on
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;//TODO: turn ping on
     serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     //Serial.print(F("Ram:"));
@@ -193,21 +201,26 @@ void loop()
     motors.manualDrive(dX,dY);
   }else{
         String fileString = req.substring(4, (req.length() - 9));
-         if (fileString.indexOf("DriverAssist") != -1){
+        //Serial.println("\r\n" + fileString);
+       /*  if (fileString.indexOf("DriverAssist") != -1){
               driverAssist = true;
               fileString = "/Start.html";
               sendFile(fileString);
               return;
-          }
-          if (fileString.indexOf("Start.html") != -1){
+          }*/
+         /* if (fileString.indexOf("Start.html") != -1){
               driverAssist = false;
               sendFile(fileString);
               return;
-          }
+          }*/
+
           if (fileString.indexOf("/HB") != -1){
+            //TODO: turn ping off
+            driverAssist = false;
             HeartBeatRcvd = true;
             serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
             yield();
+            return;
           }
           if (fileString.indexOf("data,") != -1){
               serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
@@ -220,20 +233,14 @@ void loop()
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-                s += ("var tmp=");
-                s += temperature;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
                 s += motors.getSpeed();
                 s += (";var movd=");
                 s += motors.getTravel();
-                s += (";var acl=");
-                s += motors.getAcceleration();
                 s += (";var hed=");
                 s += motors.getheading();
-                s += (";var mlt=");
-                s += maxLoopTime;
                 s += (";</script></body></html>");
                 h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
                 h += s.length();
@@ -291,7 +298,7 @@ void initHardware()
   ping.begin(Serial);
   strip.Begin();
   strip.Show();
-  //smile();
+  smile();
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
@@ -311,7 +318,7 @@ void updateMotors(){
 
 void sendFile(String path){
 // get content type
-if(path.endsWith("/")){ path += "index.html";driverAssist = false;}
+if(path.endsWith("/")){ path += "index.html";}
 String dataType = getContentType(path);
   
 // check if theres a .gz'd version and send that instead
@@ -356,8 +363,8 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
   yield();
 
   theBuffer.close();
-  lastMicrosTime = micros();
-  maxLoopTime = 0;
+  //lastMicrosTime = micros();
+ // maxLoopTime = 0;
 }
 
 String getContentType(String path){ // get content type
