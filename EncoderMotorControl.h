@@ -38,8 +38,8 @@ class encoderMotorController {
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.77;                     // in KPH
   volatile double MIN_Speed = 0.37;                     // minimum speed in KPH
-  float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
-  double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
+  volatile float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
+  volatile double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
   volatile unsigned int timeOfFirstStep[2];           // first step in sample
   volatile unsigned int timeOfLastStep[2];            //step before current
   volatile unsigned int timeOfCurrentStep[2];
@@ -50,8 +50,8 @@ class encoderMotorController {
   uint8_t motorBPin2;
   volatile unsigned long lastMicros[2];                // time of last step
   unsigned long lastUpdateMicros;                      // time of last update
-  int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER];    // micro seconds of each step
-  int encoderStepTimingBufferPosition[2];
+  //int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER];    // micro seconds of each step
+  //int encoderStepTimingBufferPosition[2];
   volatile long steps[2];
   volatile long totalSteps[2];                       
   double lastSampleDeltaT[2];
@@ -68,6 +68,7 @@ class encoderMotorController {
   volatile unsigned long debounceMinStepTime[2];//2000;   // minimum step time in micro seconds
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
+  volatile double lastError[2];
   double MAX_heading_Change = 110.0;                    // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
@@ -87,7 +88,7 @@ class encoderMotorController {
   volatile double wheelTargetSpeed[2];                  // in KPH
   volatile double botCurrentSpeed;                              // in KPH
   double wheelSpeed[2];
-  double targetHeading = -1.0;                          // in degrees
+  double targetHeading = 0.0;                          // in degrees
   volatile long botTargetDistance = 0;                  // in mm
   long wheelTargetDistance[2];                          // in mm
   long botTargetSteps = 0;
@@ -100,8 +101,9 @@ class encoderMotorController {
   volatile int PWMA = 0;
   volatile int PWMB = 0;
   double targetDegreesPerSecond = 0;
-  unsigned long nextCommandMillis = 0;
-  unsigned long delaybetweenCommands = 1000;
+  volatile long nextCommandMillis = 0;
+  volatile long delaybetweenCommands = 1000;
+  volatile boolean inBotMode = false;
   
   // private functions
   float checkNormal(float);
