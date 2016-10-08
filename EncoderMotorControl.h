@@ -30,20 +30,24 @@ class encoderMotorController {
   double getAcceleration();
   void reverseMotorA();
   void reverseMotorB();
+  void playMarch();
+  void playCharge();
+  void playMarioMainThem();
+  void playMarioUnderworld();
 
   private:
 
   #define MAX_STEP_TIMING_BUFFER 50
   #define TIME_OUT 100000                              // encoder time out in micro seconds
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
-  volatile double MAX_Speed = 1.77;                     // in KPH
-  volatile double MIN_Speed = 0.37;                     // minimum speed in KPH
+  volatile double MAX_Speed = 1.77;                    // in KPH
+  volatile double MIN_Speed = 0.37;                    // minimum speed in KPH
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
   volatile double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
-  volatile unsigned int timeOfFirstStep[2];           // first step in sample
-  volatile unsigned int timeOfLastStep[2];            //step before current
+  volatile unsigned int timeOfFirstStep[2];            // first step in sample
+  volatile unsigned int timeOfLastStep[2];             //step before current
   volatile unsigned int timeOfCurrentStep[2];
-  double minCalculatedSpeed = MIN_Speed * 0.08;         // if speed drops 92% below minimum speed is considered 0 KPH
+  double minCalculatedSpeed = MIN_Speed * 0.08;        // if speed drops 92% below minimum speed is considered 0 KPH
   uint8_t motorAPin1;
   uint8_t motorAPin2;
   uint8_t motorBPin1;
@@ -55,7 +59,7 @@ class encoderMotorController {
   double lastSampleDeltaT[2];
 
   double encoderWheelSlots = 20;
-  float wheelDiameter = 64.93592;//64.6;                          // in mm
+  float wheelDiameter = 64.93592;//64.6;               // in mm
   double axleLength = 93.8;                            // distance between wheel centers in mm
   double axleCircumference = (axleLength * 2.0) * PI;
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
@@ -63,11 +67,11 @@ class encoderMotorController {
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
   volatile double startPWMBoost = minMotorSpeed * 1023 * 1.35;
-  volatile unsigned long debounceMinStepTime[2];//2000;   // minimum step time in micro seconds
+  volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
   volatile double lastError[2];
-  double MAX_heading_Change = 110.0;                    // in degrees per second
+  double MAX_heading_Change = 110.0;                   // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
@@ -81,12 +85,12 @@ class encoderMotorController {
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
   double botTargetSpeed = 0.0;                         // in KPH
-  volatile double wheelTargetSpeed[2];                  // in KPH
-  volatile double botCurrentSpeed;                              // in KPH
+  volatile double wheelTargetSpeed[2];                 // in KPH
+  volatile double botCurrentSpeed;                     // in KPH
   double wheelSpeed[2];
   double targetHeading = 0.0;                          // in degrees
-  volatile long botTargetDistance = 0;                  // in mm
-  long wheelTargetDistance[2];                          // in mm
+  volatile long botTargetDistance = 0;                 // in mm
+  long wheelTargetDistance[2];                         // in mm
   long botTargetSteps = 0;
   long wheelTargetSteps[2];
   double gridX = 0.0;                                  // grid coords
@@ -208,5 +212,13 @@ class encoderMotorController {
 #define NOTE_CS8 4435
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
+
+// DURATION OF THE NOTES 
+#define BPM 120         //  you can change this value, changing all the others
+#define Qnote 60000/BPM // quarter 1/4 
+#define Hnote 2*Qnote   // half 2/4
+#define Enote Qnote/2   // eighth 1/8
+#define Snote Qnote/4   // sixteenth 1/16
+#define Wnote 4*Qnote   // whole 4/4
 
 #endif
