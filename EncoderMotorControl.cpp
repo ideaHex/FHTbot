@@ -125,8 +125,6 @@ void encoderMotorController::takeStep(int encoder){
   }
 
   // update targets
-
-  // TODO: check bot targets 
   
   if (botTargetDistance > 0){
     volatile long currentDistance = ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
@@ -134,16 +132,8 @@ void encoderMotorController::takeStep(int encoder){
       wheelTargetSpeed[0] = botmodeSpeed;
       wheelTargetSpeed[1] = botmodeSpeed;
     }
-    if ((botTargetDistance - currentDistance) < 100){/*
-      if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
-          if (PWMA > 256){
-            PWMA = minMotorSpeed*PWMWriteRange;
-            PWMB = minMotorSpeed*PWMWriteRange;
-            setMotorSpeed();
-          }*/
-          double botRemainingDistance = double(botTargetDistance - currentDistance);
-      //wheelTargetSpeed[0] = MIN_Speed + (botmodeSpeed - MIN_Speed)*(botRemainingDistance/100);
-      //wheelTargetSpeed[1] = MIN_Speed + (botmodeSpeed - MIN_Speed)*(botRemainingDistance/100);
+    if ((botTargetDistance - currentDistance) < 100){
+      double botRemainingDistance = double(botTargetDistance - currentDistance);
       botTargetSpeed = MIN_Speed + (botmodeSpeed - MIN_Speed)*(botRemainingDistance / 100.0);
     }
     if (currentDistance >= (botTargetDistance - distancePerStep*4.0)){
@@ -152,7 +142,6 @@ void encoderMotorController::takeStep(int encoder){
       wheelTargetSpeed[1] = 0;
       PWMA = 0;
       PWMB = 0;
-      //targetHeading = heading;
       botTargetSpeed = 0;
       setMotorSpeed();
       commandCompleted = true;
@@ -161,7 +150,7 @@ void encoderMotorController::takeStep(int encoder){
       double headingToTarget = targetHeading - heading;
       if (headingToTarget > 180)headingToTarget-=360;
       if (headingToTarget < -180)headingToTarget+=360;
-  if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
+    if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
     if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
       //Serial.println("\r\nT" + String(targetHeading) + "H" + String(heading));
       PWMA=0;
@@ -172,7 +161,7 @@ void encoderMotorController::takeStep(int encoder){
   }
   
   if (botTurnDirection == none && botTargetSpeed > 0){
-    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){ // instant nudge
+    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
       wheelTargetSpeed[0] = botTargetSpeed;
       wheelTargetSpeed[1] = botTargetSpeed;
       PID();
@@ -199,12 +188,13 @@ void encoderMotorController::manualDrive(int X, int Y){
     if (!lastX && !lastX && !Y && !X){// no driving at all
       targetHeading = heading; // dump any incomplete turning
     }
+    /*
     if (lastX > 0 && X < 0){ // change direction
       targetHeading = heading; // dump any incomplete turning
     }
     if (lastX < 0 && X > 0){
       targetHeading = heading; // dump any incomplete turning
-    }
+    }*/
   lastX = X;
   lastY = Y;
   if (!Y)targetHeading = heading; // not moving forward dump incomplete turning
@@ -271,7 +261,6 @@ boolean encoderMotorController::getNextCommand(){
     int nextComma =  commandSet.indexOf(",");
     value = commandSet.substring(0,nextComma).toFloat();
     commandSet.remove(0,nextComma+1);
-    long t = millis();
     processCommand(Command , value);
   }else{
     cancelCommandSet();
@@ -433,6 +422,8 @@ if (steps[1] > 0)timeOfFirstStep[1] = timeOfCurrentStep[1];
 }
 
 void encoderMotorController::allStop(){
+  //       set all target flags to false
+  //       set target speed to 0 so PID can slow to stop.
       botTargetDistance = 0;
       wheelTargetSpeed[0] = 0;
       wheelTargetSpeed[1] = 0;
@@ -444,8 +435,6 @@ void encoderMotorController::allStop(){
       setMotorSpeed();
       targetDegreesPerSecond = 0;
       commandCompleted = false;
-  // TODO: set all target flags to false
-  //       set target speed to 0 so PID can slow to stop.
 }
 
 void encoderMotorController::setMotorSpeed(){
@@ -463,17 +452,6 @@ void encoderMotorController::setMotorSpeed(int newPWMA, int newPWMB){
 }
 
 void encoderMotorController::PID(){
-  //TODO: calculate PID for motor PWM baced on motor target speed
-  // currently being called every 50 mS (20 Hz)
-  // wheelSpeed[0];               // is current left motor speed in km / hr
-  // wheelSpeed[1];               // is current right motor speed in km / hr
-  // wheelTargetSpeed[0];         // is the left motor target speed
-  // wheelTargetSpeed[1];         // is the right motor target speed
-  // MAX_Speed;                   // is bot maximum speed
-  // MIN_Speed;                   // minimum speed to prevent stall, takes about 50% more to overcome starting torque
-
-// The following functions are a temporary fix for testing
-
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
       double maxPWMChange = 100.0;
@@ -487,7 +465,7 @@ void encoderMotorController::PID(){
       if (PWMChangeDecreaseB > PWMWriteRange)PWMChangeDecreaseB = 0;
       lastError[0] = errorA;
       lastError[1] = errorB;
-      //PWMChange = int(PWMChange * 0.5) + int( (double(PWMChange)*0.5 * (botTargetSpeed / MAX_Speed)));
+      
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
         PWMChangeIncreaseA = 6;
         PWMChangeIncreaseB = 6;
@@ -560,7 +538,7 @@ double encoderMotorController::getAcceleration(){
 }
 void encoderMotorController::updateSteering(long delatT){
     if (targetDegreesPerSecond != 0){
-    double headingchange = (targetDegreesPerSecond / 1000000.0) * delatT;
+    //double headingchange = (targetDegreesPerSecond / 1000000.0) * delatT;
     //targetDegreesPerSecond = 0;
    // targetHeading += headingchange * double(botTargetDirection);
       //Serial.println("hc"+String(headingchange));
@@ -574,7 +552,7 @@ void encoderMotorController::updateSteering(long delatT){
       wheelTargetSpeed[1] = botTargetSpeed;
       motorDirection[0] = botTargetDirection;
       motorDirection[1] = botTargetDirection;
-      double changeDegreesPerSecond = 0;
+      //double changeDegreesPerSecond = 0;
 
       double thisMAXSpeed = distancePerDegreeChange * MAX_heading_Change * 0.0036;
       //if (thisMAXSpeed < MIN_Speed)thisMAXSpeed = MIN_Speed;
@@ -599,7 +577,7 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
         }else{// heading is less than max or is 0 change 
-          double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
+          //double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
           //if (thisSpeed < MIN_Speed)thisSpeed = MIN_Speed;
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
@@ -620,7 +598,7 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[0] = -botTargetDirection;
         }else{// heading is less than max or is 0 change 
-          double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
+          //double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
          // if (thisSpeed < MIN_Speed)thisSpeed = MIN_Speed;
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
