@@ -17,12 +17,19 @@ extern "C" {
  } 
 
 
+
+
 //////////////////////
 // WiFi Definitions //
 //////////////////////
+
 const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
 String AP_Name = "FH@Tbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
+
+
+
+
 
 void setupWiFi(void);
 void initHardware(void);
@@ -46,7 +53,6 @@ const int motorRightEncoder = D7;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
-
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -86,22 +92,11 @@ void setup()
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
-  
-  motors.playNote(NOTE_C5,200);
-  motors.playNote(NOTE_E5,200);
-  motors.playNote(NOTE_G5,200);
-  motors.playNote(NOTE_A5,400);
-  motors.playNote(NOTE_G5,200);
-  motors.playNote(NOTE_A5,800);
-  
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
 }
-//unsigned long maxLoopTime = 0;
-//unsigned long lastMicrosTime;
+
 void loop()
 {
-  //if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
-  //lastMicrosTime = micros();
   // time dependant functions here
   if (pingOn){
    distance = getDistance();
@@ -119,20 +114,15 @@ void loop()
    dnsServer.processNextRequest();
    // client functions here
   while (server.hasClient()){
-    //Serial.println("New client");
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
       //find free/disconnected spot
       if (!serverClients[i] || !serverClients[i].connected()){
         if(serverClients[i]) serverClients[i].stop();
         serverClients[i] = server.available();
-        //Serial.print("New client: "); Serial.println(i);
-        //yield();
-        //break;
         return;
       }
     }
     //no free/disconnected spot so reject
-    //Serial.println(F("\r\nNo Free Clients ....."));
    // WiFiClient serverClient = server.available();
    // serverClient.stop();
   }
@@ -194,18 +184,30 @@ void loop()
   }else{
         String fileString = req.substring(4, (req.length() - 9));
         //Serial.println("\r\n" + fileString);
-       /*  if (fileString.indexOf("DriverAssist") != -1){
-              driverAssist = true;
-              fileString = "/Start.html";
-              sendFile(fileString);
-              return;
-          }*/
-         /* if (fileString.indexOf("Start.html") != -1){
-              driverAssist = false;
-              sendFile(fileString);
-              return;
-          }*/
-
+          if (fileString.indexOf("/PlayCharge") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playCharge();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarch") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarch();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioTheme") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioMainThem();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioUnderworld();
+            return;
+          }
           if (fileString.indexOf("/HB") != -1){
             pingOn = false;
             driverAssist = false;
@@ -275,8 +277,6 @@ void setupWiFi()
   dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
-  //client.setTimeout(30);            // read timeout
-  //WiFi.printDiag(Serial);
 }
 
 void initHardware()
@@ -351,20 +351,16 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
     theBuffer.close();
     return;
   }
-  //yield();
   int bufferLength = theBuffer.size();
   if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
     // failed to send all file
   }
   yield();
-
   theBuffer.close();
-  //lastMicrosTime = micros();
- // maxLoopTime = 0;
 }
 
 String getContentType(String path){ // get content type
-String dataType = F("text/html"); // text/html; charset=utf-8
+String dataType = F("text/html");
 String lowerPath = path.substring(path.length()-4,path.length());
 lowerPath.toLowerCase();
 

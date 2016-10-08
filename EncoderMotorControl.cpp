@@ -20,7 +20,6 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
   lastX = 0;
   lastY = 0;
   for (int a = 0; a < 2; a++){
-   // encoderStepTimingBufferPosition[a] = 0;
     lastSampleDeltaT[a] = 0;
     steps[a] = 0;
     totalSteps[a] = 0;
@@ -56,31 +55,33 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
   return number;
 }
 void encoderMotorController::playNote(int note,int duration){
-  analogWriteFreq(78000);
+  if (note >= NOTE_B0){ 
   delay(1);
   double noteFrequency = 1.0 / note ;
   noteFrequency *= 1000000.00;
   double noteHalfDuration = noteFrequency * 0.5; 
   double a=0;
-  while (a<(duration/(noteFrequency/1000.0))){
+    while (a<(duration/(noteFrequency/1000.0))){
     a++;
-  analogWrite(motorAPin1,0);
-  analogWrite(motorAPin2,PWMWriteRange);
-  analogWrite(motorBPin1,0);
-  analogWrite(motorBPin2,PWMWriteRange);
+  digitalWrite(motorAPin1,0);
+  digitalWrite(motorAPin2,HIGH);
+  digitalWrite(motorBPin1,0);
+  digitalWrite(motorBPin2,HIGH);
   delayMicroseconds(noteHalfDuration);
-  analogWrite(motorAPin1,PWMWriteRange);
-  analogWrite(motorAPin2,0);
-  analogWrite(motorBPin1,PWMWriteRange);
-  analogWrite(motorBPin2,0);
+  digitalWrite(motorAPin1,HIGH);
+  digitalWrite(motorAPin2,0);
+  digitalWrite(motorBPin1,HIGH);
+  digitalWrite(motorBPin2,0);
   delayMicroseconds(noteHalfDuration);
   }
-  analogWriteFreq(PWMFrequency);
   analogWrite(motorAPin1,0);
   analogWrite(motorAPin2,0);
   analogWrite(motorBPin1,0);
   analogWrite(motorBPin2,0);
-  delay(30);
+  delay(10);
+  }else{
+    delay(duration + 11);
+  }
 }
 
 void encoderMotorController::takeStep(int encoder){
@@ -277,7 +278,6 @@ void encoderMotorController::processCommand(String command, double value){
     case 'F':
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
-      //Serial.println("\r\n bot total travel target " + String(botTargetDistance));
       if (!inBotMode){
       targetHeading = heading;
       inBotMode = true;
@@ -295,7 +295,6 @@ void encoderMotorController::processCommand(String command, double value){
     case 'B':
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
-      //Serial.println("\r\n bot total travel target " + String(botTargetDistance));
       if (!inBotMode){
       targetHeading = heading;
       inBotMode = true;
@@ -312,7 +311,6 @@ void encoderMotorController::processCommand(String command, double value){
 
     case 'L':
     {
-     // Serial.println("\r\n turn Left ");
      if (!inBotMode){
       targetHeading = heading;
       inBotMode = true;
@@ -329,7 +327,6 @@ void encoderMotorController::processCommand(String command, double value){
 
     case 'R':
     {
-     // Serial.println("\r\n turn Right ");
      if (!inBotMode){
       targetHeading = heading;
       inBotMode = true;
@@ -344,7 +341,6 @@ void encoderMotorController::processCommand(String command, double value){
     }
     break;
     default:
-   // Serial.println("\r\n not single character command");
     break;
   }
   // process longer commands
@@ -369,13 +365,11 @@ void encoderMotorController::update(){
  // botCurrentSpeed = ( (( double(steps[0] + steps[1]) * distancePerStep) * 0.5) / double(lastDeltaT)) * 3600.0; // km / hr
   if (steps[0] > 0)wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaTA) * 3600.0;
   if (steps[1] > 0)wheelSpeed[1] = (double(steps[1]) * distancePerStep) / double(lastDeltaTB) * 3600.0;
-  //if(!lastDeltaTA)wheelSpeed[0] = 0;
-  //if(!lastDeltaTB)wheelSpeed[1] = 0;
   botCurrentSpeed = (wheelSpeed[0] + wheelSpeed[1]) * 0.5;
   //dynamically adjust debounce baced on wheel speed
   //if (wheelSpeed[0]>MIN_Speed)debounceMinStepTime[0] = (distancePerStep / (wheelSpeed[0]/3600.0)) * 0.5;//wheelSpeed[0]/wheelTargetSpeed[0]
   //if (wheelSpeed[1]>MIN_Speed)debounceMinStepTime[1] = (distancePerStep / (wheelSpeed[1]/3600.0)) * 0.5;
- // if (lastDeltaTA == 0 && lastDeltaTB == 0)botCurrentSpeed = 0;
+
   //Serial.println("A" + String(wheelSpeed[0]) + "B" + String(wheelSpeed[1]) + "Bs" + String(botCurrentSpeed) );
   //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB) ) ;
   //Serial.println("MSTA" + String(lastDeltaTA)+"SA" + String(steps[0]) );
@@ -408,14 +402,7 @@ if (steps[1] > 0)timeOfFirstStep[1] = timeOfCurrentStep[1];
     if (millis() > nextCommandMillis && nextCommandMillis){
       nextCommandMillis = 0;
       getNextCommand();
-    }/*
-    if ((nextCommandMillis + delaybetweenCommands) < millis()){
-      nextCommandMillis = millis() + delaybetweenCommands;
-      getNextCommand();
-    }else{
-      allStop();
-      commandCompleted = true; // just to keep flag
-    }*/
+    }
   }
   updateSteering(lastDeltaT);
   PID();
@@ -429,7 +416,6 @@ void encoderMotorController::allStop(){
       wheelTargetSpeed[1] = 0;
       PWMA = 0;
       PWMB = 0;
-      //targetHeading = heading;// keep last heading to correct for any overshoot
       botTargetSpeed = 0;
       botTurnDirection = none;
       setMotorSpeed();
@@ -438,7 +424,6 @@ void encoderMotorController::allStop(){
 }
 
 void encoderMotorController::setMotorSpeed(){
-
   analogWrite(motorAPin1,PWMA * (motorDirection[0] < 0) );
   analogWrite(motorAPin2,PWMA * (motorDirection[0] > 0) );
   analogWrite(motorBPin1,PWMB * (motorDirection[1] < 0) );
@@ -521,7 +506,6 @@ void encoderMotorController::PID(){
    if ((PWMB < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[1] < MIN_Speed)){
     PWMB = 0;
    }
-//Serial.println("PIA" + String(PWMChangeIncreaseA) + "PIB" + String(PWMChangeIncreaseB) );
   setMotorSpeed();      // output pwm to motors range is 0 - 1023
 }
 double encoderMotorController::getSpeed(){
@@ -556,15 +540,9 @@ void encoderMotorController::updateSteering(long delatT){
 
       double thisMAXSpeed = distancePerDegreeChange * MAX_heading_Change * 0.0036;
       //if (thisMAXSpeed < MIN_Speed)thisMAXSpeed = MIN_Speed;
-      //thisMAXSpeed = MIN_Speed;
-      double positiveHeadingToTarget = makePositive(headingToTarget);
-      //Serial.println("pHTT"+String(positiveHeadingToTarget));     
+      double positiveHeadingToTarget = makePositive(headingToTarget);     
    if (positiveHeadingToTarget > anglePerStep * 1.0 && (botTurnDirection != none)){ // change speed to correct heading for bot pivit
-      //Serial.println("H" + String(heading) + "TH" + String(targetHeading) + "d" + String(headingToTarget));
-
       if (botTurnDirection == turnRight){
-        //Serial.println("PWMA:" + String(PWMA) + "PWMB" + String(PWMB));
-        //Serial.println("WS0"+String(wheelSpeed[0]));
         if (PWMA > startPWMBoost){ // prevent overshoot on start
           PWMA = startPWMBoost;
         }
@@ -577,8 +555,6 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
         }else{// heading is less than max or is 0 change 
-          //double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
-          //if (thisSpeed < MIN_Speed)thisSpeed = MIN_Speed;
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
@@ -606,12 +582,11 @@ void encoderMotorController::updateSteering(long delatT){
         }
       }
     }
-//Serial.println("T" + String(positiveHeadingToTarget) + "TH" + String(targetHeading) + "H" + String(heading));
    if ((positiveHeadingToTarget > (anglePerStep * 0.5)) && (botTurnDirection == none)){ // change speed to correct heading for bot drive
     if (botTurnDirection == none && botTargetSpeed){ // only when moving at least min speed
         wheelTargetSpeed[0] = botTargetSpeed;
         wheelTargetSpeed[1] = botTargetSpeed;
-        double thisSpeed = botTargetSpeed * 0.22;//0.25;//thisMAXSpeed;
+        double thisSpeed = botTargetSpeed * 0.22;//thisMAXSpeed;
           if (positiveHeadingToTarget < 15 ){ // greater than can change in 1 second
               thisSpeed = botTargetSpeed * 0.22 * 0.3;// (positiveHeadingToTarget/15.0);//0.13;//thisMAXSpeed * 1.0;
             }
@@ -639,6 +614,138 @@ void encoderMotorController::updateSteering(long delatT){
           wheelTargetSpeed[1] = MAX_Speed;
         }
       }
+  }
+}
+void encoderMotorController::playMarch(){
+  int notes[]{ NOTE_A3,NOTE_A3,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_E4,NOTE_E4,NOTE_E4,NOTE_F4,NOTE_C4,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_A4,NOTE_A3,NOTE_A3,
+  NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_A3,NOTE_C4,NOTE_A3,NOTE_C4,NOTE_E4,
+  NOTE_A4,NOTE_A3,NOTE_A3,NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,
+  NOTE_F3,NOTE_C4,NOTE_A3,0};
+  int durations[]{ Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Enote+Snote,Snote,Qnote,
+  Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,
+  Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Qnote,
+  Enote+Snote,Snote,Hnote,0};
+  int note = 0;
+  while (notes[note]){
+    playNote(notes[note],durations[note]);
+    note++;
+  }
+}
+void encoderMotorController::playCharge(){
+  playNote(NOTE_C5,Snote);
+  playNote(NOTE_E5,Snote);
+  playNote(NOTE_G5,Snote);
+  playNote(NOTE_A5,Enote);
+  playNote(NOTE_G5,Snote);
+  playNote(NOTE_A5,Qnote);
+}
+
+void encoderMotorController::playMarioMainThem(){//Mario main them
+  int notes[] = { // from the website http://www.princetronics.com/supermariothemesong/
+  NOTE_E7, NOTE_E7, 1, NOTE_E7,
+  1, NOTE_C7, NOTE_E7, 1,
+  NOTE_G7, 1, 1,  1,
+  NOTE_G6, 1, 1, 1,
+ 
+  NOTE_C7, 1, 1, NOTE_G6,
+  1, 1, NOTE_E6, 1,
+  1, NOTE_A6, 1, NOTE_B6,
+  1, NOTE_AS6, NOTE_A6, 1,
+ 
+  NOTE_G6, NOTE_E7, NOTE_G7,
+  NOTE_A7, 1, NOTE_F7, NOTE_G7,
+  1, NOTE_E7, 1, NOTE_C7,
+  NOTE_D7, NOTE_B6, 1, 1,
+ 
+  NOTE_C7, 1, 1, NOTE_G6,
+  1, 1, NOTE_E6, 1,
+  1, NOTE_A6, 1, NOTE_B6,
+  1, NOTE_AS6, NOTE_A6, 1,
+ 
+  NOTE_G6, NOTE_E7, NOTE_G7,
+  NOTE_A7, 1, NOTE_F7, NOTE_G7,
+  1, NOTE_E7, 1, NOTE_C7,
+  NOTE_D7, NOTE_B6, 1, 1, 0
+};
+int durations[] = {
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+ 
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+ 
+  9, 9, 9,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+ 
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+ 
+  9, 9, 9,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+  12, 12, 12, 12,
+};
+  int note = 0;
+  while (notes[note]){
+    playNote(notes[note],(1000 / durations[note]*1.5) );
+    note++;
+  }
+}
+void encoderMotorController::playMarioUnderworld(){//Underworld melody
+int notes[] = {// from the website http://www.princetronics.com/supermariothemesong/
+  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
+  NOTE_AS3, NOTE_AS4, 1,
+  1,
+  NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
+  NOTE_AS3, NOTE_AS4, 1,
+  1,
+  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
+  NOTE_DS3, NOTE_DS4, 1,
+  1,
+  NOTE_F3, NOTE_F4, NOTE_D3, NOTE_D4,
+  NOTE_DS3, NOTE_DS4, 1,
+  1, NOTE_DS4, NOTE_CS4, NOTE_D4,
+  NOTE_CS4, NOTE_DS4,
+  NOTE_DS4, NOTE_GS3,
+  NOTE_G3, NOTE_CS4,
+  NOTE_C4, NOTE_FS4, NOTE_F4, NOTE_E3, NOTE_AS4, NOTE_A4,
+  NOTE_GS4, NOTE_DS4, NOTE_B3,
+  NOTE_AS3, NOTE_A3, NOTE_GS3,
+  1, 1, 1, 0
+};
+int durations[] = {
+  12, 12, 12, 12,
+  12, 12, 6,
+  3,
+  12, 12, 12, 12,
+  12, 12, 6,
+  3,
+  12, 12, 12, 12,
+  12, 12, 6,
+  3,
+  12, 12, 12, 12,
+  12, 12, 6,
+  6, 18, 18, 18,
+  6, 6,
+  6, 6,
+  6, 6,
+  18, 18, 18, 18, 18, 18,
+  10, 10, 10,
+  10, 10, 10,
+  3, 3, 3
+};
+    int note = 0;
+  while (notes[note]){
+    playNote(notes[note],(1000 / durations[note]*1.5) );
+    note++;
   }
 }
 

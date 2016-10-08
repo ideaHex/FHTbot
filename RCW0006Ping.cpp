@@ -16,7 +16,7 @@
 #define ECHO D8                                               // Echo Pin
 volatile long pingTime;                                       // time taken to complete ping in uS
 volatile int pingDistance = -1;                               // distance in mm
-volatile int lastPingDistance = -1;                    // distance in mm
+volatile int lastPingDistance = -1;                           // distance in mm
 
 #define MAX_TEST_DISTANCE 5000                                 // in mm
 volatile int maxTimeNeeded = (MAX_TEST_DISTANCE / 10.0 * 58.0) / 1000.0;   // in ms
@@ -30,39 +30,38 @@ void pingSetup(){
   pinMode(ECHO, INPUT);
   if (maxTimeNeeded < minimumDelay) maxTimeNeeded = minimumDelay;
 }
-void startup(){               // ready now, wait for distance
+void startup(){                                                 // ready now, wait for distance
   previousMillis = millis();
   pingTime = micros();
   detachInterrupt(ECHO);
   attachInterrupt(ECHO, calculateDistance, FALLING);
 }
 void calculateDistance(){
-  unsigned long duration = micros() - pingTime - 5;  // added 50 uS to calibrate SQ4 sensor
+  unsigned long duration = micros() - pingTime - 5;             // added 50 uS to calibrate SQ4 sensor
   pingDistance = int((duration/2.0) / 29.1 * 10.0);
- // pingDistance = (max((duration + 57 / 2) / 57, (duration ? 1 : 0)));
 }
 void triggerPing(){
 
-  digitalWrite(TRIGGER, LOW);         // start low 2uS
+  digitalWrite(TRIGGER, LOW);                                   // start low 2uS
   delayMicroseconds(2); 
   
-  digitalWrite(TRIGGER, HIGH);        // datasheet states a uS 10  pulse to start
+  digitalWrite(TRIGGER, HIGH);                                  // datasheet states a uS 10  pulse to start
   delayMicroseconds(10); 
   
   digitalWrite(TRIGGER, LOW);   
 
-  attachInterrupt(ECHO, startup, RISING); // when ready echo goes high
+  attachInterrupt(ECHO, startup, RISING);                       // when ready echo goes high
 }
 
-int getDistance(){                   // returns distance or -1 if not available
+int getDistance(){                                              // returns distance or last distance or -1 if not available
   if (pingDistance != -1 && millis() - previousMillis > minimumDelay){
       //Serial.printf("Distance: %d mm \r\n", pingDistance);
-      lastPingDistance = pingDistance;  // last real distance
+      lastPingDistance = pingDistance;                          // last real distance
       pingDistance = -1;
       triggerPing();
     }
     if (millis() - previousMillis > maxTimeNeeded){
-      previousMillis = millis();    // to stop false starts
+      previousMillis = millis();                                // to stop false starts
       pingDistance = -1;
       triggerPing();
     }
