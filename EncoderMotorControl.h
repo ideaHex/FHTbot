@@ -50,8 +50,6 @@ class encoderMotorController {
   uint8_t motorBPin2;
   volatile unsigned long lastMicros[2];                // time of last step
   unsigned long lastUpdateMicros;                      // time of last update
-  //int encoderStepTiming[2][MAX_STEP_TIMING_BUFFER];    // micro seconds of each step
-  //int encoderStepTimingBufferPosition[2];
   volatile long steps[2];
   volatile long totalSteps[2];                       
   double lastSampleDeltaT[2];
@@ -82,8 +80,6 @@ class encoderMotorController {
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
-  //unsigned long boostEndTime;
-  //int boostDuration = 150;                             // in mS
   double botTargetSpeed = 0.0;                         // in KPH
   volatile double wheelTargetSpeed[2];                  // in KPH
   volatile double botCurrentSpeed;                              // in KPH

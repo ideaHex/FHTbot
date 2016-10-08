@@ -8,7 +8,7 @@
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "EncoderMotorControl.h"
-#include "US100Ping.h"
+#include "RCW0006Ping.h"
 #include <NeoPixelBus.h>
 #include "NeoPixelAnimations.h"
 
@@ -51,9 +51,7 @@ WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
-US100Ping ping;
-int temperature = 0;
-int distance = 0;
+int distance = 300;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
@@ -61,7 +59,7 @@ String closeConnectionHeader = "";
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-int lastDistance = 0;
+int lastDistance = 300;
 
 void Stop(void)
 {
@@ -106,14 +104,8 @@ void loop()
   //lastMicrosTime = micros();
   // time dependant functions here
   if (pingOn){
-   ping.run();
-   if (ping.gotTemperature()){
-    temperature = ping.getTemperature();
-   }
-   lastDistance = distance;
-   if (ping.gotDistance()){
-    distance = ping.getDistance();
-    if (driverAssist){
+   distance = getDistance();
+   if (driverAssist){
       int testPing = makePositive(lastDistance - distance);
       if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
         if (distance < 200){
@@ -122,7 +114,7 @@ void loop()
           }
       }
     }
-   }
+   lastDistance = distance;
   }
    dnsServer.processNextRequest();
    // client functions here
@@ -168,8 +160,8 @@ void loop()
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
     pingOn = true;
-    if (req.indexOf("/HBDA") != -1)driverAssist = true;//TODO: turn ping on
-    if (req.indexOf("/HBDM") != -1)driverAssist = false;//TODO: turn ping on
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;
     serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     //Serial.print(F("Ram:"));
@@ -182,19 +174,19 @@ void loop()
     if (driverAssist){
       updateBlinkers(dX,dY);
       int testPing = makePositive(lastDistance - distance);
-      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
+   //   if ( testPing < (0.15 * double(distance))){ // less than 15% change to avoid spikes . was  && !testPing
         if (distance < 500 && distance > 199 && dY < 0){
         setColor(RgbColor(90,105,95));
           dX = 700 ;//- distance;
-          if (dY < -170 ){
-            dY = -170;
+          if (dY != -100 ){
+            dY = -100;
           }
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
           dY = 500;
         }
-      }
+   //   }
     }else{
       pixelTest();
     }
@@ -215,7 +207,7 @@ void loop()
           }*/
 
           if (fileString.indexOf("/HB") != -1){
-            //TODO: turn ping off
+            pingOn = false;
             driverAssist = false;
             HeartBeatRcvd = true;
             serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
@@ -289,13 +281,17 @@ void setupWiFi()
 
 void initHardware()
 {
-  Serial.begin(9600);               // 9600 to work with US-100
+  Serial.begin(250000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
-  Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
+  Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
+  Serial.print(F("\r\n  Your password is "));
+  Serial.println(password);
+  Serial.println(F("\r\n  Type FHTbot.com into your browser to connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-  ping.begin(Serial);
+  pingSetup();
   strip.Begin();
   strip.Show();
   smile();

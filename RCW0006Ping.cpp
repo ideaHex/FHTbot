@@ -16,12 +16,12 @@
 #define ECHO D8                                               // Echo Pin
 volatile long pingTime;                                       // time taken to complete ping in uS
 volatile int pingDistance = -1;                               // distance in mm
-volatile int lastPingDistance = -1;                           // distance in mm
+volatile int lastPingDistance = -1;                    // distance in mm
 
 #define MAX_TEST_DISTANCE 5000                                 // in mm
 volatile int maxTimeNeeded = (MAX_TEST_DISTANCE / 10.0 * 58.0) / 1000.0;   // in ms
 volatile long previousMillis = millis();                       // used for timeout for no ping received
-volatile int minimumDelay = 24;                                // to prevent false echo's
+volatile int minimumDelay = 60;                                // to prevent false echo's default 24
 
   // use getDistance() to trigger next pin, the distance is held in lastPingDistance
 
@@ -50,14 +50,13 @@ void triggerPing(){
   delayMicroseconds(10); 
   
   digitalWrite(TRIGGER, LOW);   
-  pinMode(TRIGGER, INPUT);            // set input to output so only 1 pin is needed
 
   attachInterrupt(ECHO, startup, RISING); // when ready echo goes high
 }
 
 int getDistance(){                   // returns distance or -1 if not available
   if (pingDistance != -1 && millis() - previousMillis > minimumDelay){
-      Serial.printf("Distance: %d mm \r\n", pingDistance);
+      //Serial.printf("Distance: %d mm \r\n", pingDistance);
       lastPingDistance = pingDistance;  // last real distance
       pingDistance = -1;
       triggerPing();
