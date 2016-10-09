@@ -448,6 +448,16 @@ void encoderMotorController::PID(){
       if (PWMChangeIncreaseB > PWMWriteRange)PWMChangeIncreaseB = 0;
       if (PWMChangeDecreaseA > PWMWriteRange)PWMChangeDecreaseA = 0;
       if (PWMChangeDecreaseB > PWMWriteRange)PWMChangeDecreaseB = 0;
+      /*
+      if ((makePositive(lastError[0]) - makePositive(errorA)) > 0){
+        PWMChangeIncreaseA = -PWMChangeIncreaseA;
+        PWMChangeDecreaseA = -PWMChangeDecreaseA;
+      }
+      if ((makePositive(lastError[1]) - makePositive(errorB)) > 0){
+        PWMChangeIncreaseB = -PWMChangeIncreaseB;
+        PWMChangeDecreaseB = -PWMChangeDecreaseB;
+      }
+      */
       lastError[0] = errorA;
       lastError[1] = errorB;
       
