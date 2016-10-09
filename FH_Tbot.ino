@@ -274,7 +274,7 @@ void setupWiFi()
     WiFi.softAP(AP_NameChar, password , channel , 0 );
   }
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
+  dnsServer.start(DNS_PORT, "*", apIP);// default FHTbot.com  //must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
 }
