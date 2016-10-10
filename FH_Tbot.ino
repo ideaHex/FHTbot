@@ -42,6 +42,8 @@ void updateMotors();
 /////////////////////
 
 // D4 is used for neoPixelBus (TXD1)
+// D0 is used to trigger ping
+// D8 is used for echo of ping
 
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
@@ -66,6 +68,8 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
 int lastDistance = 300;
+long nextBoredBotEvent = 0;
+int boredBotTimeout = 60000;//in ms
 
 void Stop(void)
 {
@@ -79,6 +83,7 @@ void CheckHeartBeat(void)
   if (HeartBeatRcvd == true)
   {
     HeartBeatRcvd = false;
+    nextBoredBotEvent = millis() + boredBotTimeout; // reset bored bot timer
   }
   else
   {
@@ -93,11 +98,13 @@ void setup()
   setupWiFi();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
+  nextBoredBotEvent = millis() + boredBotTimeout;
 }
 
 void loop()
 {
   // time dependant functions here
+  checkBoredBot();
   if (pingOn){
    distance = getDistance();
    if (driverAssist){
@@ -145,7 +152,6 @@ void loop()
       }
   HeartBeatRcvd = true;                                           // recieved data, must be connected
   //Serial.println("\r\n" + req);
-  //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
@@ -154,8 +160,6 @@ void loop()
     if (req.indexOf("/HBDM") != -1)driverAssist = false;
     serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
-    //Serial.print(F("Ram:"));
-    //Serial.println(system_get_free_heap_size());
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
@@ -166,11 +170,11 @@ void loop()
       int testPing = makePositive(lastDistance - distance);
    //   if ( testPing < (0.15 * double(distance))){ // less than 15% change to avoid spikes . was  && !testPing
         if (distance < 500 && distance > 199 && dY < 0){
-        setColor(RgbColor(90,105,95));
-          dX = 700 ;//- distance;
-          if (dY != -100 ){
-            dY = -100;
-          }
+          setColor(RgbColor(90,105,95));
+          dX = 250 ;//- distance;
+         // if (dY != -100 ){
+            dY = -170;
+          //}
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
@@ -284,11 +288,11 @@ void initHardware()
   Serial.begin(250000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
-  Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
+  Serial.print(F("\r\n  Your FH@Tbot Wifi connection is called "));
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
-  Serial.println(F("\r\n  Type FHTbot.com into your browser to connect. \r\n"));
+  Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
   pingSetup();
@@ -379,3 +383,39 @@ else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
 else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
 return dataType;
 }
+void checkBoredBot(){
+    if (millis() > nextBoredBotEvent){       // bored bot event called here
+          nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
+          // different events to be put here
+          int events = 3;
+          int pickedEvent = random(1,(events+1));
+          switch(pickedEvent){
+            
+            case 1:
+              setColor(RgbColor(80,80,80));
+              motors.playVroom();
+            break;
+            
+            case 2:
+            for (int a = 0; a < 50; a++){
+              pixelTest();
+              delay(20);
+            }
+            break;
+
+            case 3:
+            for (int a = 0; a < 4; a++){
+              delay(100);
+              updateBlinkers(0, -1);
+              delay(100);
+              updateBlinkers(60, -1);
+              delay(100);
+              updateBlinkers(0, 1);
+              delay(100);
+              updateBlinkers(-60, -1);
+            }
+            break;
+          }
+  }
+}
+

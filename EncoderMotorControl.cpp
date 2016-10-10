@@ -54,7 +54,7 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
   }
   return number;
 }
-void encoderMotorController::playNote(int note,int duration){
+void encoderMotorController::playNote(int note,double duration){
   if (note >= NOTE_B0){ 
   delay(1);
   double noteFrequency = 1.0 / note ;
@@ -94,8 +94,8 @@ void encoderMotorController::takeStep(int encoder){
     return;                                         // this is a bounce, ignore it
   }
   lastMicros[encoder] = micros();
-  // update grid
-  updateGrid(encoder);
+  // TODO: update grid
+  //updateGrid(encoder);
   
   // update heading + steps
     heading += ((encoder == 1) * motorDirection[encoder] * -anglePerStep ) + ( (encoder == 0 ) * motorDirection[encoder] * anglePerStep );
@@ -153,7 +153,6 @@ void encoderMotorController::takeStep(int encoder){
       if (headingToTarget < -180)headingToTarget+=360;
     if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
     if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
-      //Serial.println("\r\nT" + String(targetHeading) + "H" + String(heading));
       PWMA=0;
       PWMB=0;
       setMotorSpeed();
@@ -182,13 +181,12 @@ void encoderMotorController::manualDrive(int X, int Y){
   if (Y > MAX_range)Y = MAX_range;
   if (Y < -MAX_range)Y = -MAX_range;
   
-  // temporary drive steering function
+  // drive steering function
   if(X)targetHeading = heading + (double(X) / double(MAX_range)) * MAX_heading_Change * botTargetDirection;
   
-  //if (!lastX && !lastY) targetHeading = heading;                               // start from standstill, based on input not speed
-    if (!lastX && !lastX && !Y && !X){// no driving at all
+  if (!lastX && !lastX && !Y && !X){// no driving at all.start from standstill, based on input not speed
       targetHeading = heading; // dump any incomplete turning
-    }
+  }
     /*
     if (lastX > 0 && X < 0){ // change direction
       targetHeading = heading; // dump any incomplete turning
@@ -206,7 +204,7 @@ void encoderMotorController::manualDrive(int X, int Y){
   wheelTargetSpeed[0] = botTargetSpeed;
   wheelTargetSpeed[1] = wheelTargetSpeed[0];
 
-  //  calculate heading change in degrees per second from X and update target heading
+  //  TODO: calculate heading change in degrees per second from X and update target heading
   /*
   double headingToTarget = targetHeading - heading;
       if (headingToTarget > 180)headingToTarget-=360;
@@ -243,11 +241,10 @@ void encoderMotorController::startCommandSet(String theCommandSet){
     cancelCommandSet();
     return;
   }
-  commandSet.remove(0,5); // trimm data & comma from front of string
+  commandSet.remove(0,5);                // trimm data & comma from front of string
   commandSetHasCommands = true;
   nextCommandMillis = 0;
-  //nextCommandMillis = millis() + delaybetweenCommands;
-  inBotMode = false; // so command set will set the target to the heading on the first command only
+  inBotMode = false;                     // so command set will set the target to the heading on the first command only
   getNextCommand();
 }
 
@@ -273,7 +270,6 @@ void encoderMotorController::processCommand(String command, double value){
   // process single character commands
   char oneChar[2];
   command.toCharArray(oneChar,2);
-//Serial.println("command processed " + String(oneChar));
   switch(int(oneChar[0])){
     case 'F':
     {
@@ -361,19 +357,14 @@ void encoderMotorController::update(){
   unsigned long lastDeltaT = micros() - lastUpdateMicros;
   unsigned long lastDeltaTA = timeOfCurrentStep[0] - timeOfFirstStep[0];
   unsigned long lastDeltaTB = timeOfCurrentStep[1] - timeOfFirstStep[1];
-  lastUpdateMicros = micros();
- // botCurrentSpeed = ( (( double(steps[0] + steps[1]) * distancePerStep) * 0.5) / double(lastDeltaT)) * 3600.0; // km / hr
-  if (steps[0] > 0)wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaTA) * 3600.0;
+  lastUpdateMicros = micros(); 
+  if (steps[0] > 0)wheelSpeed[0] = (double(steps[0]) * distancePerStep) / double(lastDeltaTA) * 3600.0; // km / hr
   if (steps[1] > 0)wheelSpeed[1] = (double(steps[1]) * distancePerStep) / double(lastDeltaTB) * 3600.0;
   botCurrentSpeed = (wheelSpeed[0] + wheelSpeed[1]) * 0.5;
-  //dynamically adjust debounce baced on wheel speed
+  //TODO: dynamically adjust debounce baced on wheel speed
   //if (wheelSpeed[0]>MIN_Speed)debounceMinStepTime[0] = (distancePerStep / (wheelSpeed[0]/3600.0)) * 0.5;//wheelSpeed[0]/wheelTargetSpeed[0]
   //if (wheelSpeed[1]>MIN_Speed)debounceMinStepTime[1] = (distancePerStep / (wheelSpeed[1]/3600.0)) * 0.5;
 
-  //Serial.println("A" + String(wheelSpeed[0]) + "B" + String(wheelSpeed[1]) + "Bs" + String(botCurrentSpeed) );
-  //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB) ) ;
-  //Serial.println("MSTA" + String(lastDeltaTA)+"SA" + String(steps[0]) );
-  //Serial.println("DBT" + String(debounceMinStepTime[0]) + "MSTA" + String(lastDeltaTA) );
   if ((micros() - timeOfCurrentStep[0]) > minCalculatedSpeedTimePerStep){  // beyond max time so reset minCalculatedSpeedTimePerStep
     timeOfLastStep[0] = micros();                   // reset timers
     timeOfCurrentStep[0] = timeOfLastStep[0];
@@ -448,6 +439,7 @@ void encoderMotorController::PID(){
       if (PWMChangeIncreaseB > PWMWriteRange)PWMChangeIncreaseB = 0;
       if (PWMChangeDecreaseA > PWMWriteRange)PWMChangeDecreaseA = 0;
       if (PWMChangeDecreaseB > PWMWriteRange)PWMChangeDecreaseB = 0;
+      //TODO: Prevent overshoot
       /*
       if ((makePositive(lastError[0]) - makePositive(errorA)) > 0){
         PWMChangeIncreaseA = -PWMChangeIncreaseA;
@@ -501,14 +493,20 @@ void encoderMotorController::PID(){
       if (errorA < -0.1){
         PWMA -= PWMChangeDecreaseA;
         if (PWMA < 0)PWMA = 0;
+        if (wheelTargetSpeed[0] > 0 && PWMA < ((minMotorSpeed * 0.5) * PWMWriteRange)){ // prevent stall
+          PWMA = minMotorSpeed * PWMWriteRange * 0.5;
+        }
       }
       if (errorB > 0.05){
         PWMB += PWMChangeIncreaseB;
-        if (PWMB > PWMWriteRange)PWMB = PWMWriteRange;
+        if (PWMB > PWMWriteRange)PWMB = PWMWriteRange * 0.5;
       }
       if (errorB < -0.1){
         PWMB -= PWMChangeDecreaseB;
         if (PWMB < 0)PWMB = 0;
+        if (wheelTargetSpeed[1] > 0 && PWMB < ((minMotorSpeed * 0.5) * PWMWriteRange)){ // prevent stall
+          PWMB = minMotorSpeed * PWMWriteRange * 0.5;
+        }
       }
    if ((PWMA < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[0] < MIN_Speed)){
     PWMA = 0;
@@ -531,14 +529,16 @@ double encoderMotorController::getAcceleration(){
   return 0;
 }
 void encoderMotorController::updateSteering(long delatT){
+  // TODO: update heading baced on degrees per second
+  /*
     if (targetDegreesPerSecond != 0){
     //double headingchange = (targetDegreesPerSecond / 1000000.0) * delatT;
     //targetDegreesPerSecond = 0;
    // targetHeading += headingchange * double(botTargetDirection);
-      //Serial.println("hc"+String(headingchange));
     if (targetHeading > 360)targetHeading -= 360;
     if (targetHeading < 0)targetHeading += 360;
     }
+    */
       double headingToTarget = targetHeading - heading;
       if (headingToTarget > 180)headingToTarget-=360;
       if (headingToTarget < -180)headingToTarget+=360;
@@ -572,7 +572,6 @@ void encoderMotorController::updateSteering(long delatT){
       }
       
       if (botTurnDirection == turnLeft){
-        //Serial.println("PWMA:" + String(PWMA) + "PWMB" + String(PWMB));
         if (PWMA > startPWMBoost){ // prevent overshoot on start
           PWMA = startPWMBoost;
         }
@@ -593,12 +592,12 @@ void encoderMotorController::updateSteering(long delatT){
       }
     }
    if ((positiveHeadingToTarget > (anglePerStep * 0.5)) && (botTurnDirection == none)){ // change speed to correct heading for bot drive
-    if (botTurnDirection == none && botTargetSpeed){ // only when moving at least min speed
+    if (botTurnDirection == none && botTargetSpeed){  // only when moving at least min speed
         wheelTargetSpeed[0] = botTargetSpeed;
         wheelTargetSpeed[1] = botTargetSpeed;
-        double thisSpeed = botTargetSpeed * 0.22;//thisMAXSpeed;
-          if (positiveHeadingToTarget < 15 ){ // greater than can change in 1 second
-              thisSpeed = botTargetSpeed * 0.22 * 0.3;// (positiveHeadingToTarget/15.0);//0.13;//thisMAXSpeed * 1.0;
+        double thisSpeed = botTargetSpeed * 0.22;     //thisMAXSpeed;
+          if (positiveHeadingToTarget < 15 ){         // greater than can change in 1 second
+              thisSpeed = botTargetSpeed * 0.22 * 0.3;
             }
         if (headingToTarget > 0 ){ // need to turn right
             wheelTargetSpeed[0] += (thisSpeed * double(botTargetDirection));
@@ -627,11 +626,12 @@ void encoderMotorController::updateSteering(long delatT){
   }
 }
 void encoderMotorController::playMarch(){
+  updateBPM(104);
   int notes[]{ NOTE_A3,NOTE_A3,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_E4,NOTE_E4,NOTE_E4,NOTE_F4,NOTE_C4,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_A4,NOTE_A3,NOTE_A3,
   NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_A3,NOTE_C4,NOTE_A3,NOTE_C4,NOTE_E4,
   NOTE_A4,NOTE_A3,NOTE_A3,NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,
   NOTE_F3,NOTE_C4,NOTE_A3,0};
-  int durations[]{ Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Enote+Snote,Snote,Qnote,
+  double durations[]{ Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Enote+Snote,Snote,Qnote,
   Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,
   Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Qnote,
   Enote+Snote,Snote,Hnote,0};
@@ -642,12 +642,18 @@ void encoderMotorController::playMarch(){
   }
 }
 void encoderMotorController::playCharge(){
-  playNote(NOTE_C5,Snote);
-  playNote(NOTE_E5,Snote);
+  updateBPM(68);
   playNote(NOTE_G5,Snote);
-  playNote(NOTE_A5,Enote);
-  playNote(NOTE_G5,Snote);
-  playNote(NOTE_A5,Qnote);
+  playNote(NOTE_C6,Snote);
+  playNote(NOTE_E6,Snote);
+  playNote(NOTE_G6,Enote);
+  playNote(NOTE_E6,Snote);
+  playNote(NOTE_G6,Qnote);
+}
+void encoderMotorController::playVroom(){
+  for(int a = NOTE_A1; a < NOTE_F3; a++){ // v - room
+    playNote(a,4);
+  }
 }
 
 void encoderMotorController::playMarioMainThem(){//Mario main them
@@ -677,7 +683,7 @@ void encoderMotorController::playMarioMainThem(){//Mario main them
   1, NOTE_E7, 1, NOTE_C7,
   NOTE_D7, NOTE_B6, 1, 1, 0
 };
-int durations[] = {
+double durations[] = {
   12, 12, 12, 12,
   12, 12, 12, 12,
   12, 12, 12, 12,
@@ -731,7 +737,7 @@ int notes[] = {// from the website http://www.princetronics.com/supermariothemes
   NOTE_AS3, NOTE_A3, NOTE_GS3,
   1, 1, 1, 0
 };
-int durations[] = {
+double durations[] = {
   12, 12, 12, 12,
   12, 12, 6,
   3,
@@ -757,5 +763,14 @@ int durations[] = {
     playNote(notes[note],(1000 / durations[note]*1.5) );
     note++;
   }
+}
+void encoderMotorController::updateBPM(double thisBPM){
+  // DURATION OF THE NOTES 
+BPM = thisBPM;
+Qnote = 60000/BPM;                                // quarter 1/4 
+Hnote = 2*Qnote;                                  // half 2/4
+Enote = Qnote/2;                                  // eighth 1/8
+Snote = Qnote/4;                                  // sixteenth 1/16
+Wnote = 4*Qnote;                                  // whole 4/4
 }
 

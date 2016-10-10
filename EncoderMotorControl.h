@@ -16,7 +16,7 @@ class encoderMotorController {
 
   public:
   encoderMotorController(uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t);        //constructor
-  void playNote(int, int);                                                                  // Play notes through motors
+  void playNote(int, double);                                                                  // Play notes through motors
   void manualDrive(int, int);                                                               // manual drive mode intput
   void update();                                                                            // use ticker to call this every updateFrequency from loop function
   int updateFrequency = 30;                                                                 // update frequency in milli seconds
@@ -34,6 +34,7 @@ class encoderMotorController {
   void playCharge();
   void playMarioMainThem();
   void playMarioUnderworld();
+  void playVroom();
 
   private:
 
@@ -42,7 +43,7 @@ class encoderMotorController {
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.77;                    // in KPH
   volatile double MIN_Speed = 0.37;                    // minimum speed in KPH
-  volatile float minMotorSpeed = MIN_Speed / MAX_Speed;         // as a normal (range from 0.0 to 1.0)
+  volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
   volatile double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
   volatile unsigned int timeOfFirstStep[2];            // first step in sample
   volatile unsigned int timeOfLastStep[2];             //step before current
@@ -117,6 +118,15 @@ class encoderMotorController {
   void setMotorSpeed(int,int);
   void PID();
   void updateSteering(long);
+  void updateBPM(double);
+  // DURATION OF THE NOTES 
+  double BPM = 104;
+  double Qnote = 60000/BPM;                                // quarter 1/4 
+  double Hnote = 2*Qnote;                                  // half 2/4
+  double Enote = Qnote/2;                                  // eighth 1/8
+  double Snote = Qnote/4;                                  // sixteenth 1/16
+  double Wnote = 4*Qnote;                                  // whole 4/4
+  
 };
 
 /*************************************************
@@ -213,12 +223,5 @@ class encoderMotorController {
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 
-// DURATION OF THE NOTES 
-#define BPM 120         //  you can change this value, changing all the others
-#define Qnote 60000/BPM // quarter 1/4 
-#define Hnote 2*Qnote   // half 2/4
-#define Enote Qnote/2   // eighth 1/8
-#define Snote Qnote/4   // sixteenth 1/16
-#define Wnote 4*Qnote   // whole 4/4
 
 #endif

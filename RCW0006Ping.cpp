@@ -23,8 +23,6 @@ volatile int maxTimeNeeded = (MAX_TEST_DISTANCE / 10.0 * 58.0) / 1000.0;   // in
 volatile long previousMillis = millis();                       // used for timeout for no ping received
 volatile int minimumDelay = 60;                                // to prevent false echo's default 24
 
-  // use getDistance() to trigger next pin, the distance is held in lastPingDistance
-
 void pingSetup(){
   pinMode(TRIGGER, OUTPUT);
   pinMode(ECHO, INPUT);
