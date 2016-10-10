@@ -38,7 +38,7 @@
                 background-color: #333;
                 width: 195px;
                 height: 133px;
-                background-image: url(hacad.png);
+                background-image: url("hacad.png");
                 width: 100%;
                 height: 100%;
                 color: black;
@@ -59,15 +59,20 @@
                 background: #fc9;
                 text-align: center;
             }
+            #blocklyDiv{
+                height: 95%;
+                width: 100%;
+                padding: auto;
+            }
         </style>
 
     </head>
     <body onload="pageLoaded()">
         <p>
-            <button onclick="parseCode()">Parse JavaScript</button>            
-            <button onclick="runInterpreter()" id="runButton" disabled="disabled">Run JavaScript </button>
+            <button onclick="runInterpreter()" id="runButton">Run Turtle</button>
+            <button onclick="parseCode()" id="viewButton">View Your Code </button>
         </p>
-        <div id="blocklyDiv" style="height: 95%; width: 95%; padding: auto"></div>
+        <div id="blocklyDiv"></div>
     <xml id="toolbox" style="display: none">
         <category name="Logic">
             <category name="If">
@@ -192,15 +197,7 @@
     Load the Blockly SNOWBALL
     -->
     <script src="js/blocklyBall.js" type="text/javascript"></script>
-    <!--
-    <script src="js/blockly.js" type="text/javascript"></script>
-    <script src="js/javascript.js" type="text/javascript"></script>
-    <script src="js/blocks.js" type="text/javascript"></script>
-    -->
     <script src="js/msg/js/en.js" type="text/javascript"></script>
-    <!--
-    <script src="js/acorn.js" type="text/javascript"></script>
-    -->
     <script>
                 /**
                  * Custom Blocks for Blockly, for the FH_Tbot Project
@@ -210,9 +207,26 @@
                     "message0": "Bot Turn Left: %1",
                     "args0": [
                         {
-                            "type": "field_angle",
+                            "type": "field_dropdown",
                             "name": "leftAngle",
-                            "angle": 90
+                            "options": [
+                                [
+                                    "45°",
+                                    "45"
+                                ],
+                                [
+                                    "90°",
+                                    "90"
+                                ],
+                                [
+                                    "135°",
+                                    "135"
+                                ],
+                                [
+                                    "180°",
+                                    "180"
+                                ]
+                            ]
                         }
                     ],
                     "previousStatement": "null",
@@ -232,7 +246,7 @@
                 Blockly.JavaScript['bot_turn_left'] = function (block) {
                     var angle_leftangle = block.getFieldValue('leftAngle');
                     // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"L\"); addCommand(' + angle_leftangle + ');\n';
+                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
                     return code;
                 };
 
@@ -241,9 +255,26 @@
                     "message0": "Bot Turn Right: %1",
                     "args0": [
                         {
-                            "type": "field_angle",
+                            "type": "field_dropdown",
                             "name": "rightAngle",
-                            "angle": 90
+                            "options": [
+                                [
+                                    "45°",
+                                    "45"
+                                ],
+                                [
+                                    "90°",
+                                    "90"
+                                ],
+                                [
+                                    "135°",
+                                    "135"
+                                ],
+                                [
+                                    "180°",
+                                    "180"
+                                ]
+                            ]
                         }
                     ],
                     "previousStatement": "null",
@@ -263,13 +294,13 @@
                 Blockly.JavaScript['bot_turn_right'] = function (block) {
                     var angle_rightangle = block.getFieldValue('rightAngle');
                     // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"R\"); addCommand(' + angle_rightangle + ');\n';
+                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
                     return code;
                 };
 
                 var bot_move_forwardJSON = {
                     "type": "bot_move_forward",
-                    "message0": "Travel forward  %1 mm",
+                    "message0": "Travel forward  %1 cm",
                     "args0": [
                         {
                             "type": "field_number",
@@ -294,13 +325,13 @@
                 Blockly.JavaScript['bot_move_forward'] = function (block) {
                     var number_forwardtravel = block.getFieldValue('forwardTravel');
                     // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(\"F\"); addCommand(' + number_forwardtravel + ');\n';
+                    var code = 'addCommand(\"F\"); setDistance(' + number_forwardtravel + ');\n';
                     return code;
                 };
 
                 var bot_move_backwardJSON = {
                     "type": "bot_move_backward",
-                    "message0": "Travel backward  %1 mm",
+                    "message0": "Travel backward  %1 cm",
                     "args0": [
                         {
                             "type": "field_number",
@@ -325,7 +356,7 @@
                 Blockly.JavaScript['bot_move_backward'] = function (block) {
                     var number_backwardtravel = block.getFieldValue('backwardTravel');
                     // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"B"); addCommand(' + number_backwardtravel + ');\n';
+                    var code = 'addCommand(' + '\"B"); setDistance(' + number_backwardtravel + ');\n';
                     return code;
                 };
 
@@ -418,6 +449,14 @@
             };
             interpreter.setProperty(scope, 'addCommand',
                     interpreter.createNativeFunction(wrapper));
+            // Add an API function for the setDistance() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Output from interpreter:" + text);
+                setDistance(text);
+            };
+            interpreter.setProperty(scope, 'setDistance',
+                    interpreter.createNativeFunction(wrapper));
             // Add an API function for the runBot() block.
             var wrapper = function (text) {
                 text = text ? text.toString() : '';
@@ -464,19 +503,18 @@
         //Execution of Code
         //Code is contained in intepreted sandbox
         function parseCode() {
-            armQueue();
             var code = Blockly.JavaScript.workspaceToCode(workspace);
-            jsInterpreter = new Interpreter(code, initApi);
-            alert('Ready to run this code:\n\n' + code);
-            document.getElementById('runButton').disabled = '';
-            //workspace.traceOn(true);
-            //workspace.highlightBlock(null);
+            //jsInterpreter = new Interpreter(code, initApi);
+            alert('This is what your blocks look like as code:\n\n' + code);
         }
 
         function runInterpreter() {
+            armQueue();
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            jsInterpreter = new Interpreter(code, initApi);
             //disable('disabled');
             jsInterpreter.run();
-            document.getElementById('runButton').disabled = 'disabled';
+            //document.getElementById('runButton').disabled = 'disabled';
             runBot();
         }
 
@@ -484,9 +522,21 @@
         function armQueue() {
             botQueue = "";
         }
-
+        /**
+         * Adds bot commands to the 'queue' string.
+         * @param {type} text
+         * @returns {undefined}
+         */
         function addCommand(text) {
             botQueue += text + ",";
+        }
+        /**
+         * 'Interface' for addCommand that gives a meaningful name for parsed code.
+         * @param {type} text
+         * @returns {undefined}
+         */
+        function setDistance(text) {
+            addCommand(text);
         }
 
         /**
@@ -495,7 +545,7 @@
          */
         function runBot() {
             if (botQueue !== "") {
-                xhttp.abort();
+                //xhttp.abort();
                 console.log();
                 xhttp.open("GET", "/data," + botQueue, true);
                 // xhttp.timeout = 100;
@@ -507,14 +557,14 @@
             xhttp.open("GET", "/HB", true);
             xhttp.send();
         }
-        
+
         //Heartbeat function
         function pageLoaded() {
             setInterval(function () {
                 HB();
-            }, 210);
+            }, 100);
         }
-    
+
     </script>
 </body>
 </html>
