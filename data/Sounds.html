@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+<title>Manual test Data</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, height=device-height, user-scalable=yes">
+</head>
+    <style>
+body{
+	margin: auto;
+	background-color: #333;
+	background-image: url("hacad.png");
+	width: 100%;
+	height: 100%;
+	color: white;
+	font-size: 20px;
+	text-shadow: 2px 2px Black;
+    }
+span{
+    background-color: #333;
+  }
+  t1{
+	font-size:18pt;
+  }
+  t2{
+	font-size:22pt;
+  }
+	</style>
+<body>
+<br><br><br>
+<table style="Width:100%"><tr><th>
+<button onclick="sendPlayCharge()" style="width:98%;height:120%;"><t1>Charge !!!!</t1></button><br></th><th>
+<button onclick="sendPlayMarch()" style="width:98%;height:120%;"><t1>Imperial March</t1></button><br></th><th>
+<button onclick="sendPlayMarioTheme()" style="width:98%;height:120%;"><t1>Mario Theme</t1></button><br></th></tr>
+<tr><th></th><th><br></th><th></th></tr>
+<tr><th></th><th><button onclick="sendPlayMarioUnderworld()" style="width:98%;height:120%;"><t1>Mario Underworld</t1></button><br></th><th></th></tr>
+</table>
+<br><br>
+<table style="width:100%"><tr>
+    <th><span><a href="/"><t2>Back</t2></a></span></th>
+    <th></th>
+    </tr>
+    </table>
+<script>
+function sendPlayMarioUnderworld(){
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", "PlayMarioUnderworld", true);
+    xhttp.send();
+	
+};
+function sendPlayMarioTheme(){
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", "PlayMarioTheme", true);
+    xhttp.send();
+	
+};
+function sendPlayCharge(){
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", "PlayCharge", true);
+    xhttp.send();
+	
+};
+function sendPlayMarch(){
+	var xhttp = new XMLHttpRequest();
+	xhttp.open("GET", "PlayMarch", true);
+    xhttp.send();
+	
+};
+</script>
+</body>
+</html>

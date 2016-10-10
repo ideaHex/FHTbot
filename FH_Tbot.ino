@@ -8,7 +8,7 @@
 #include <DNSServer.h>
 #include <Ticker.h>
 #include "EncoderMotorControl.h"
-#include "US100Ping.h"
+#include "RCW0006Ping.h"
 #include <NeoPixelBus.h>
 #include "NeoPixelAnimations.h"
 
@@ -17,12 +17,19 @@ extern "C" {
  } 
 
 
+
+
 //////////////////////
 // WiFi Definitions //
 //////////////////////
+
 const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
 String AP_Name = "FH@Tbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
+
+
+
+
 
 void setupWiFi(void);
 void initHardware(void);
@@ -35,6 +42,8 @@ void updateMotors();
 /////////////////////
 
 // D4 is used for neoPixelBus (TXD1)
+// D0 is used to trigger ping
+// D8 is used for echo of ping
 
 // stepper without PWM/speed input pins, don't use D0
 const int motorLeftA  = D5;
@@ -46,25 +55,27 @@ const int motorRightEncoder = D7;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
-
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
-US100Ping ping;
-int temperature = 0;
-int distance = 0;
+int distance = 300;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
 #define MAX_SRV_CLIENTS 10              // maximum client connections
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
+boolean pingOn = false;
+int lastDistance = 300;
+long nextBoredBotEvent = 0;
+int boredBotTimeout = 60000;//in ms
 
 void Stop(void)
 {
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off led's to save power
+  pingOn = false;                        // turn off ping to save power
 }
 
 void CheckHeartBeat(void)
@@ -72,10 +83,11 @@ void CheckHeartBeat(void)
   if (HeartBeatRcvd == true)
   {
     HeartBeatRcvd = false;
+    nextBoredBotEvent = millis() + boredBotTimeout; // reset bored bot timer
   }
   else
   {
-    //Stop();                             // Serial.println("Connection lost STOP!!!!!!");
+    Stop();                             
   }
 }
 
@@ -84,33 +96,18 @@ void setup()
   system_update_cpu_freq(160);          // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
-  HeartBeatTicker.attach_ms(500, CheckHeartBeat);
-  /*
-  motors.playNote(NOTE_C5,200);
-  motors.playNote(NOTE_E5,200);
-  motors.playNote(NOTE_G5,200);
-  motors.playNote(NOTE_A5,400);
-  motors.playNote(NOTE_G5,200);
-  motors.playNote(NOTE_A5,800);
-  */
+  HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
-  motors.startCommandSet("data,F,40,R,90,F,40,R,90,F,40,R,90,F,40,R,90,");//"data,R,90,L,180,R,90,");
+  nextBoredBotEvent = millis() + boredBotTimeout;
 }
-unsigned long maxLoopTime = 0;
-unsigned long lastMicrosTime;
+
 void loop()
 {
-  if (micros() - lastMicrosTime > maxLoopTime)maxLoopTime = micros() - lastMicrosTime;
-  lastMicrosTime = micros();
   // time dependant functions here
-   ping.run();
-   if (ping.gotTemperature()){
-    temperature = ping.getTemperature();
-   }
-   int lastDistance = distance;
-   if (ping.gotDistance()){
-    distance = ping.getDistance();
-    if (driverAssist){
+  checkBoredBot();
+  if (pingOn){
+   distance = getDistance();
+   if (driverAssist){
       int testPing = makePositive(lastDistance - distance);
       if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
         if (distance < 200){
@@ -119,24 +116,20 @@ void loop()
           }
       }
     }
-   }
+   lastDistance = distance;
+  }
    dnsServer.processNextRequest();
    // client functions here
   while (server.hasClient()){
-    //Serial.println("New client");
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
       //find free/disconnected spot
       if (!serverClients[i] || !serverClients[i].connected()){
         if(serverClients[i]) serverClients[i].stop();
         serverClients[i] = server.available();
-        //Serial.print("New client: "); Serial.println(i);
-        //yield();
-        //break;
         return;
       }
     }
     //no free/disconnected spot so reject
-    //Serial.println(F("\r\nNo Free Clients ....."));
    // WiFiClient serverClient = server.available();
    // serverClient.stop();
   }
@@ -159,14 +152,14 @@ void loop()
       }
   HeartBeatRcvd = true;                                           // recieved data, must be connected
   //Serial.println("\r\n" + req);
-  //Serial.println(client.readString());
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
+    pingOn = true;
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;
     serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
-    //Serial.print(F("Ram:"));
-    //Serial.println(system_get_free_heap_size());
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
@@ -175,37 +168,62 @@ void loop()
     if (driverAssist){
       updateBlinkers(dX,dY);
       int testPing = makePositive(lastDistance - distance);
-      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
+   //   if ( testPing < (0.15 * double(distance))){ // less than 15% change to avoid spikes . was  && !testPing
         if (distance < 500 && distance > 199 && dY < 0){
-        setColor(RgbColor(90,105,95));
-          dX = 700 - distance;
-          if (dY < -200 ){
-            dY = -200;
-          }
+          setColor(RgbColor(90,105,95));
+          dX = 250 ;//- distance;
+         // if (dY != -100 ){
+            dY = -170;
+          //}
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
           dY = 500;
         }
-      }
+   //   }
     }else{
       pixelTest();
     }
     motors.manualDrive(dX,dY);
   }else{
         String fileString = req.substring(4, (req.length() - 9));
-         if (fileString.indexOf("DriverAssist") != -1){
-              driverAssist = true;
-              fileString = "/Start.html";
-              sendFile(fileString);
-              return;
+        //Serial.println("\r\n" + fileString);
+          if (fileString.indexOf("/PlayCharge") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playCharge();
+            return;
           }
-          if (fileString.indexOf("Start.html") != -1){
-              driverAssist = false;
-              sendFile(fileString);
-              return;
+          if (fileString.indexOf("/PlayMarch") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarch();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioTheme") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioMainThem();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioUnderworld();
+            return;
+          }
+          if (fileString.indexOf("/HB") != -1){
+            pingOn = false;
+            driverAssist = false;
+            HeartBeatRcvd = true;
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            return;
           }
           if (fileString.indexOf("data,") != -1){
+              serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("data,"));
               fileString.trim();
               motors.startCommandSet(fileString);
               return;
@@ -213,20 +231,14 @@ void loop()
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-                s += ("var tmp=");
-                s += temperature;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
                 s += motors.getSpeed();
                 s += (";var movd=");
                 s += motors.getTravel();
-                s += (";var acl=");
-                s += motors.getAcceleration();
                 s += (";var hed=");
                 s += motors.getheading();
-                s += (";var mlt=");
-                s += maxLoopTime;
                 s += (";</script></body></html>");
                 h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
                 h += s.length();
@@ -266,25 +278,27 @@ void setupWiFi()
     WiFi.softAP(AP_NameChar, password , channel , 0 );
   }
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(DNS_PORT, "FHTbot.com", apIP);//must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
+  dnsServer.start(DNS_PORT, "*", apIP);// default FHTbot.com  //must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
-  //client.setTimeout(30);            // read timeout
-  //WiFi.printDiag(Serial);
 }
 
 void initHardware()
 {
-  Serial.begin(9600);               // 9600 to work with US-100
+  Serial.begin(250000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FH@Tbot Serial Connected\r\n"));
-  Serial.println(F("  Type \"FHTbot.com\" into your browser to connect. \r\n"));
+  Serial.print(F("\r\n  Your FH@Tbot Wifi connection is called "));
+  Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
+  Serial.print(F("\r\n  Your password is "));
+  Serial.println(password);
+  Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-  ping.begin(Serial);
+  pingSetup();
   strip.Begin();
   strip.Show();
-  //smile();
+  smile();
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
@@ -304,7 +318,7 @@ void updateMotors(){
 
 void sendFile(String path){
 // get content type
-if(path.endsWith("/")){ path += "index.html";driverAssist = false;}
+if(path.endsWith("/")){ path += "index.html";}
 String dataType = getContentType(path);
   
 // check if theres a .gz'd version and send that instead
@@ -341,20 +355,16 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
     theBuffer.close();
     return;
   }
-  //yield();
   int bufferLength = theBuffer.size();
   if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
     // failed to send all file
   }
   yield();
-
   theBuffer.close();
-  lastMicrosTime = micros();
-  maxLoopTime = 0;
 }
 
 String getContentType(String path){ // get content type
-String dataType = F("text/html"); // text/html; charset=utf-8
+String dataType = F("text/html");
 String lowerPath = path.substring(path.length()-4,path.length());
 lowerPath.toLowerCase();
 
@@ -373,3 +383,39 @@ else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
 else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
 return dataType;
 }
+void checkBoredBot(){
+    if (millis() > nextBoredBotEvent){       // bored bot event called here
+          nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
+          // different events to be put here
+          int events = 3;
+          int pickedEvent = random(1,(events+1));
+          switch(pickedEvent){
+            
+            case 1:
+              setColor(RgbColor(80,80,80));
+              motors.playVroom();
+            break;
+            
+            case 2:
+            for (int a = 0; a < 50; a++){
+              pixelTest();
+              delay(20);
+            }
+            break;
+
+            case 3:
+            for (int a = 0; a < 4; a++){
+              delay(100);
+              updateBlinkers(0, -1);
+              delay(100);
+              updateBlinkers(60, -1);
+              delay(100);
+              updateBlinkers(0, 1);
+              delay(100);
+              updateBlinkers(-60, -1);
+            }
+            break;
+          }
+  }
+}
+

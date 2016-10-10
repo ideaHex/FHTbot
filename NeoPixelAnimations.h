@@ -62,14 +62,10 @@ void updateBlinkers(int indexOfX, int indexOfY){
     if (makePositive(indexOfX) > 30 ){
       if(indexOfX < 0 ){
         //Update Left
-        //px[(NUMPIXELS/2 - 1)] = RgbColor(255,127,0);
-        //px[NUMPIXELS - 1] =  RgbColor(255,127,0);
         px[2] = RgbColor(80,40,0);
         px[5] = RgbColor(80,40,0);
       }else if (indexOfX > 0){
         //update Right
-        //px[0] =  RgbColor(255,127,0);
-        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
         px[0] =  RgbColor(80,40,0);
         px[3] = RgbColor(80,40,0);
       }else{
@@ -77,16 +73,10 @@ void updateBlinkers(int indexOfX, int indexOfY){
       }      
     }else{
       if(indexOfY < 0 ){
-        //px[(NUMPIXELS/2) - 2] = RgbColor(255,127,0);
-        //px[(NUMPIXELS/2) - 1] = RgbColor(255,127,0);
-        //px[(NUMPIXELS/2)] = RgbColor(255,127,0);
         px[0] = RgbColor(80,40,0);
         px[1] = RgbColor(80,40,0);
         px[2] = RgbColor(80,40,0);
-      }else if (indexOfY > 0){
-        //px[(NUMPIXELS) - 2] = RgbColor(255,127,0);
-        //px[(NUMPIXELS) - 1] = RgbColor(255,127,0);
-        //px[(NUMPIXELS)] = RgbColor(255,127,0);        
+      }else if (indexOfY > 0){    
         px[3] = RgbColor(80,40,0);
         px[4] = RgbColor(80,40,0);
         px[5] = RgbColor(80,40,0);
@@ -98,7 +88,6 @@ void updateBlinkers(int indexOfX, int indexOfY){
     for(int i = 0; i< NUMPIXELS; i++){
       // pixels.Color takes RGB values, from 0,0,0 up to 255,255,255
       strip.SetPixelColor(i, px[i]); // Orange colour.
-      //delay(delayval); // Delay for a period of time (in milliseconds).
     }
     strip.Show(); // This sends the updated pixel color to the hardware.
 }
@@ -107,18 +96,5 @@ int makePositive(int number){
     number = -number;
   }
   return number;
-}
-void sendingFilePixels(int at){
-  if (at > 5){
-    at = 0;
-  }
-  for (int a = 0; a < 6; a++){
-    if ( at == a){
-      strip.SetPixelColor(a, RgbColor(0,40,0));
-    }else{
-      strip.SetPixelColor(a, RgbColor(0,0,0));
-    }
-  }
-  strip.Show();
 }
 
