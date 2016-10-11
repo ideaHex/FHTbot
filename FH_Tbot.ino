@@ -50,8 +50,8 @@ const int motorLeftA  = D5;
 const int motorLeftB  = D6;
 const int motorRightA = D3;
 const int motorRightB = D2;
-const int motorLeftEncoder = D1;
-const int motorRightEncoder = D7;
+const int motorLeftEncoder = D7;
+const int motorRightEncoder = D1;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
