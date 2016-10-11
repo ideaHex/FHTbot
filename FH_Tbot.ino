@@ -2,7 +2,7 @@
  * 
  * 
  */
-//#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
+#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <DNSServer.h>
@@ -387,23 +387,23 @@ void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       // bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
           // different events to be put here
-          int events = 3;
+          int events = 4;
           int pickedEvent = random(1,(events+1));
           switch(pickedEvent){
             
-            case 1:
+            case 1:                 // play vroom and bright light
               setColor(RgbColor(80,80,80));
               motors.playVroom();
             break;
             
-            case 2:
+            case 2:                 // random colors
             for (int a = 0; a < 50; a++){
               pixelTest();
               delay(20);
             }
             break;
 
-            case 3:
+            case 3:                 // blinker rotation
             for (int a = 0; a < 4; a++){
               delay(100);
               updateBlinkers(0, -1);
@@ -414,6 +414,10 @@ void checkBoredBot(){
               delay(100);
               updateBlinkers(-60, -1);
             }
+            break;
+
+            case 4:                 // smile
+              smile();
             break;
           }
   }

@@ -4,7 +4,7 @@
  * 
  */
 
-//#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
+#pragma GCC optimize ("-O2")
 #ifndef encoderMotorControl_h
 #define encoderMotorControl_h
 

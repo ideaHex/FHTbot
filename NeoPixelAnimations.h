@@ -1,3 +1,4 @@
+#pragma GCC optimize ("-O2")
 #include <NeoPixelBus.h>
 
 NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4);

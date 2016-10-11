@@ -22,6 +22,7 @@ volatile int lastPingDistance = -1;                           // distance in mm
 volatile int maxTimeNeeded = (MAX_TEST_DISTANCE / 10.0 * 58.0) / 1000.0;   // in ms
 volatile long previousMillis = millis();                       // used for timeout for no ping received
 volatile int minimumDelay = 60;                                // to prevent false echo's default 24
+volatile long currentTimeout;
 
 void pingSetup(){
   pinMode(TRIGGER, OUTPUT);
@@ -36,7 +37,7 @@ void startup(){                                                 // ready now, wa
 }
 void calculateDistance(){
   unsigned long duration = micros() - pingTime - 5;             // added 50 uS to calibrate SQ4 sensor
-  pingDistance = int((duration/2.0) / 29.1 * 10.0);
+  pingDistance = int((duration/2.0) / 2.91);                    // full equation int((duration/2.0) / 29.1 * 10.0);
 }
 void triggerPing(){
 
@@ -52,13 +53,13 @@ void triggerPing(){
 }
 
 int getDistance(){                                              // returns distance or last distance or -1 if not available
-  if (pingDistance != -1 && millis() - previousMillis > minimumDelay){
+  currentTimeout = millis() - previousMillis;
+  if (pingDistance != -1 && currentTimeout > minimumDelay){
       //Serial.printf("Distance: %d mm \r\n", pingDistance);
       lastPingDistance = pingDistance;                          // last real distance
       pingDistance = -1;
       triggerPing();
-    }
-    if (millis() - previousMillis > maxTimeNeeded){
+    }else if (currentTimeout > maxTimeNeeded){
       previousMillis = millis();                                // to stop false starts
       pingDistance = -1;
       triggerPing();
