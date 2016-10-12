@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>FH@Tbot</title>
+    <title>FHTbot</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <style>
@@ -10,7 +10,7 @@
       padding   : 0;
       margin    : 0;
       background-color: #333;
-	  background-image: url("hacad.png");
+	  background-image: url("background.png");
 	  width: 100%;
 	  height: 100%;
       color: white;
@@ -74,22 +74,43 @@ div.rangeImage {
 	background-image: URL("ThSoTh.png");
 	background-repeat: no-repeat;
 }
+div.thermostatImage {
+    position: relative;
+    width: 60px;
+    height:100px;
+	background-image: URL("ThSmTh.png");
+	background-repeat: no-repeat;
+}
+	div.thermostatText {
+    position: absolute;
+    top: 27%;
+    right: 5%;
+    width: 90%;
+    height: 24%;
+	color: white;
+	font-size: 19px;
+	background-color: black;
+}
     </style>
   </head>
   <body draggable="false" ondragstart="return false;" ondrop="return false;" onLoad="pageLoaded()">
     <div id="container">
-      <h1 align="center"><font face="Helvetica Neue" >FH@Tbot</font></h1>
+      <h1 align="center"><font face="Helvetica Neue" >FHTbot</font></h1>
       <p align="center">
       Touch the screen and move
       -
       works with mouse too 
       <br>
       <span id="result"></span>
-      <table><tr><div class="rangeImage">
-  <div class="rangeText" align="center"><span id="range">4200mm</span></div>
-  </div><th>
-      </th><th width="100%"><div align="center"><span id="resulttoo" align="center"></span></div></th><th>
-      
+      <table><tr><th>
+      <div class="thermostatImage">
+  		<div class="thermostatText" align="center"><span id="temperature">__ °C</span></div>
+  		</div>
+      </th>
+      <th width="100%"><div align="center"><span id="resulttoo" align="center"></span></div></th><th>
+      	<div class="rangeImage">
+  		<div class="rangeText" align="center"><span id="range">____mm</span></div>
+  		</div>
       </th></tr></table>
     <iframe id="feedbackId"
     name="feedback"
@@ -521,6 +542,7 @@ VirtualJoystick.prototype._check3D = function()
         document.getElementById('result').innerHTML  = '<b>Result: </b>' + 'dx:' + dx + ' dy:' + dy;
         moveit(dx,dy);
         if (window.feedback.dis !== undefined){
+		document.getElementById("temperature").innerHTML =  window.feedback.tmp + " °C";
 		document.getElementById("range").innerHTML = window.feedback.dis + "mm";
         document.getElementById('resulttoo').innerHTML  = 'Spd: ' + window.feedback.kph + ' Kph, Moved: ' + window.feedback.movd + ' mm, Heading: ' + window.feedback.hed + ' °';
         }

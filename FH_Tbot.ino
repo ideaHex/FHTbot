@@ -229,8 +229,11 @@ void loop()
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
+                int temperature = int(calculateTemperature());
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
+                s += (";var tmp=");
+                s += temperature;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
@@ -421,5 +424,20 @@ void checkBoredBot(){
             break;
           }
   }
+}
+double calculateTemperature(){
+  double beta = 4090.0;
+  double resistance = 33.0;
+  int samples = 20;
+  double buf = 0;
+  double temp = 0;
+  int a;
+  for(int b = 0; b < samples; b++){
+    a = analogRead(A0);
+    temp = beta / (log(((1025.0 * resistance / a) - 33.0) / 33.0) + (beta / 298.0)) - 273.0;
+    buf += temp;
+  }
+  temp = buf / double(samples);
+  return temp;
 }
 
