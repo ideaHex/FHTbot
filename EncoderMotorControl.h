@@ -23,6 +23,7 @@ class encoderMotorController {
   void startCommandSet(String);                                                             // get command set from string
   void cancelCommandSet();
   void takeStep(int);
+  void hardRightTurn();
   
   double getheading();
   double getSpeed();
@@ -48,7 +49,7 @@ class encoderMotorController {
   volatile unsigned int timeOfFirstStep[2];            // first step in sample
   volatile unsigned int timeOfLastStep[2];             //step before current
   volatile unsigned int timeOfCurrentStep[2];
-  double minCalculatedSpeed = MIN_Speed * 0.08;        // if speed drops 92% below minimum speed is considered 0 KPH
+  volatile double minCalculatedSpeed = MIN_Speed * 0.08;        // if speed drops 92% below minimum speed is considered 0 KPH
   uint8_t motorAPin1;
   uint8_t motorAPin2;
   uint8_t motorBPin1;
@@ -72,7 +73,7 @@ class encoderMotorController {
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
   volatile double lastError[2];
-  double MAX_heading_Change = 110.0;                   // in degrees per second
+  volatile double MAX_heading_Change = 110.0;                   // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
@@ -85,11 +86,11 @@ class encoderMotorController {
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
-  double botTargetSpeed = 0.0;                         // in KPH
+  volatile double botTargetSpeed = 0.0;                         // in KPH
   volatile double wheelTargetSpeed[2];                 // in KPH
   volatile double botCurrentSpeed;                     // in KPH
-  double wheelSpeed[2];
-  double targetHeading = 0.0;                          // in degrees
+  volatile double wheelSpeed[2];
+  volatile double targetHeading = 0.0;                 // in degrees
   volatile long botTargetDistance = 0;                 // in mm
   long wheelTargetDistance[2];                         // in mm
   long botTargetSteps = 0;

@@ -179,9 +179,17 @@ void encoderMotorController::manualDrive(int X, int Y){
   if (X < -MAX_range)X = -MAX_range;
   if (Y > MAX_range)Y = MAX_range;
   if (Y < -MAX_range)Y = -MAX_range;
-  
   // drive steering function
-  if(X)targetHeading = heading + (double(X) / double(MAX_range)) * MAX_heading_Change * botTargetDirection;
+  if(X){
+    double headingChange = (double(X) / double(MAX_range)) * MAX_heading_Change * double(botTargetDirection);
+      if (makePositive(headingChange) > 10){
+        targetHeading = heading + headingChange;
+      }else{
+        targetHeading += headingChange; // if heading is small to prevent reverse rotation
+      }
+      if (targetHeading > 360)targetHeading -= 360.0;
+      if (targetHeading < 0)targetHeading += 360.0;
+  }
   
   if (!lastX && !lastX && !Y && !X){// no driving at all.start from standstill, based on input not speed
       targetHeading = heading; // dump any incomplete turning
@@ -498,7 +506,7 @@ void encoderMotorController::PID(){
       }
       if (errorB > 0.05){
         PWMB += PWMChangeIncreaseB;
-        if (PWMB > PWMWriteRange)PWMB = PWMWriteRange * 0.5;
+        if (PWMB > PWMWriteRange)PWMB = PWMWriteRange;
       }
       if (errorB < -0.1){
         PWMB -= PWMChangeDecreaseB;
@@ -591,12 +599,14 @@ void encoderMotorController::updateSteering(long delatT){
       }
     }
    if ((positiveHeadingToTarget > (anglePerStep * 0.5)) && (botTurnDirection == none)){ // change speed to correct heading for bot drive
-    if (botTurnDirection == none && botTargetSpeed){  // only when moving at least min speed
+    if (botTargetSpeed){  // only when moving at least min speed
         wheelTargetSpeed[0] = botTargetSpeed;
         wheelTargetSpeed[1] = botTargetSpeed;
-        double thisSpeed = botTargetSpeed * 0.22;     //thisMAXSpeed;
-          if (positiveHeadingToTarget < 15 ){         // greater than can change in 1 second
-              thisSpeed = botTargetSpeed * 0.22 * 0.3;
+        double scale = positiveHeadingToTarget / MAX_heading_Change;
+        if (scale < 0.3)scale = 0.3;
+        double thisSpeed = botTargetSpeed * 0.22 * scale;     //thisMAXSpeed;
+          if (positiveHeadingToTarget < 5 ){         // greater than can change in 1 second
+             // thisSpeed = botTargetSpeed * 0.22 * 0.3;
             }
         if (headingToTarget > 0 ){ // need to turn right
             wheelTargetSpeed[0] += (thisSpeed * double(botTargetDirection));
@@ -771,5 +781,11 @@ Hnote = 2*Qnote;                                  // half 2/4
 Enote = Qnote/2;                                  // eighth 1/8
 Snote = Qnote/4;                                  // sixteenth 1/16
 Wnote = 4*Qnote;                                  // whole 4/4
+}
+
+void encoderMotorController::hardRightTurn(){     // emergency turn
+  PWMA = PWMWriteRange;
+  PWMB = minMotorSpeed * PWMWriteRange;
+  setMotorSpeed();
 }
 
