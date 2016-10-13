@@ -11,6 +11,7 @@
 #include "RCW0006Ping.h"
 #include <NeoPixelBus.h>
 #include "NeoPixelAnimations.h"
+#include "botTemp.h"
 
 extern "C" { 
    #include "user_interface.h" 
@@ -24,7 +25,7 @@ extern "C" {
 //////////////////////
 
 const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
-String AP_Name = "FH@Tbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
+String AP_Name = "FHTbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 
@@ -36,6 +37,7 @@ void initHardware(void);
 void sendFile(File);
 String getContentType(String);
 void updateMotors();
+void updTemp();
 
 /////////////////////
 // Pin Definitions //
@@ -44,17 +46,20 @@ void updateMotors();
 // D4 is used for neoPixelBus (TXD1)
 // D0 is used to trigger ping
 // D8 is used for echo of ping
-
-// stepper without PWM/speed input pins, don't use D0
+#define D9 3                          // D9 & D10 arn't defined so define them here
+#define D10 1
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
 const int motorRightA = D3;
 const int motorRightB = D2;
 const int motorLeftEncoder = D1;
 const int motorRightEncoder = D7;
+const int leftBumper = D9;
+const int rightBumper = D10;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
+Ticker tempTicker;
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -63,13 +68,14 @@ int distance = 300;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
-#define MAX_SRV_CLIENTS 10              // maximum client connections
+#define MAX_SRV_CLIENTS 10               // maximum client connections
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-int lastDistance = 300;
+//int lastDistance = 300;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;//in ms
+#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
@@ -106,17 +112,14 @@ void loop()
   // time dependant functions here
   checkBoredBot();
   if (pingOn){
-   distance = getDistance();
+   getDistance(); // ping pulse/update function must be called to ping
+   distance = getMedian();
    if (driverAssist){
-      int testPing = makePositive(lastDistance - distance);
-      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
         if (distance < 200){
           setColor(RgbColor(255,0,0));
           motors.manualDrive(0,500);
           }
-      }
     }
-   lastDistance = distance;
   }
    dnsServer.processNextRequest();
    // client functions here
@@ -167,11 +170,10 @@ void loop()
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
-      int testPing = makePositive(lastDistance - distance);
-   //   if ( testPing < (0.15 * double(distance))){ // less than 15% change to avoid spikes . was  && !testPing
         if (distance < 500 && distance > 199 && dY < 0){
           setColor(RgbColor(90,105,95));
-          dX = 250 ;//- distance;
+          motors.hardRightTurn();
+          dX = 250;//- distance;
          // if (dY != -100 ){
             dY = -170;
           //}
@@ -180,7 +182,6 @@ void loop()
          setColor(RgbColor(255,0,0));
           dY = 500;
         }
-   //   }
     }else{
       pixelTest();
     }
@@ -229,7 +230,7 @@ void loop()
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
-                int temperature = int(calculateTemperature());
+                int temperature = getCurrentTemperature();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
                 s += (";var tmp=");
@@ -267,7 +268,7 @@ void setupWiFi()
 
   // setup AP, start DNS server, start Web server
 
-  int channel = random(1,13);
+  int channel = random(1,13 + 1);               // have to add 1 or will be 1 - 12
   const byte DNS_PORT = 53;
   IPAddress subnet(255, 255, 255, 0);
   IPAddress apIP(192, 168, 1, 1);
@@ -290,14 +291,17 @@ void initHardware()
 {
   Serial.begin(250000);
   Serial.println(F("\r\n"));
-  Serial.println(F("            FH@Tbot Serial Connected\r\n"));
-  Serial.print(F("\r\n  Your FH@Tbot Wifi connection is called "));
+  Serial.println(F("            FHTbot Serial Connected\r\n"));
+  Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
   Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
+  #ifndef Diag
+    Serial.end();                   // disable serial interface
+  #endif
   pingSetup();
   strip.Begin();
   strip.Show();
@@ -305,7 +309,12 @@ void initHardware()
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
-  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);
+  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attatch motor update timer
+  tempTicker.attach_ms(200,updTemp);                                      // attatch temperature sample timer
+ #ifndef Diag
+    pinMode(leftBumper, INPUT);
+    pinMode(rightBumper, INPUT);
+ #endif
 }
 
 void motorLeftEncoderInterruptHandler(){
@@ -333,9 +342,11 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
 }else{                                  // not here so load the standard file
   theBuffer = SPIFFS.open(path, "r");
   if (!theBuffer){                      // this one dosn't exist either, abort.
+    //Serial.println(path + "Does Not Exist");
     theBuffer.close();
-    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
-    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    //String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
+    //serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     return; // failed to read file
   }
@@ -425,19 +436,8 @@ void checkBoredBot(){
           }
   }
 }
-double calculateTemperature(){
-  double beta = 4090.0;
-  double resistance = 33.0;
-  int samples = 20;
-  double buf = 0;
-  double temp = 0;
-  int a;
-  for(int b = 0; b < samples; b++){
-    a = analogRead(A0);
-    temp = beta / (log(((1025.0 * resistance / a) - 33.0) / 33.0) + (beta / 298.0)) - 273.0;
-    buf += temp;
-  }
-  temp = buf / double(samples);
-  return temp;
+
+void updTemp(){
+  updateTemperature();
 }
 
