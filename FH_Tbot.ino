@@ -1,8 +1,20 @@
 /*
- * 
- * 
- */
-//#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
+Copyright 2016, Tilden Groves.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+ 
+#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <DNSServer.h>
@@ -11,20 +23,19 @@
 #include "RCW0006Ping.h"
 #include <NeoPixelBus.h>
 #include "NeoPixelAnimations.h"
+#include "botTemp.h"
 
 extern "C" { 
    #include "user_interface.h" 
  } 
 
-
-
-
 //////////////////////
 // WiFi Definitions //
 //////////////////////
 
+
 const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
-String AP_Name = "FH@Tbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
+String AP_Name = "FHTbot";              // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 
@@ -36,6 +47,7 @@ void initHardware(void);
 void sendFile(File);
 String getContentType(String);
 void updateMotors();
+void updTemp();
 
 /////////////////////
 // Pin Definitions //
@@ -44,17 +56,20 @@ void updateMotors();
 // D4 is used for neoPixelBus (TXD1)
 // D0 is used to trigger ping
 // D8 is used for echo of ping
-
-// stepper without PWM/speed input pins, don't use D0
+#define D9 3                          // D9 & D10 arn't defined so define them here
+#define D10 1
 const int motorLeftA  = D5;
 const int motorLeftB  = D6;
 const int motorRightA = D3;
 const int motorRightB = D2;
-const int motorLeftEncoder = D7;
-const int motorRightEncoder = D1;
+const int motorLeftEncoder = D1;
+const int motorRightEncoder = D7;
+const int leftBumper = D9;
+const int rightBumper = D10;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
+Ticker tempTicker;
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -63,19 +78,20 @@ int distance = 300;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
-#define MAX_SRV_CLIENTS 10              // maximum client connections
+#define MAX_SRV_CLIENTS 10               // maximum client connections
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-int lastDistance = 300;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;//in ms
+//#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off led's to save power
   pingOn = false;                        // turn off ping to save power
+  driverAssist = false;
 }
 
 void CheckHeartBeat(void)
@@ -105,20 +121,38 @@ void loop()
 {
   // time dependant functions here
   checkBoredBot();
+  
   if (pingOn){
-   distance = getDistance();
+   getDistance(); // ping pulse/update function must be called to ping
+   distance = getMedian();
    if (driverAssist){
-      int testPing = makePositive(lastDistance - distance);
-      if ( testPing < (0.15 * distance) && !testPing){ // less than 15% change to avoid spikes
-        if (distance < 200){
+        if (distance < 200){          // too close bounce back
           setColor(RgbColor(255,0,0));
           motors.manualDrive(0,500);
           }
-      }
     }
-   lastDistance = distance;
   }
-   dnsServer.processNextRequest();
+  
+  if (driverAssist){
+    boolean leftBumperHit = digitalRead(leftBumper);
+    boolean rightBumperHit = digitalRead(rightBumper);
+    if (leftBumperHit && !rightBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(-250,500);
+          motors.hardLeftTurn();
+    }
+    if (rightBumperHit && !leftBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(250,500);
+          motors.hardRightTurn();                               // in reverse right becomes left
+    }
+     if (!rightBumperHit && !leftBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(0,500);
+    }
+  }
+   dnsServer.processNextRequest();// update DNS requests
+   
    // client functions here
   while (server.hasClient()){
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
@@ -167,20 +201,16 @@ void loop()
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
-      int testPing = makePositive(lastDistance - distance);
-   //   if ( testPing < (0.15 * double(distance))){ // less than 15% change to avoid spikes . was  && !testPing
-        if (distance < 500 && distance > 199 && dY < 0){
+        if (distance < 450 && distance > 199 && dY < 0){
           setColor(RgbColor(90,105,95));
-          dX = 250 ;//- distance;
-         // if (dY != -100 ){
-            dY = -170;
-          //}
+          motors.hardRightTurn();
+          dX = 250;
+          dY = -170;
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
           dY = 500;
         }
-   //   }
     }else{
       pixelTest();
     }
@@ -229,8 +259,11 @@ void loop()
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
+                int temperature = getCurrentTemperature();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
+                s += (";var tmp=");
+                s += temperature;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
@@ -264,7 +297,7 @@ void setupWiFi()
 
   // setup AP, start DNS server, start Web server
 
-  int channel = random(1,13);
+  int channel = random(1,13 + 1);               // have to add 1 or will be 1 - 12
   const byte DNS_PORT = 53;
   IPAddress subnet(255, 255, 255, 0);
   IPAddress apIP(192, 168, 1, 1);
@@ -287,14 +320,17 @@ void initHardware()
 {
   Serial.begin(250000);
   Serial.println(F("\r\n"));
-  Serial.println(F("            FH@Tbot Serial Connected\r\n"));
-  Serial.print(F("\r\n  Your FH@Tbot Wifi connection is called "));
+  Serial.println(F("            FHTbot Serial Connected\r\n"));
+  Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
   Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
+  #ifndef Diag
+    Serial.end();                   // disable serial interface
+  #endif
   pingSetup();
   strip.Begin();
   strip.Show();
@@ -302,7 +338,12 @@ void initHardware()
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
-  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);
+  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attatch motor update timer
+  tempTicker.attach_ms(200,updTemp);                                      // attatch temperature sample timer
+ #ifndef Diag
+    pinMode(leftBumper, INPUT);
+    pinMode(rightBumper, INPUT);
+ #endif
 }
 
 void motorLeftEncoderInterruptHandler(){
@@ -330,9 +371,11 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
 }else{                                  // not here so load the standard file
   theBuffer = SPIFFS.open(path, "r");
   if (!theBuffer){                      // this one dosn't exist either, abort.
+    //Serial.println(path + "Does Not Exist");
     theBuffer.close();
-    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
-    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    //String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
+    //serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     return; // failed to read file
   }
@@ -387,23 +430,23 @@ void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       // bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
           // different events to be put here
-          int events = 3;
+          int events = 4;
           int pickedEvent = random(1,(events+1));
           switch(pickedEvent){
             
-            case 1:
+            case 1:                 // play vroom and bright light
               setColor(RgbColor(80,80,80));
               motors.playVroom();
             break;
             
-            case 2:
+            case 2:                 // random colors
             for (int a = 0; a < 50; a++){
               pixelTest();
               delay(20);
             }
             break;
 
-            case 3:
+            case 3:                 // blinker rotation
             for (int a = 0; a < 4; a++){
               delay(100);
               updateBlinkers(0, -1);
@@ -415,7 +458,15 @@ void checkBoredBot(){
               updateBlinkers(-60, -1);
             }
             break;
+
+            case 4:                 // smile
+              smile();
+            break;
           }
   }
+}
+
+void updTemp(){
+  updateTemperature();
 }
 

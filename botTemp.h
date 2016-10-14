@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma GCC optimize ("-O2")
- void pingSetup();
- void startup();
- void calculateDistance();
- void triggerPing();
- int getDistance();
- 
- void addToFilter(int);
- void resetFilter();
- int getMedian();
+
+void updateTemperature();
+int getCurrentTemperature();
+
