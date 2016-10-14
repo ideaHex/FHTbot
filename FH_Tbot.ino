@@ -1,7 +1,19 @@
 /*
- * 
- * 
- */
+Copyright 2016, Tilden Groves.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+ 
 #pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -17,15 +29,13 @@ extern "C" {
    #include "user_interface.h" 
  } 
 
-
-
-
 //////////////////////
 // WiFi Definitions //
 //////////////////////
 
+
 const char *password = "12345678";      // This is the Wifi Password (only numbers and letters,  not . , |)
-String AP_Name = "FHTbot";             // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
+String AP_Name = "FHTbot";              // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 
@@ -72,16 +82,16 @@ String closeConnectionHeader = "";
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-//int lastDistance = 300;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;//in ms
-#define Diag                             // if not defined disables serial communication after initial feedback
+//#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off led's to save power
   pingOn = false;                        // turn off ping to save power
+  driverAssist = false;
 }
 
 void CheckHeartBeat(void)
@@ -111,17 +121,38 @@ void loop()
 {
   // time dependant functions here
   checkBoredBot();
+  
   if (pingOn){
    getDistance(); // ping pulse/update function must be called to ping
    distance = getMedian();
    if (driverAssist){
-        if (distance < 200){
+        if (distance < 200){          // too close bounce back
           setColor(RgbColor(255,0,0));
           motors.manualDrive(0,500);
           }
     }
   }
-   dnsServer.processNextRequest();
+  
+  if (driverAssist){
+    boolean leftBumperHit = digitalRead(leftBumper);
+    boolean rightBumperHit = digitalRead(rightBumper);
+    if (leftBumperHit && !rightBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(-250,500);
+          motors.hardLeftTurn();
+    }
+    if (rightBumperHit && !leftBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(250,500);
+          motors.hardRightTurn();                               // in reverse right becomes left
+    }
+     if (!rightBumperHit && !leftBumperHit){
+          setColor(RgbColor(255,0,0));
+          motors.manualDrive(0,500);
+    }
+  }
+   dnsServer.processNextRequest();// update DNS requests
+   
    // client functions here
   while (server.hasClient()){
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
@@ -170,13 +201,11 @@ void loop()
     // driver assist
     if (driverAssist){
       updateBlinkers(dX,dY);
-        if (distance < 500 && distance > 199 && dY < 0){
+        if (distance < 450 && distance > 199 && dY < 0){
           setColor(RgbColor(90,105,95));
           motors.hardRightTurn();
-          dX = 250;//- distance;
-         // if (dY != -100 ){
-            dY = -170;
-          //}
+          dX = 250;
+          dY = -170;
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
