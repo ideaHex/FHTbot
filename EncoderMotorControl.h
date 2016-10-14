@@ -1,8 +1,18 @@
 /*
- * 
- * 
- * 
- */
+Copyright 2016, Tilden Groves.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 
 #pragma GCC optimize ("-O2")
 #ifndef encoderMotorControl_h
@@ -24,6 +34,7 @@ class encoderMotorController {
   void cancelCommandSet();
   void takeStep(int);
   void hardRightTurn();
+  void hardLeftTurn();
   
   double getheading();
   double getSpeed();
@@ -49,7 +60,7 @@ class encoderMotorController {
   volatile unsigned int timeOfFirstStep[2];            // first step in sample
   volatile unsigned int timeOfLastStep[2];             //step before current
   volatile unsigned int timeOfCurrentStep[2];
-  volatile double minCalculatedSpeed = MIN_Speed * 0.08;        // if speed drops 92% below minimum speed is considered 0 KPH
+  volatile double minCalculatedSpeed = MIN_Speed * 0.08;// if speed drops 92% below minimum speed is considered 0 KPH
   uint8_t motorAPin1;
   uint8_t motorAPin2;
   uint8_t motorBPin1;
@@ -73,7 +84,7 @@ class encoderMotorController {
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
   volatile double lastError[2];
-  volatile double MAX_heading_Change = 110.0;                   // in degrees per second
+  volatile double MAX_heading_Change = 110.0;          // in degrees per second
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
@@ -86,7 +97,7 @@ class encoderMotorController {
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
-  volatile double botTargetSpeed = 0.0;                         // in KPH
+  volatile double botTargetSpeed = 0.0;                // in KPH
   volatile double wheelTargetSpeed[2];                 // in KPH
   volatile double botCurrentSpeed;                     // in KPH
   volatile double wheelSpeed[2];
@@ -104,7 +115,7 @@ class encoderMotorController {
   volatile int PWMB = 0;
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
-  volatile long delaybetweenCommands = 1000;
+  volatile long delaybetweenCommands = 800;
   volatile boolean inBotMode = false;
   
   // private functions
