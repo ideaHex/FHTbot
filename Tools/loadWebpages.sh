@@ -4,7 +4,7 @@ cd ../
 cp -u ./WebControls/public_html/TurtleMode.html ./data/T/TurtleMode.html
 gzip -7 -f -k ./data/T/TurtleMode.html
 #Copy JS to data, compress
-cp -u ./WebControls/public_html/js/blocklyBall.js ./data/T/js/blocks.js 
+cp -u ./WebControls/public_html/js/blocklyBall.js ./data/T/js/blocklyBall.js 
 gzip -7 -f ./data/T/js/blocklyBall.js
 #msg folder
 cp -u ./WebControls/public_html/js/msg/messages.js ./data/T/js/msg/messages.js 
