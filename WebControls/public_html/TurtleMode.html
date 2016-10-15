@@ -221,18 +221,72 @@
         </category>
         <sep></sep>
         <category name="Examples" expanded="true">
-            <block type="controls_repeat_ext">
-                <value name="TIMES">
-                    <block type="math_number">
-                        <field name="NUM">10</field>
-                    </block>
-                </value>
-                <statement>
-                    <block type="bot_move_forward">
-                        <field name="forwardTravel">40</field>
-                    </block>
-                </statement>
-            </block>
+            <category name="Square" expanded="true">
+                <block type="controls_repeat_ext">
+                    <value name="TIMES">
+                        <block type="math_number">
+                            <field name="NUM">4</field>
+                        </block>
+                    </value>
+                    <statement name="DO">
+                        <block type="bot_move_forward">
+                            <value name="forwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">30</field>
+                                </block>
+                            </value>
+                            <next>
+                                <block type="bot_angle_right"></block>
+                            </next>
+                        </block>
+                    </statement>
+                </block>
+            </category>
+            <category name ="Star">
+                <block type="controls_repeat_ext">
+                    <value name="TIMES">
+                        <block type="math_number">
+                            <field name="NUM">5</field>
+                        </block>
+                    </value>
+                    <statement name="DO">
+                        <block type="bot_move_forward">
+                            <value name="forwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">30</field>
+                                </block>
+                            </value>
+                            <next>
+                                <block type="bot_input_right">
+                                    <value name="rightSetInput">
+                                        <block type="math_number">
+                                            <field name="NUM">144</field>
+                                        </block>
+                                    </value>
+                                </block>
+                            </next>
+                        </block>
+                    </statement>
+                </block>
+            </category>
+            <category name="Line">
+                <block type="bot_move_forward">
+                    <value name="forwardTravel">
+                        <block type="math_number">
+                            <field name="NUM">50</field>
+                        </block>
+                    </value>
+                    <next>
+                        <block type="bot_move_backward">
+                            <value name="backwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">50</field>
+                                </block>
+                            </value>
+                        </block>
+                    </next>
+                </block>
+            </category>
         </category>
     </xml>
     <!--
