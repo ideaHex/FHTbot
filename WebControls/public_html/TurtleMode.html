@@ -1,10 +1,5 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>FH@TBot Turtle Mode</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <!--
+<!--
              Copyright (c) Alexander Battarbee 2016
              
              Permission is hereby granted, free of charge, to any person obtaining
@@ -25,7 +20,12 @@
              LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
              OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
              WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-        -->
+-->
+<html>
+    <head>
+        <title>FH@TBot Turtle Mode</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
             html, body {
                 height: 100%;
@@ -163,43 +163,13 @@
         <category name="Bot Commands">
             <block type="bot_turn_left"></block>
             <block type="bot_turn_right"></block>
-            <block type="bot_move_forward">
-                <value name="forwardTravel">
-                    <block type="math_number">
-                        <field name="NUM">30</field>
-                    </block>
-                </value>
-            </block>
-            <block type="bot_move_backward">
-                <value name="backwardTravel">
-                    <block type="math_number">
-                        <field name="NUM">30</field>
-                    </block>
-                </value>
-            </block>            
+            <block type="bot_move_forward"></block>
+            <block type="bot_move_backward"></block>
+            <block type="bot_stop"></block>
+            <block type="bot_run"></block>
         </category>
         <sep></sep>
         <category name="Advanced" expanded="false">
-            <category name="Adv Bot Command">
-                <block type="bot_stop"></block>
-                <block type="bot_run"></block>
-                <block type="bot_angle_left"></block>
-                <block type="bot_angle_right"></block>
-                <block type="bot_input_left">
-                    <value name="leftSetInput">
-                        <block type="math_number">
-                            <field name="NUM">90</field>
-                        </block>
-                    </value>
-                </block>
-                <block type="bot_input_right">
-                    <value name="rightSetInput">
-                        <block type="math_number">
-                            <field name="NUM">90</field>
-                        </block>
-                    </value>
-                </block>
-            </category>
             <category name="Lists">
                 <block type="lists_create_empty"></block>
                 <block type="lists_create_with"></block>
@@ -220,73 +190,7 @@
             <category name="Functions" custom="PROCEDURE"></category>
         </category>
         <sep></sep>
-        <category name="Examples" expanded="true">
-            <category name="Square" expanded="true">
-                <block type="controls_repeat_ext">
-                    <value name="TIMES">
-                        <block type="math_number">
-                            <field name="NUM">4</field>
-                        </block>
-                    </value>
-                    <statement name="DO">
-                        <block type="bot_move_forward">
-                            <value name="forwardTravel">
-                                <block type="math_number">
-                                    <field name="NUM">30</field>
-                                </block>
-                            </value>
-                            <next>
-                                <block type="bot_angle_right"></block>
-                            </next>
-                        </block>
-                    </statement>
-                </block>
-            </category>
-            <category name ="Star">
-                <block type="controls_repeat_ext">
-                    <value name="TIMES">
-                        <block type="math_number">
-                            <field name="NUM">5</field>
-                        </block>
-                    </value>
-                    <statement name="DO">
-                        <block type="bot_move_forward">
-                            <value name="forwardTravel">
-                                <block type="math_number">
-                                    <field name="NUM">30</field>
-                                </block>
-                            </value>
-                            <next>
-                                <block type="bot_input_right">
-                                    <value name="rightSetInput">
-                                        <block type="math_number">
-                                            <field name="NUM">144</field>
-                                        </block>
-                                    </value>
-                                </block>
-                            </next>
-                        </block>
-                    </statement>
-                </block>
-            </category>
-            <category name="Line">
-                <block type="bot_move_forward">
-                    <value name="forwardTravel">
-                        <block type="math_number">
-                            <field name="NUM">50</field>
-                        </block>
-                    </value>
-                    <next>
-                        <block type="bot_move_backward">
-                            <value name="backwardTravel">
-                                <block type="math_number">
-                                    <field name="NUM">50</field>
-                                </block>
-                            </value>
-                        </block>
-                    </next>
-                </block>
-            </category>
+        <category name="Library" expanded="false">
         </category>
     </xml>
     <!--
@@ -346,68 +250,6 @@
                     return code;
                 };
 
-                var botAngleLeftJson = {
-                    "type": "bot_angle_left",
-                    "message0": "Bot Turn Left to: %1",
-                    "args0": [
-                        {
-                            "type": "field_angle",
-                            "name": "leftSetAngle",
-                            "angle": 90
-                        }
-                    ],
-                    "previousStatement": "null",
-                    "nextStatement": "null",
-                    "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
-                };
-
-                Blockly.Blocks['bot_angle_left'] = {
-                    init: function () {
-                        this.jsonInit(botAngleLeftJson);
-                        //Any further JS modification to the BLOCK is done here.
-                    }
-                };
-
-                Blockly.JavaScript['bot_angle_left'] = function (block) {
-                    var angle_leftangle = block.getFieldValue('leftSetAngle');
-                    // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
-                    return code;
-                };
-
-                var botInputLeftJson = {
-                    "type": "bot_input_left",
-                    "message0": "Bot Turn Left to: %1",
-                    "args0": [
-                        {
-                            "type": "input_value",
-                            "name": "leftSetInput",
-                            "check": "Number"
-                        }
-                    ],
-                    "previousStatement": "null",
-                    "nextStatement": "null",
-                    "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
-                };
-
-                Blockly.Blocks['bot_input_left'] = {
-                    init: function () {
-                        this.jsonInit(botInputLeftJson);
-                        //Any further JS modification to the BLOCK is done here.
-                    }
-                };
-
-                Blockly.JavaScript['bot_input_left'] = function (block) {
-                    var angle_leftangle = Blockly.JavaScript.valueToCode(block, "leftSetInput", Blockly.JavaScript.ORDER_ATOMIC);
-                    // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
-                    return code;
-                };
-
                 var botTurnRightJson = {
                     "type": "bot_turn_right",
                     "message0": "Bot Turn Right: %1",
@@ -456,76 +298,14 @@
                     return code;
                 };
 
-                var botAngleRightJson = {
-                    "type": "bot_angle_right",
-                    "message0": "Bot Turn Right to: %1",
-                    "args0": [
-                        {
-                            "type": "field_angle",
-                            "name": "rightSetAngle",
-                            "angle": 90
-                        }
-                    ],
-                    "previousStatement": "null",
-                    "nextStatement": "null",
-                    "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
-                };
-
-                Blockly.Blocks['bot_angle_right'] = {
-                    init: function () {
-                        this.jsonInit(botAngleRightJson);
-                        //Any further JS modification to the BLOCK is done here.
-                    }
-                };
-
-                Blockly.JavaScript['bot_angle_right'] = function (block) {
-                    var angle_rightangle = block.getFieldValue('rightSetAngle');
-                    // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
-                    return code;
-                };
-
-                var botInputRightJson = {
-                    "type": "bot_input_right",
-                    "message0": "Bot Turn Right to: %1",
-                    "args0": [
-                        {
-                            "type": "input_value",
-                            "name": "rightSetInput",
-                            "check": "Number"
-                        }
-                    ],
-                    "previousStatement": "null",
-                    "nextStatement": "null",
-                    "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
-                };
-
-                Blockly.Blocks['bot_input_right'] = {
-                    init: function () {
-                        this.jsonInit(botInputRightJson);
-                        //Any further JS modification to the BLOCK is done here.
-                    }
-                };
-
-                Blockly.JavaScript['bot_input_right'] = function (block) {
-                    var angle_rightangle = Blockly.JavaScript.valueToCode(block, "rightSetInput", Blockly.JavaScript.ORDER_ATOMIC);
-                    // TODO: Assemble JavaScript into code variable.
-                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
-                    return code;
-                };
-
                 var bot_move_forwardJSON = {
                     "type": "bot_move_forward",
                     "message0": "Travel forward  %1 cm",
                     "args0": [
                         {
-                            "type": "input_value",
+                            "type": "field_number",
                             "name": "forwardTravel",
-                            "check": "Number"
+                            "value": 30
                         }
                     ],
                     "previousStatement": "null",
@@ -543,7 +323,7 @@
                 };
 
                 Blockly.JavaScript['bot_move_forward'] = function (block) {
-                    var number_forwardtravel = Blockly.JavaScript.valueToCode(block, "forwardTravel", Blockly.JavaScript.ORDER_ATOMIC);
+                    var number_forwardtravel = block.getFieldValue('forwardTravel');
                     // TODO: Assemble JavaScript into code variable.
                     var code = 'addCommand(\"F\"); setDistance(' + number_forwardtravel + ');\n';
                     return code;
@@ -554,9 +334,9 @@
                     "message0": "Travel backward  %1 cm",
                     "args0": [
                         {
-                            "type": "input_value",
+                            "type": "field_number",
                             "name": "backwardTravel",
-                            "check": "Number"
+                            "value": 0
                         }
                     ],
                     "previousStatement": "null",
@@ -574,7 +354,7 @@
                 };
 
                 Blockly.JavaScript['bot_move_backward'] = function (block) {
-                    var number_backwardtravel = Blockly.JavaScript.valueToCode(block, "backwardTravel", Blockly.JavaScript.ORDER_ATOMIC);
+                    var number_backwardtravel = block.getFieldValue('backwardTravel');
                     // TODO: Assemble JavaScript into code variable.
                     var code = 'addCommand(' + '\"B"); setDistance(' + number_backwardtravel + ');\n';
                     return code;
@@ -692,35 +472,34 @@
             workspace.highlightBlock(id);
             highlightPause = true;
         }
-        /*
-         //Listener for screen resizing
-         var onresize = function (e) {
-         // Compute the absolute coordinates and dimensions of blocklyArea.
-         var element = blocklyArea;
-         var x = 0;
-         var y = 0;
-         do {
-         x += element.offsetLeft;
-         y += element.offsetTop;
-         element = element.offsetParent;
-         } while (element);
-         // Position blocklyDiv over blocklyArea.
-         blocklyDiv.style.left = x + 'px';
-         blocklyDiv.style.top = y + 'px';
-         blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
-         blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
-         };
-         window.addEventListener('resize', onresize, false);
-         onresize();
-         Blockly.svgResize(workspace);
-         
-         //Generation on change.
-         function myUpdateFunction(event) {
-         var code = Blockly.JavaScript.workspaceToCode(workspace);
-         document.getElementById('textarea').value = code;
-         }
-         workspace.addChangeListener(myUpdateFunction);
-         */
+
+        //Listener for screen resizing
+        var onresize = function (e) {
+            // Compute the absolute coordinates and dimensions of blocklyArea.
+            var element = blocklyArea;
+            var x = 0;
+            var y = 0;
+            do {
+                x += element.offsetLeft;
+                y += element.offsetTop;
+                element = element.offsetParent;
+            } while (element);
+            // Position blocklyDiv over blocklyArea.
+            blocklyDiv.style.left = x + 'px';
+            blocklyDiv.style.top = y + 'px';
+            blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
+            blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
+        };
+        window.addEventListener('resize', onresize, false);
+        onresize();
+        Blockly.svgResize(workspace);
+        //Generation on change.
+        function myUpdateFunction(event) {
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            document.getElementById('textarea').value = code;
+        }
+        workspace.addChangeListener(myUpdateFunction);
+
         //Execution of Code
         //Code is contained in intepreted sandbox
         function parseCode() {
