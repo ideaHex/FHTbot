@@ -64,6 +64,9 @@
                 width: 100%;
                 padding: auto;
             }
+            #stopButton{
+                color: red;
+            }
         </style>
 
     </head>
@@ -71,6 +74,7 @@
         <p>
             <button onclick="runInterpreter()" id="runButton">Run Turtle</button>
             <button onclick="parseCode()" id="viewButton">View Your Code </button>
+            <button onclick="allStop()" id="stopButton">BOT-STOP</button>
         </p>
         <div id="blocklyDiv"></div>
     <xml id="toolbox" style="display: none">
@@ -328,8 +332,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot left by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_turn_left'] = {
@@ -359,8 +363,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot left by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_angle_left'] = {
@@ -390,8 +394,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot left by the attached number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_input_left'] = {
@@ -438,8 +442,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot right by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_turn_right'] = {
@@ -469,8 +473,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot right by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_angle_right'] = {
@@ -500,8 +504,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Turns the bot right by the attached number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_input_right'] = {
@@ -531,8 +535,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Drives the bot forwards by the attached distance",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_move_forward'] = {
@@ -562,8 +566,8 @@
                     "previousStatement": "null",
                     "nextStatement": "null",
                     "colour": 100,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Drives the bot backwards by the attached distance",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_move_backward'] = {
@@ -586,8 +590,8 @@
                     "previousStatement": null,
                     "nextStatement": null,
                     "colour": 0,
-                    "tooltip": "",
-                    "helpUrl": "http://www.example.com/"
+                    "tooltip": "Sends all stop signal, bot will stop and forget further commands.",
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_stop'] = {
@@ -610,7 +614,7 @@
                     "nextStatement": null,
                     "colour": 0,
                     "tooltip": "Runs all the commands built up so far, but clears any commands currently running on the bot.",
-                    "helpUrl": "http://www.example.com/"
+                    "helpUrl": "http://fhtbot.com/"
                 };
 
                 Blockly.Blocks['bot_run'] = {
@@ -692,35 +696,7 @@
             workspace.highlightBlock(id);
             highlightPause = true;
         }
-        /*
-         //Listener for screen resizing
-         var onresize = function (e) {
-         // Compute the absolute coordinates and dimensions of blocklyArea.
-         var element = blocklyArea;
-         var x = 0;
-         var y = 0;
-         do {
-         x += element.offsetLeft;
-         y += element.offsetTop;
-         element = element.offsetParent;
-         } while (element);
-         // Position blocklyDiv over blocklyArea.
-         blocklyDiv.style.left = x + 'px';
-         blocklyDiv.style.top = y + 'px';
-         blocklyDiv.style.width = blocklyArea.offsetWidth + 'px';
-         blocklyDiv.style.height = blocklyArea.offsetHeight + 'px';
-         };
-         window.addEventListener('resize', onresize, false);
-         onresize();
-         Blockly.svgResize(workspace);
-         
-         //Generation on change.
-         function myUpdateFunction(event) {
-         var code = Blockly.JavaScript.workspaceToCode(workspace);
-         document.getElementById('textarea').value = code;
-         }
-         workspace.addChangeListener(myUpdateFunction);
-         */
+      
         //Execution of Code
         //Code is contained in intepreted sandbox
         function parseCode() {
@@ -728,7 +704,11 @@
             //jsInterpreter = new Interpreter(code, initApi);
             alert('This is what your blocks look like as code:\n\n' + code);
         }
-
+        
+        /**
+         * Runs the Acorn JS interpreter which sandboxes blockly code.
+         * @returns {undefined}
+         */
         function runInterpreter() {
             armQueue();
             var code = Blockly.JavaScript.workspaceToCode(workspace);
@@ -774,6 +754,20 @@
                 armQueue();
             }
         }
+        
+        /**
+         * Emergency stop, for when the bot requires intervention
+         * @returns {undefined}
+         */
+        function allStop(){
+            xhttp.open("GET", "/AS", true);
+            xhttp.send();
+        }
+        
+        /**
+         * Heartbeat to keep bot active.
+         * @returns {undefined}
+         */
         function HB() {
             xhttp.open("GET", "/HB", true);
             xhttp.send();
