@@ -183,7 +183,6 @@ void encoderMotorController::manualDrive(int X, int Y){
   if (commandSetHasCommands){
     cancelCommandSet();                                                        // cancel any outstanding turtle / auto mode commands targets etc...
   }
-  inBotMode = false;
   botTurnDirection = none;                                                     // turn to closest heading
   if (X > MAX_range)X = MAX_range;
   if (X < -MAX_range)X = -MAX_range;
@@ -261,7 +260,7 @@ void encoderMotorController::startCommandSet(String theCommandSet){
   commandSet.remove(0,5);                // trimm data & comma from front of string
   commandSetHasCommands = true;
   nextCommandMillis = 0;
-  inBotMode = false;                     // so command set will set the target to the heading on the first command only
+  targetHeading = heading;
   getNextCommand();
 }
 
@@ -291,10 +290,6 @@ void encoderMotorController::processCommand(String command, double value){
     case 'F':
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
-      if (!inBotMode){
-      targetHeading = heading;
-      inBotMode = true;
-      }
       botTargetSpeed = botmodeSpeed;
       wheelTargetSpeed[0] = botmodeSpeed;
       wheelTargetSpeed[1] = wheelTargetSpeed[0];
@@ -308,10 +303,6 @@ void encoderMotorController::processCommand(String command, double value){
     case 'B':
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
-      if (!inBotMode){
-      targetHeading = heading;
-      inBotMode = true;
-      }
       botTargetSpeed = botmodeSpeed;
       wheelTargetSpeed[0] = botmodeSpeed;
       wheelTargetSpeed[1] = wheelTargetSpeed[0];
@@ -324,10 +315,6 @@ void encoderMotorController::processCommand(String command, double value){
 
     case 'L':
     {
-     if (!inBotMode){
-      targetHeading = heading;
-      inBotMode = true;
-      }
       botTargetSpeed = 0.0;
       targetHeading = targetHeading - value;
       if (targetHeading < 0)targetHeading += 360;
@@ -340,10 +327,6 @@ void encoderMotorController::processCommand(String command, double value){
 
     case 'R':
     {
-     if (!inBotMode){
-      targetHeading = heading;
-      inBotMode = true;
-      }
       botTargetSpeed = 0.0;
       targetHeading = targetHeading + value;
       if (targetHeading > 360)targetHeading -= 360;
