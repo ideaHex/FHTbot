@@ -115,8 +115,7 @@ class encoderMotorController {
   volatile int PWMB = 0;
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
-  volatile long delaybetweenCommands = 800;
-  volatile boolean inBotMode = false;
+  volatile long delaybetweenCommands = 700;
   
   // private functions
   float checkNormal(float);
