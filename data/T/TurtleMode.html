@@ -766,11 +766,10 @@
          */
         function runBot() {
             if (botQueue !== "") {
-                //xhttp.abort();
                 console.log();
-                xhttp.open("GET", "/data," + botQueue, true);
-                // xhttp.timeout = 100;
-                xhttp.send();
+				var dxhttp = new XMLHttpRequest();
+                dxhttp.open("GET", "/data," + botQueue, true);
+                dxhttp.send();
                 armQueue();
             }
         }
