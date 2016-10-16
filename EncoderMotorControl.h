@@ -73,7 +73,7 @@ class encoderMotorController {
 
   double encoderWheelSlots = 20;
   float wheelDiameter = 64.93592;//64.6;               // in mm
-  double axleLength = 93.8;                            // distance between wheel centers in mm
+  double axleLength = 88.8;                            // distance between wheel centers in mm
   double axleCircumference = (axleLength * 2.0) * PI;
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
