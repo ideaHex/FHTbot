@@ -1,0 +1,58 @@
+{
+    "elements": {
+        "next": {},
+        "mutation": {
+            "attributes": {
+                "at": {},
+                "else": {},
+                "elseif": {},
+                "statement": {}
+            }
+        },
+        "field": {
+            "attributes": {
+                "name": {}
+            }
+        },
+        "shadow": {},
+        "xml": {
+            "attributes": {
+                "style": {},
+                "id": {}
+            }
+        },
+        "arg": {
+            "attributes": {
+                "name": {}
+            }
+        },
+        "statement": {
+            "attributes": {
+                "name": {}
+            }
+        },
+        "block": {
+            "attributes": {
+                "inline": {},
+                "type": {}
+            }
+        },
+        "category": {
+            "attributes": {
+                "colour": {},
+                "expanded": {},
+                "custom": {},
+                "name": {}
+            }
+        },
+        "value": {
+            "attributes": {
+                "name": {}
+            }
+        },
+        "sep": {}
+    },
+    "attributes": {
+        "type": {}
+    }
+}
