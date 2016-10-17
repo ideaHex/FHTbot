@@ -68,9 +68,10 @@ class encoderMotorController {
   volatile unsigned long lastMicros[2];                // time of last step
   unsigned long lastUpdateMicros;                      // time of last update
   volatile long steps[2];
-  volatile long totalSteps[2];                       
+  volatile long totalSteps[2];
   double lastSampleDeltaT[2];
-
+  int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
+  int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   double encoderWheelSlots = 20;
   float wheelDiameter = 64.93592;//64.6;               // in mm
   double axleLength = 88.8;                            // distance between wheel centers in mm
@@ -79,14 +80,12 @@ class encoderMotorController {
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
-  volatile double startPWMBoost = minMotorSpeed * 1023 * 1.35;
+  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.35; // add 35% above minimum speed by default
   volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
   volatile double lastError[2];
   volatile double MAX_heading_Change = 110.0;          // in degrees per second
-  int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
-  int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
   int lastX = 0, lastY = 0;
   #define forward 1
