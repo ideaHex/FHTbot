@@ -428,13 +428,15 @@ void encoderMotorController::setMotorSpeed(int newPWMA, int newPWMB){
 }
 
 void encoderMotorController::PID(){
+      // calculate error
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
+      // convert error to PWM
       double maxPWMChange = 100.0;
       int PWMChangeIncreaseA = int(maxPWMChange * (makePositive(errorA) / MAX_Speed));
       int PWMChangeIncreaseB = int(maxPWMChange * (makePositive(errorB) / MAX_Speed));
-      int PWMChangeDecreaseA = int((maxPWMChange * (makePositive(errorA) / MAX_Speed)) * 0.6);
-      int PWMChangeDecreaseB = int((maxPWMChange * (makePositive(errorB) / MAX_Speed)) * 0.6);
+      int PWMChangeDecreaseA = int(double(PWMChangeIncreaseA) * 0.6);
+      int PWMChangeDecreaseB = int(double(PWMChangeIncreaseB) * 0.6);
       if (PWMChangeIncreaseA > PWMWriteRange)PWMChangeIncreaseA = 0;
       if (PWMChangeIncreaseB > PWMWriteRange)PWMChangeIncreaseB = 0;
       if (PWMChangeDecreaseA > PWMWriteRange)PWMChangeDecreaseA = 0;
@@ -452,13 +454,14 @@ void encoderMotorController::PID(){
       */
       lastError[0] = errorA;
       lastError[1] = errorB;
-      
+      // special limits for turning in turtle mode
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
         PWMChangeIncreaseA = 6;
         PWMChangeIncreaseB = 6;
         PWMChangeDecreaseA = 2;
         PWMChangeDecreaseB = 2;
       }
+       // slow to stop
       if (!wheelTargetSpeed[0] && !wheelTargetSpeed[1]){
           if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
           if (PWMA > 256){
@@ -471,21 +474,22 @@ void encoderMotorController::PID(){
         PWMChangeDecreaseB = 8;
       }
     }
+      // Start boost to overcome starting torque
       if ((PWMA == 0) && (wheelTargetSpeed[0] >= MIN_Speed)){
         PWMA = startPWMBoost; // start boost
         timeOfLastStep[0] = micros();
         timeOfCurrentStep[0] = timeOfLastStep[0];
         boostOn[0] = true;
-        errorA = 0;
       }
       if ((PWMB == 0) && (wheelTargetSpeed[1] >= MIN_Speed)){
         PWMB = startPWMBoost;
         timeOfLastStep[1] = micros();
         timeOfCurrentStep[1] = timeOfLastStep[1];
         boostOn[1] = true;
-        errorB = 0;
       }
-   
+      if (boostOn[0])errorA = 0;
+      if (boostOn[1])errorB = 0;
+      // update power to motor
       if (errorA > 0.05){
         PWMA += PWMChangeIncreaseA;
         if (PWMA > PWMWriteRange)PWMA = PWMWriteRange;
@@ -508,13 +512,15 @@ void encoderMotorController::PID(){
           PWMB = minMotorSpeed * PWMWriteRange * 0.5;
         }
       }
+      // stop if target speed is below minimum
    if ((PWMA < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[0] < MIN_Speed)){
     PWMA = 0;
    }
    if ((PWMB < minMotorSpeed * PWMWriteRange) && (wheelTargetSpeed[1] < MIN_Speed)){
     PWMB = 0;
    }
-  setMotorSpeed();      // output pwm to motors range is 0 - 1023
+      // send pwm to motors
+  setMotorSpeed();
 }
 double encoderMotorController::getSpeed(){
   return botCurrentSpeed;
@@ -541,17 +547,18 @@ void encoderMotorController::updateSteering(long delatT){
     */
       double headingToTarget = targetHeading - heading;
       if (headingToTarget > 180)headingToTarget-=360;
-      if (headingToTarget < -180)headingToTarget+=360;
+      else if (headingToTarget < -180)headingToTarget+=360;
       wheelTargetSpeed[0] = botTargetSpeed;
       wheelTargetSpeed[1] = botTargetSpeed;
       motorDirection[0] = botTargetDirection;
       motorDirection[1] = botTargetDirection;
       //double changeDegreesPerSecond = 0;
 
-      double thisMAXSpeed = distancePerDegreeChange * MAX_heading_Change * 0.0036;
+      //double thisMAXSpeed = distancePerDegreeChange * MAX_heading_Change * 0.0036;
       //if (thisMAXSpeed < MIN_Speed)thisMAXSpeed = MIN_Speed;
-      double positiveHeadingToTarget = makePositive(headingToTarget);     
-   if (positiveHeadingToTarget > anglePerStep * 1.0 && (botTurnDirection != none)){ // change speed to correct heading for bot pivit
+      double positiveHeadingToTarget = makePositive(headingToTarget); 
+      //positiveHeadingToTarget >= anglePerStep  &&     
+   if (botTurnDirection != none){ // change speed to correct heading for bot pivit
       if (botTurnDirection == turnRight){
         if (PWMA > startPWMBoost){ // prevent overshoot on start
           PWMA = startPWMBoost;
