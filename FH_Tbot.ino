@@ -84,7 +84,7 @@ int currentClient = 0;
 boolean pingOn = false;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;//in ms
-//#define Diag                             // if not defined disables serial communication after initial feedback
+#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
