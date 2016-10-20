@@ -38,7 +38,7 @@
                 background-color: #333;
                 width: 195px;
                 height: 133px;
-                background-image: url("hacad.png");
+                background-image: url("../background.png");
                 width: 100%;
                 height: 100%;
                 color: black;
@@ -68,6 +68,722 @@
                 color: red;
             }
         </style>
+
+    </head>
+    <body onload="pageLoaded()">
+        <p>
+            <button onclick="runInterpreter()" id="runButton">Run Turtle</button>
+            <button onclick="parseCode()" id="viewButton">View Your Code </button>
+            <button onclick="allStop()" id="stopButton">BOT-STOP</button>
+        </p>
+        <div id="blocklyDiv"></div>
+    <xml id="toolbox" style="display: none">
+        <category name="Logic">
+            <category name="If">
+                <block type="controls_if"></block>
+                <block type="controls_if">
+                    <mutation else="1"></mutation>
+                </block>
+                <block type="controls_if">
+                    <mutation elseif="1" else="1"></mutation>
+                </block>
+            </category>
+            <category name="Boolean">
+                <block type="logic_compare"></block>
+                <block type="logic_operation"></block>
+                <block type="logic_negate"></block>
+                <block type="logic_boolean"></block>
+                <block type="logic_null"></block>
+                <block type="logic_ternary"></block>
+            </category>
+        </category>
+        <category name="Loops">
+            <block type="controls_repeat_ext">
+                <value name="TIMES">
+                    <block type="math_number">
+                        <field name="NUM">10</field>
+                    </block>
+                </value>
+            </block>
+            <block type="controls_whileUntil"></block>
+            <block type="controls_for">
+                <field name="VAR">i</field>
+                <value name="FROM">
+                    <block type="math_number">
+                        <field name="NUM">1</field>
+                    </block>
+                </value>
+                <value name="TO">
+                    <block type="math_number">
+                        <field name="NUM">10</field>
+                    </block>
+                </value>
+                <value name="BY">
+                    <block type="math_number">
+                        <field name="NUM">1</field>
+                    </block>
+                </value>
+            </block>
+            <block type="controls_forEach"></block>
+            <block type="controls_flow_statements"></block>
+        </category>
+        <category name="Math">
+            <block type="math_number"></block>
+            <block type="math_arithmetic"></block>
+            <block type="math_single"></block>
+            <block type="math_trig"></block>
+            <block type="math_constant"></block>
+            <block type="math_number_property"></block>
+            <block type="math_round"></block>
+            <block type="math_on_list"></block>
+            <block type="math_modulo"></block>
+            <block type="math_constrain">
+                <value name="LOW">
+                    <block type="math_number">
+                        <field name="NUM">1</field>
+                    </block>
+                </value>
+                <value name="HIGH">
+                    <block type="math_number">
+                        <field name="NUM">100</field>
+                    </block>
+                </value>
+            </block>
+            <block type="math_random_int">
+                <value name="FROM">
+                    <block type="math_number">
+                        <field name="NUM">1</field>
+                    </block>
+                </value>
+                <value name="TO">
+                    <block type="math_number">
+                        <field name="NUM">100</field>
+                    </block>
+                </value>
+            </block>
+            <block type="math_random_float"></block>
+        </category>
+        <sep></sep>
+        <category name="Bot Commands">
+            <block type="bot_turn_left"></block>
+            <block type="bot_turn_right"></block>
+            <block type="bot_move_forward">
+                <value name="forwardTravel">
+                    <block type="math_number">
+                        <field name="NUM">30</field>
+                    </block>
+                </value>
+            </block>
+            <block type="bot_move_backward">
+                <value name="backwardTravel">
+                    <block type="math_number">
+                        <field name="NUM">30</field>
+                    </block>
+                </value>
+            </block>            
+        </category>
+        <sep></sep>
+        <category name="Advanced" expanded="false">
+            <category name="Adv Bot Command">
+                <block type="bot_stop"></block>
+                <block type="bot_run"></block>
+                <block type="bot_angle_left"></block>
+                <block type="bot_angle_right"></block>
+                <block type="bot_input_left">
+                    <value name="leftSetInput">
+                        <block type="math_number">
+                            <field name="NUM">90</field>
+                        </block>
+                    </value>
+                </block>
+                <block type="bot_input_right">
+                    <value name="rightSetInput">
+                        <block type="math_number">
+                            <field name="NUM">90</field>
+                        </block>
+                    </value>
+                </block>
+            </category>
+            <category name="Lists">
+                <block type="lists_create_empty"></block>
+                <block type="lists_create_with"></block>
+                <block type="lists_repeat">
+                    <value name="NUM">
+                        <block type="math_number">
+                            <field name="NUM">5</field>
+                        </block>
+                    </value>
+                </block>
+                <block type="lists_length"></block>
+                <block type="lists_isEmpty"></block>
+                <block type="lists_indexOf"></block>
+                <block type="lists_getIndex"></block>
+                <block type="lists_setIndex"></block>
+            </category>
+            <category name="Variables" custom="VARIABLE"></category>
+            <category name="Functions" custom="PROCEDURE"></category>
+        </category>
+        <sep></sep>
+        <category name="Examples" expanded="true">
+            <category name="Square" expanded="true">
+                <block type="controls_repeat_ext">
+                    <value name="TIMES">
+                        <block type="math_number">
+                            <field name="NUM">4</field>
+                        </block>
+                    </value>
+                    <statement name="DO">
+                        <block type="bot_move_forward">
+                            <value name="forwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">30</field>
+                                </block>
+                            </value>
+                            <next>
+                                <block type="bot_angle_right"></block>
+                            </next>
+                        </block>
+                    </statement>
+                </block>
+            </category>
+            <category name ="Star">
+                <block type="controls_repeat_ext">
+                    <value name="TIMES">
+                        <block type="math_number">
+                            <field name="NUM">5</field>
+                        </block>
+                    </value>
+                    <statement name="DO">
+                        <block type="bot_move_forward">
+                            <value name="forwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">30</field>
+                                </block>
+                            </value>
+                            <next>
+                                <block type="bot_input_right">
+                                    <value name="rightSetInput">
+                                        <block type="math_number">
+                                            <field name="NUM">144</field>
+                                        </block>
+                                    </value>
+                                </block>
+                            </next>
+                        </block>
+                    </statement>
+                </block>
+            </category>
+            <category name="Line">
+                <block type="bot_move_forward">
+                    <value name="forwardTravel">
+                        <block type="math_number">
+                            <field name="NUM">50</field>
+                        </block>
+                    </value>
+                    <next>
+                        <block type="bot_move_backward">
+                            <value name="backwardTravel">
+                                <block type="math_number">
+                                    <field name="NUM">50</field>
+                                </block>
+                            </value>
+                        </block>
+                    </next>
+                </block>
+            </category>
+        </category>
+    </xml>
+    <!--
+    Load the Blockly SNOWBALL
+    -->
+    <script src="js/blocklyBall.js" type="text/javascript"></script>
+    <script src="js/msg/js/en.js" type="text/javascript"></script>
+    <script>
+                /**
+                 * Custom Blocks for Blockly, for the FH_Tbot Project
+                 */
+                var botTurnLeftJson = {
+                    "type": "bot_turn_left",
+                    "message0": "Bot Turn Left: %1",
+                    "args0": [
+                        {
+                            "type": "field_dropdown",
+                            "name": "leftAngle",
+                            "options": [
+                                [
+                                    "45°",
+                                    "45"
+                                ],
+                                [
+                                    "90°",
+                                    "90"
+                                ],
+                                [
+                                    "135°",
+                                    "135"
+                                ],
+                                [
+                                    "180°",
+                                    "180"
+                                ]
+                            ]
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot left by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_turn_left'] = {
+                    init: function () {
+                        this.jsonInit(botTurnLeftJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_turn_left'] = function (block) {
+                    var angle_leftangle = block.getFieldValue('leftAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
+                    return code;
+                };
+
+                var botAngleLeftJson = {
+                    "type": "bot_angle_left",
+                    "message0": "Bot Turn Left to: %1",
+                    "args0": [
+                        {
+                            "type": "field_angle",
+                            "name": "leftSetAngle",
+                            "angle": 90
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot left by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_angle_left'] = {
+                    init: function () {
+                        this.jsonInit(botAngleLeftJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_angle_left'] = function (block) {
+                    var angle_leftangle = block.getFieldValue('leftSetAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
+                    return code;
+                };
+
+                var botInputLeftJson = {
+                    "type": "bot_input_left",
+                    "message0": "Bot Turn Left to: %1",
+                    "args0": [
+                        {
+                            "type": "input_value",
+                            "name": "leftSetInput",
+                            "check": "Number"
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot left by the attached number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_input_left'] = {
+                    init: function () {
+                        this.jsonInit(botInputLeftJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_input_left'] = function (block) {
+                    var angle_leftangle = Blockly.JavaScript.valueToCode(block, "leftSetInput", Blockly.JavaScript.ORDER_ATOMIC);
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"L\"); setDistance(' + angle_leftangle + ');\n';
+                    return code;
+                };
+
+                var botTurnRightJson = {
+                    "type": "bot_turn_right",
+                    "message0": "Bot Turn Right: %1",
+                    "args0": [
+                        {
+                            "type": "field_dropdown",
+                            "name": "rightAngle",
+                            "options": [
+                                [
+                                    "45°",
+                                    "45"
+                                ],
+                                [
+                                    "90°",
+                                    "90"
+                                ],
+                                [
+                                    "135°",
+                                    "135"
+                                ],
+                                [
+                                    "180°",
+                                    "180"
+                                ]
+                            ]
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot right by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_turn_right'] = {
+                    init: function () {
+                        this.jsonInit(botTurnRightJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_turn_right'] = function (block) {
+                    var angle_rightangle = block.getFieldValue('rightAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
+                    return code;
+                };
+
+                var botAngleRightJson = {
+                    "type": "bot_angle_right",
+                    "message0": "Bot Turn Right to: %1",
+                    "args0": [
+                        {
+                            "type": "field_angle",
+                            "name": "rightSetAngle",
+                            "angle": 90
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot right by the selected number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_angle_right'] = {
+                    init: function () {
+                        this.jsonInit(botAngleRightJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_angle_right'] = function (block) {
+                    var angle_rightangle = block.getFieldValue('rightSetAngle');
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
+                    return code;
+                };
+
+                var botInputRightJson = {
+                    "type": "bot_input_right",
+                    "message0": "Bot Turn Right to: %1",
+                    "args0": [
+                        {
+                            "type": "input_value",
+                            "name": "rightSetInput",
+                            "check": "Number"
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Turns the bot right by the attached number of degrees",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_input_right'] = {
+                    init: function () {
+                        this.jsonInit(botInputRightJson);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_input_right'] = function (block) {
+                    var angle_rightangle = Blockly.JavaScript.valueToCode(block, "rightSetInput", Blockly.JavaScript.ORDER_ATOMIC);
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"R\"); setDistance(' + angle_rightangle + ');\n';
+                    return code;
+                };
+
+                var bot_move_forwardJSON = {
+                    "type": "bot_move_forward",
+                    "message0": "Travel forward  %1 cm",
+                    "args0": [
+                        {
+                            "type": "input_value",
+                            "name": "forwardTravel",
+                            "check": "Number"
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Drives the bot forwards by the attached distance",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_move_forward'] = {
+                    init: function () {
+                        this.jsonInit(bot_move_forwardJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_move_forward'] = function (block) {
+                    var number_forwardtravel = Blockly.JavaScript.valueToCode(block, "forwardTravel", Blockly.JavaScript.ORDER_ATOMIC);
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(\"F\"); setDistance(' + number_forwardtravel + ');\n';
+                    return code;
+                };
+
+                var bot_move_backwardJSON = {
+                    "type": "bot_move_backward",
+                    "message0": "Travel backward  %1 cm",
+                    "args0": [
+                        {
+                            "type": "input_value",
+                            "name": "backwardTravel",
+                            "check": "Number"
+                        }
+                    ],
+                    "previousStatement": "null",
+                    "nextStatement": "null",
+                    "colour": 100,
+                    "tooltip": "Drives the bot backwards by the attached distance",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_move_backward'] = {
+                    init: function () {
+                        this.jsonInit(bot_move_backwardJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_move_backward'] = function (block) {
+                    var number_backwardtravel = Blockly.JavaScript.valueToCode(block, "backwardTravel", Blockly.JavaScript.ORDER_ATOMIC);
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"B"); setDistance(' + number_backwardtravel + ');\n';
+                    return code;
+                };
+
+                var botStopJSON = {
+                    "type": "bot_stop",
+                    "message0": "Stop Bot",
+                    "previousStatement": null,
+                    "nextStatement": null,
+                    "colour": 0,
+                    "tooltip": "Sends all stop signal, bot will stop and forget further commands.",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_stop'] = {
+                    init: function () {
+                        this.jsonInit(botStopJSON);
+                        //Any further JS modification to the BLOCK is done here.
+                    }
+                };
+
+                Blockly.JavaScript['bot_stop'] = function (block) {
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'addCommand(' + '\"AS\"' + ');\n';
+                    return code;
+                };
+
+                var botRunJSON = {
+                    "type": "bot_run",
+                    "message0": "Run Bot",
+                    "previousStatement": null,
+                    "nextStatement": null,
+                    "colour": 0,
+                    "tooltip": "Runs all the commands built up so far, but clears any commands currently running on the bot.",
+                    "helpUrl": "http://fhtbot.com/"
+                };
+
+                Blockly.Blocks['bot_run'] = {
+                    init: function () {
+                        this.jsonInit(botRunJSON);
+                    }
+                };
+
+                Blockly.JavaScript['bot_run'] = function (block) {
+                    // TODO: Assemble JavaScript into code variable.
+                    var code = 'runBot();\n';
+                    return code;
+                };
+
+
+    </script>
+    <script>
+
+        //Blockly Injection and positioning
+        var blocklyArea = document.getElementById('blocklyArea');
+        var blocklyDiv = document.getElementById('blocklyDiv');
+        var workspace = Blockly.inject('blocklyDiv',
+                      {toolbox: document.getElementById('toolbox'),
+                    grid: {spacing: 40,
+                        length: 5,
+                        colour: '#ccc',
+                        snap: true},
+                    trashcan: true});
+        //Setup XHTTP
+        var xhttp = new XMLHttpRequest();
+        //Setup Queue namespace
+        var botQueue = "";
+        //Setup the interpreter
+        var jsInterpreter = null;
+        function initApi(interpreter, scope) {
+            // Add an API function for the alert() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(alert(text));
+            };
+            interpreter.setProperty(scope, 'alert',
+                    interpreter.createNativeFunction(wrapper));
+
+            // Add an API function for the prompt() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                return interpreter.createPrimitive(prompt(text));
+            };
+            interpreter.setProperty(scope, 'prompt',
+                    interpreter.createNativeFunction(wrapper));
+            // Add an API function for the addCommand() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Output from interpreter:" + text);
+                addCommand(text);
+            };
+            interpreter.setProperty(scope, 'addCommand',
+                    interpreter.createNativeFunction(wrapper));
+            // Add an API function for the setDistance() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Output from interpreter:" + text);
+                setDistance(text);
+            };
+            interpreter.setProperty(scope, 'setDistance',
+                    interpreter.createNativeFunction(wrapper));
+            // Add an API function for the runBot() block.
+            var wrapper = function (text) {
+                text = text ? text.toString() : '';
+                console.log("Sending run Command");
+                runBot(text);
+            };
+            interpreter.setProperty(scope, 'runBot',
+                    interpreter.createNativeFunction(wrapper));
+        }
+        var highlightPause = false;
+
+        function highlightBlock(id) {
+            workspace.highlightBlock(id);
+            highlightPause = true;
+        }
+      
+        //Execution of Code
+        //Code is contained in intepreted sandbox
+        function parseCode() {
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            //jsInterpreter = new Interpreter(code, initApi);
+            alert('This is what your blocks look like as code:\n\n' + code);
+        }
+        
+        /**
+         * Runs the Acorn JS interpreter which sandboxes blockly code.
+         * @returns {undefined}
+         */
+        function runInterpreter() {
+            armQueue();
+            var code = Blockly.JavaScript.workspaceToCode(workspace);
+            jsInterpreter = new Interpreter(code, initApi);
+            //disable('disabled');
+            jsInterpreter.run();
+            //document.getElementById('runButton').disabled = 'disabled';
+            runBot();
+        }
+
+        //QUEUE start with data, and keep adding on more.
+        function armQueue() {
+            botQueue = "";
+        }
+        /**
+         * Adds bot commands to the 'queue' string.
+         * @param {type} text
+         * @returns {undefined}
+         */
+        function addCommand(text) {
+            botQueue += text + ",";
+        }
+        /**
+         * 'Interface' for addCommand that gives a meaningful name for parsed code.
+         * @param {type} text
+         * @returns {undefined}
+         */
+        function setDistance(text) {
+            addCommand(text);
+        }
+
+        /**
+         * Sends text to the bot to execute
+         * @returns {void}
+         */
+        function runBot() {
+            if (botQueue !== "") {
+                console.log();
+				var dxhttp = new XMLHttpRequest();
+                dxhttp.open("GET", "/data," + botQueue, true);
+                dxhttp.send();
+                armQueue();
+            }
+        }
+        
+        /**
+         * Emergency stop, for when the bot requires intervention
+         * @returns {undefined}
+         */
+        function allStop(){
+			var dxhttp = new XMLHttpRequest();
+            dxhttp.open("GET", "/data,AS,0,", true);
+            dxhttp.send();
+        }
+        
+        /**
+         * Heartbeat to keep bot active.
+         * @returns {undefined}
+         */
+        function HB() {
+            xhttp.open("GET", "/HB", true);
+            xhttp.send();
+        }
+
+        //Heartbeat function
+        function pageLoaded() {
+            setInterval(function () {
+                HB();
+            }, 200);
+        }
+
+    </script>
+</body>
+</html>
+
 
     </head>
     <body onload="pageLoaded()">
