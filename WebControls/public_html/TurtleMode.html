@@ -645,6 +645,8 @@
                     trashcan: true});
         //Setup XHTTP
         var xhttp = new XMLHttpRequest();
+        //Setup Heartbeat XHTTP
+        var hbxhttp = new XMLHttpRequest();
         //Setup Queue namespace
         var botQueue = "";
         //Setup the interpreter
@@ -769,8 +771,8 @@
          * @returns {undefined}
          */
         function HB() {
-            xhttp.open("GET", "/HB", true);
-            xhttp.send();
+            hbxhttp.open("GET", "/HB", true);
+            hbxhttp.send();
         }
 
         //Heartbeat function
