@@ -84,7 +84,7 @@ int currentClient = 0;
 boolean pingOn = false;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;//in ms
-#define Diag                             // if not defined disables serial communication after initial feedback
+//#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
@@ -373,9 +373,9 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
   if (!theBuffer){                      // this one dosn't exist either, abort.
     //Serial.println(path + "Does Not Exist");
     theBuffer.close();
-    //String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\n\r\n");
-    //serverClients[currentClient].write( notFound.c_str(),notFound.length() );
-    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
+    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     return; // failed to read file
   }
