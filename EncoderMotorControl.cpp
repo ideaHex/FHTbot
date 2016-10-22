@@ -157,7 +157,7 @@ void encoderMotorController::takeStep(int encoder){
       commandCompleted = true;
     }
   }
-      double headingToTarget = targetHeading - heading;
+      volatile double headingToTarget = targetHeading - heading;
       if (headingToTarget > 180)headingToTarget-=360;
       if (headingToTarget < -180)headingToTarget+=360;
     if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
@@ -187,13 +187,13 @@ void encoderMotorController::takeStep(int encoder){
   }
   
   if (botTurnDirection == none && botTargetSpeed > 0){
-    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
-      wheelTargetSpeed[0] = botTargetSpeed;
-      wheelTargetSpeed[1] = botTargetSpeed;
-      PID();
-    }
+//    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
+//      wheelTargetSpeed[0] = botTargetSpeed;
+//      wheelTargetSpeed[1] = botTargetSpeed;
+//      PID();
+//    }
+      Serial.println("HTT" + String(headingToTarget) + "H" + String(heading) + "TH" + String(targetHeading));
   }
-  
 }
 
 void encoderMotorController::manualDrive(int X, int Y){
@@ -326,8 +326,8 @@ void encoderMotorController::processCommand(String command, double value){
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
       botTargetSpeed = botmodeSpeed;
-      wheelTargetSpeed[0] = botmodeSpeed;
-      wheelTargetSpeed[1] = wheelTargetSpeed[0];
+      wheelTargetSpeed[0] = botTargetSpeed;
+      wheelTargetSpeed[1] = botTargetSpeed;
       motorDirection[0] = forward;
       motorDirection[1] = forward;
       botTargetDirection = forward;
@@ -339,8 +339,8 @@ void encoderMotorController::processCommand(String command, double value){
     {
       botTargetDistance = value * 10 + ((totalSteps[0] + totalSteps[1]) * 0.5) * distancePerStep;
       botTargetSpeed = botmodeSpeed;
-      wheelTargetSpeed[0] = botmodeSpeed;
-      wheelTargetSpeed[1] = wheelTargetSpeed[0];
+      wheelTargetSpeed[0] = botTargetSpeed;
+      wheelTargetSpeed[1] = botTargetSpeed;
       motorDirection[0] = reverse;
       motorDirection[1] = reverse;
       botTargetDirection = reverse;
@@ -878,7 +878,7 @@ void encoderMotorController::increaseMinSpeed(int wheel){
     }
       MIN_Speed += (BASE_MAX_Speed * 0.05);
       MAX_Speed -= (BASE_MAX_Speed * 0.05);
-      if (MAX_Speed < 1.3)MAX_Speed = 1.3;
+      if (MAX_Speed < 1.2)MAX_Speed = 1.2;
       if (MIN_Speed > 0.85)MIN_Speed = 0.85;
       if (MIN_Speed > MAX_Speed)MIN_Speed = MAX_Speed;
       minMotorSpeed = MIN_Speed / MAX_Speed;
