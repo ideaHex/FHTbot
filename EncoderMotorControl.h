@@ -26,7 +26,7 @@ class encoderMotorController {
 
   public:
   encoderMotorController(uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t);        //constructor
-  void playNote(int, double);                                                                  // Play notes through motors
+  void playNote(int, double);                                                               // Play notes through motors
   void manualDrive(int, int);                                                               // manual drive mode intput
   void update();                                                                            // use ticker to call this every updateFrequency from loop function
   int updateFrequency = 30;                                                                 // update frequency in milli seconds
@@ -76,7 +76,7 @@ class encoderMotorController {
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   double encoderWheelSlots = 20;
   float wheelDiameter = 64.93592;//64.6;               // in mm
-  double axleLength = 93.8;                            // distance between wheel centers in mm
+  double axleLength = 88.8;                            // distance between wheel centers in mm, last version was 93.8
   double axleCircumference = (axleLength * 2.0) * PI;
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
