@@ -17,7 +17,7 @@ limitations under the License.
  * This is a non blocking ping library for the ESP8266.
  * 
  * The documentation recommends not pinging faster the 60ms to avoid echo's creating 
- * false readings, however I have tested at 10ms at close range (<200mm) without problems
+ * false readings
  *
  */
  
@@ -30,14 +30,14 @@ volatile long pingTime;                                       // time taken to c
 volatile int pingDistance = -1;                               // distance in mm
 volatile int lastPingDistance = -1;                           // distance in mm
 
-#define MAX_TEST_DISTANCE 5000                                // in mm
-#define MAX_MEDIAN_SAMPLES 5                                  // use an odd number
+#define MAX_TEST_DISTANCE 4500                                // in mm
+#define MAX_MEDIAN_SAMPLES 13                                 // use an odd number
 volatile int currentMedianSample;
 volatile int medianBuffer[MAX_MEDIAN_SAMPLES];
 volatile int medianDistance = 300;
-volatile int maxTimeNeeded = (MAX_TEST_DISTANCE / 10.0 * 58.0) / 1000.0;   // in ms
+volatile int maxTimeNeeded = int((double(MAX_TEST_DISTANCE) / 10.0 * 58.0) / 1000.0);   // in ms
 volatile long previousMillis = millis();                       // used for timeout for no ping received
-volatile int minimumDelay = 30;                                // to prevent false echo's default 24
+volatile int minimumDelay = 24;                                // to prevent false echo's
 volatile long currentTimeout;
 
 void pingSetup(){
