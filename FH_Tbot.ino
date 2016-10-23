@@ -93,7 +93,7 @@ long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;            //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
-//#define Diag                             // if not defined disables serial communication after initial feedback
+#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {

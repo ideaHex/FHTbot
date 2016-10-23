@@ -111,12 +111,13 @@ class encoderMotorController {
   double gridY = 0.0;
   String commandSet;                                   // string to hold incomming commands
   boolean commandSetHasCommands = false;
-  boolean commandCompleted = false;
+  volatile boolean commandCompleted = false;
+  volatile boolean slow = false;
   volatile int PWMA = 0;
   volatile int PWMB = 0;
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
-  volatile long delaybetweenCommands = 150;             // default 700
+  volatile long delaybetweenCommands = 300;             // default 350
   
   // private functions
   float checkNormal(float);
@@ -132,6 +133,7 @@ class encoderMotorController {
   void updateSteering(long);
   void updateBPM(double);
   void increaseMinSpeed(int);
+  void motorBreak();
   
   // DURATION OF THE NOTES 
   double BPM = 104;
