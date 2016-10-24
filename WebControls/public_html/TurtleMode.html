@@ -38,7 +38,7 @@
                 background-color: #333;
                 width: 195px;
                 height: 133px;
-                background-image: url("hacad.png");
+                background-image: url("../background.png");
                 width: 100%;
                 height: 100%;
                 color: black;
@@ -71,11 +71,21 @@
 
     </head>
     <body onload="pageLoaded()">
-        <p>
+        <p style="color:white">
             <button onclick="runInterpreter()" id="runButton">Run Turtle</button>
             <button onclick="parseCode()" id="viewButton">View Your Code </button>
             <button onclick="allStop()" id="stopButton">BOT-STOP</button>
+            <!---
+            <label>Distance:</label><label id="range"></label>
+            <label>Temperature:</label><label id="temperature"></label>
+            <label id="resulttoo"></label>
+            --->
         </p>
+        <iframe id="feedbackId"
+                name="feedback"
+                style="display:none;"
+                >
+        </iframe>
         <div id="blocklyDiv"></div>
     <xml id="toolbox" style="display: none">
         <category name="Logic">
@@ -643,10 +653,8 @@
                         colour: '#ccc',
                         snap: true},
                     trashcan: true});
-        //Setup XHTTP
+        //Setup XHTTP Heartbeat
         var xhttp = new XMLHttpRequest();
-        //Setup Heartbeat XHTTP
-        var hbxhttp = new XMLHttpRequest();
         //Setup Queue namespace
         var botQueue = "";
         //Setup the interpreter
@@ -698,7 +706,7 @@
             workspace.highlightBlock(id);
             highlightPause = true;
         }
-      
+
         //Execution of Code
         //Code is contained in intepreted sandbox
         function parseCode() {
@@ -706,7 +714,7 @@
             //jsInterpreter = new Interpreter(code, initApi);
             alert('This is what your blocks look like as code:\n\n' + code);
         }
-        
+
         /**
          * Runs the Acorn JS interpreter which sandboxes blockly code.
          * @returns {undefined}
@@ -748,38 +756,56 @@
          */
         function runBot() {
             if (botQueue !== "") {
-                //xhttp.abort();
                 console.log();
-                xhttp.open("GET", "/data," + botQueue, true);
+                if(botQueue.length < 6000){
+                var dxhttp = new XMLHttpRequest();
+                dxhttp.open("GET", "/data," + botQueue, true);
                 // xhttp.timeout = 100;
-                xhttp.send();
+                dxhttp.send();
                 armQueue();
+            }else{
+                alert("There's too many instructions for the FH@T bot to remember! Try a smaller program.");
+            }
             }
         }
-        
+
         /**
          * Emergency stop, for when the bot requires intervention
          * @returns {undefined}
          */
-        function allStop(){
-            xhttp.open("GET", "/AS", true);
-            xhttp.send();
+        function allStop() {
+            var dxhttp = new XMLHttpRequest();
+            dxhttp.open("GET", "/data,AS", true);
+            dxhttp.send();
         }
-        
+
         /**
          * Heartbeat to keep bot active.
          * @returns {undefined}
          */
         function HB() {
-            hbxhttp.open("GET", "/HB", true);
-            hbxhttp.send();
+            //xhttp.abort();
+            xhttp.open("GET", "/HB", true);
+            xhttp.send();
         }
 
-        //Heartbeat function
+        //Event Interval Setup
         function pageLoaded() {
+            //Heartbeat function
             setInterval(function () {
                 HB();
             }, 100);
+            
+            
+            //document.getElementById('feedbackId').src = "/feedback";
+            //setInterval(function () {            
+            //    if (window.feedback.dis !== undefined) {
+            //        document.getElementById("temperature").innerHTML = window.feedback.tmp + " °C";
+            //        document.getElementById("range").innerHTML = window.feedback.dis + "mm";
+            //        document.getElementById('resulttoo').innerHTML = 'Spd: ' + window.feedback.kph + ' Kph, Moved: ' + window.feedback.movd + ' mm, Heading: ' + window.feedback.hed + ' °';
+            //    }
+            //}, 100);
+            
         }
 
     </script>
