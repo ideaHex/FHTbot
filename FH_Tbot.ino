@@ -48,6 +48,11 @@ void sendFile(File);
 String getContentType(String);
 void updateMotors();
 void updTemp();
+void testBumper();
+void leftBumperHitFunction();
+void leftBumperReset();
+void rightBumperHitFunction();
+void rightBumperReset();
 
 /////////////////////
 // Pin Definitions //
@@ -70,6 +75,8 @@ const int rightBumper = D10;
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
 Ticker tempTicker;
+Ticker lBH; // left bumper hit reverse timer
+Ticker rBH; // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -84,7 +91,9 @@ int currentClient = 0;
 boolean pingOn = false;
 long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;            //in ms
-//#define Diag                          // if not defined disables serial communication after initial feedback
+boolean leftBumperHit = false;
+boolean rightBumperHit = false;
+//#define Diag                             // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
@@ -134,22 +143,7 @@ void loop()
   }
   
   if (driverAssist){
-    boolean leftBumperHit = digitalRead(leftBumper);
-    boolean rightBumperHit = digitalRead(rightBumper);
-    if (leftBumperHit && !rightBumperHit){
-          setColor(RgbColor(255,0,0));
-          motors.manualDrive(-250,500);
-          motors.hardLeftTurn();
-    }
-    if (rightBumperHit && !leftBumperHit){
-          setColor(RgbColor(255,0,0));
-          motors.manualDrive(250,500);
-          motors.hardRightTurn();                               // in reverse right becomes left
-    }
-     if (!rightBumperHit && !leftBumperHit){
-          setColor(RgbColor(255,0,0));
-          motors.manualDrive(0,500);
-    }
+  testBumper();
   }
    dnsServer.processNextRequest();// update DNS requests
    
@@ -341,9 +335,31 @@ void initHardware()
   motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attatch motor update timer
   tempTicker.attach_ms(200,updTemp);                                      // attatch temperature sample timer
  #ifndef Diag
-    pinMode(leftBumper, INPUT);
-    pinMode(rightBumper, INPUT);
+    pinMode(leftBumper, INPUT_PULLUP);
+    pinMode(rightBumper, INPUT_PULLUP);
+    attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
+    attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
+}
+void leftBumperHitFunction(){
+  if (!leftBumperHit){
+    lBH.once_ms(500,leftBumperReset);
+    //setColor(RgbColor(255,0,0));
+  }
+  leftBumperHit = true;
+}
+void leftBumperReset(){
+  leftBumperHit = false;
+}
+void rightBumperHitFunction(){
+  if (!rightBumperHit){
+    rBH.once_ms(500,rightBumperReset);
+    //setColor(RgbColor(255,0,0));
+  }
+  rightBumperHit = true;
+}
+void rightBumperReset(){
+  rightBumperHit = false;
 }
 
 void motorLeftEncoderInterruptHandler(){
@@ -468,5 +484,21 @@ void checkBoredBot(){
 
 void updTemp(){
   updateTemperature();
+}
+
+void testBumper(){
+    #ifndef Diag
+    if (!leftBumperHit && rightBumperHit){
+          motors.manualDrive(-250,500);
+          motors.hardLeftTurn();
+    }
+    if (!rightBumperHit && leftBumperHit){
+          motors.manualDrive(250,500);
+          motors.hardRightTurn();                               // in reverse right becomes left
+    }
+     if (rightBumperHit && leftBumperHit){
+          motors.manualDrive(0,500);
+    }
+     #endif
 }
 
