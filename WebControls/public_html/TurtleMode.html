@@ -764,7 +764,7 @@
                 dxhttp.send();
                 armQueue();
             }else{
-                alert("There's too many instructions for the FH@T bot to remember! Try a smaller program.");
+                alert("There's too many instructions for the FHT bot to remember! Try a smaller program.");
             }
             }
         }
@@ -775,7 +775,7 @@
          */
         function allStop() {
             var dxhttp = new XMLHttpRequest();
-            dxhttp.open("GET", "/data,AS", true);
+            dxhttp.open("GET", "/data,AS,0,", true);
             dxhttp.send();
         }
 
@@ -794,7 +794,7 @@
             //Heartbeat function
             setInterval(function () {
                 HB();
-            }, 100);
+            }, 400);
             
             
             //document.getElementById('feedbackId').src = "/feedback";
