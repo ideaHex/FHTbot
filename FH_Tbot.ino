@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
  
-#pragma GCC optimize ("-O2") // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
+#pragma GCC optimize ("-O2")           // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
 #include <FS.h>
 #include <DNSServer.h>
@@ -61,12 +61,12 @@ void rightBumperReset();
 // D4 is used for neoPixelBus (TXD1)
 // D0 is used to trigger ping
 // D8 is used for echo of ping
-#define D9 3                          // D9 & D10 arn't defined so define them here
+#define D9 3                            // D9 & D10 arn't defined so define them here
 #define D10 1
-const int motorLeftA  = D5;
-const int motorLeftB  = D6;
-const int motorRightA = D3;
-const int motorRightB = D2;
+const int motorLeftA  = D6;
+const int motorLeftB  = D5;
+const int motorRightA = D2;
+const int motorRightB = D3;
 const int motorLeftEncoder = D7;
 const int motorRightEncoder = D1;
 const int leftBumper = D9;
@@ -75,8 +75,8 @@ const int rightBumper = D10;
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
 Ticker tempTicker;
-Ticker lBH; // left bumper hit reverse timer
-Ticker rBH; // right bumper hit reverse timer
+Ticker lBH;                            // left bumper hit reverse timer
+Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
@@ -90,10 +90,10 @@ WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
 long nextBoredBotEvent = 0;
-int boredBotTimeout = 60000;            //in ms
+int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
-//#define Diag                             // if not defined disables serial communication after initial feedback
+//#define Diag                           // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
@@ -118,7 +118,7 @@ void CheckHeartBeat(void)
 
 void setup()
 {
-  system_update_cpu_freq(160);          // set cpu to 80MHZ or 160MHZ !
+  system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
@@ -132,10 +132,10 @@ void loop()
   checkBoredBot();
   
   if (pingOn){
-   getDistance(); // ping pulse/update function must be called to ping
+   getDistance();                       // ping pulse/update function must be called to ping
    distance = getMedian();
    if (driverAssist){
-        if (distance < 200){          // too close bounce back
+        if (distance < 200){            // too close bounce back
           setColor(RgbColor(255,0,0));
           motors.manualDrive(0,500);
           }
@@ -145,7 +145,7 @@ void loop()
   if (driverAssist){
   testBumper();
   }
-   dnsServer.processNextRequest();// update DNS requests
+   dnsServer.processNextRequest();      // update DNS requests
    
    // client functions here
   while (server.hasClient()){
@@ -436,10 +436,10 @@ else if(lowerPath.endsWith(".css")) dataType = F("text/css");
 else if(lowerPath.endsWith(".gif")) dataType = F("image/gif");
 else if(lowerPath.endsWith(".jpg")) dataType = F("image/jpeg");
 else if(lowerPath.endsWith(".ico")) dataType = F("image/x-icon");
-else if(lowerPath.endsWith(".xml")) dataType = F("text/xml");
 else if(lowerPath.endsWith(".mp3")) dataType = F("audio/mpeg3");
 else if(lowerPath.endsWith(".wav")) dataType = F("audio/wav");
 else if(lowerPath.endsWith(".ogg")) dataType = F("audio/ogg");
+else if(lowerPath.endsWith(".xml")) dataType = F("text/xml");
 else if(lowerPath.endsWith(".pdf")) dataType = F("application/x-pdf");
 else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
 else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
