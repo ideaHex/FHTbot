@@ -1,42 +1,6 @@
 # FHTbot
 Firmware for Makerfaire robot
 <html>
-  <head> 
-    <style>
-    body{
-     background-color: #333;
-	 width: 100%;
-	 height: 100%;
-	 color: white;
-     font-size: 20px;
-     text-shadow: 2px 2px Black;
-    }
-h1 {
-    color: blue;
-    font-size: 80px;
-    text-shadow: 4px 4px Black;
-    text-align: center;
-    }
-  h2 {
-    color: lightblue;
-    font-size: 30px;
-    text-shadow: 4px 4px Black;
-    text-align: left;
-  }
-  h3 {
-    color: white;
-    font-size: 20px;
-    text-shadow: 3px 3px Black;
-    text-align: left;
-  }
-  span{
-    background-color: #333;
-  }
-  t2{
-	  font-size:22pt;
-  }
-    </style>
-  </head>
   <body>
     <div>
       <h1><span><font face="Comic Sans MS">About</font></span></h1>
