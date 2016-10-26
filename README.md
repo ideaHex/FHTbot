@@ -1,10 +1,10 @@
 # FHTbot
 Firmware for Makerfaire robot
-<head>
-<style>
+<html>
+  <head> 
+    <style>
     body{
      background-color: #333;
-	 /*background-image: url("background.png");*/
 	 width: 100%;
 	 height: 100%;
 	 color: white;
@@ -39,7 +39,8 @@ h1 {
   </head>
   <body>
     <div>
-      <h3><span>The FHTbot was created as a result of a joint effort between Hackerspace Adelaide and Flinders University as an educational tool to provide insights into the following.<br>
+      <h1><span><font face="Comic Sans MS">About</font></span></h1>
+      <h3><span><br>The FHTbot was created as a result of a joint effort between Hackerspace Adelaide and Flinders University as an educational tool to provide insights into the following.<br>
 <h2><span>The internet of things.</span></h2>
 <ul>
   <li><span>Showing how a device can be easily set up as a secure WIFI Hotspot.</span></li>
@@ -57,7 +58,5 @@ Geometry based navigation system allows students to control the FHTbot and see t
 <li><span>The FHTbot has an assisted drive mode to help young and inexperienced drivers.</span></li></ul>
 <h2><span>We all hope you have as much fun with this FHTbot as we did designing it for you.</span></h2></span></h3>
     </div>
-    <br><br>
-<br><br>
 </body>
 </html>
