@@ -1,4 +1,4 @@
-# FH_Tbot
+# FHTbot
 Firmware for Makerfaire robot
 <html>
   <head>
