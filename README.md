@@ -1,6 +1,59 @@
-# FHTbot
-Firmware for Makerfaire robot
+<!doctype html>
 <html>
+  <head>
+    <title>FHTbot About</title>
+<!-- 		Copyright 2016, Tilden Groves.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">    
+    <style>
+    body{
+     background-color: #333;
+	 /*background-image: url("background.png");*/
+	 width: 100%;
+	 height: 100%;
+	 color: white;
+     font-size: 20px;
+     text-shadow: 2px 2px Black;
+    }
+h1 {
+    color: blue;
+    font-size: 80px;
+    text-shadow: 4px 4px Black;
+    text-align: center;
+    }
+  h2 {
+    color: lightblue;
+    font-size: 30px;
+    text-shadow: 4px 4px Black;
+    text-align: left;
+  }
+  h3 {
+    color: white;
+    font-size: 20px;
+    text-shadow: 3px 3px Black;
+    text-align: left;
+  }
+  span{
+    background-color: #333;
+  }
+  t2{
+	  font-size:22pt;
+  }
+    </style>
+  </head>
   <body>
     <div>
       <h1><span><font face="Comic Sans MS">About</font></span></h1>
@@ -22,5 +75,11 @@ Geometry based navigation system allows students to control the FHTbot and see t
 <li><span>The FHTbot has an assisted drive mode to help young and inexperienced drivers.</span></li></ul>
 <h2><span>We all hope you have as much fun with this FHTbot as we did designing it for you.</span></h2></span></h3>
     </div>
+    <br><br>
+    <table style="width:100%"><tr>
+    <th><span><a href="/"><t2>Back</t2></a></span></th>
+    <th></th>
+    </tr>
+    </table><br><br>
 </body>
 </html>
