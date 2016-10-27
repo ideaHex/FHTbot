@@ -165,7 +165,7 @@ void encoderMotorController::takeStep(int encoder){
     if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
       if (makePositive(headingToTarget) < (anglePerStep * 4.5 * (MIN_Speed / BASE_MIN_Speed) * 2.0) ){
         if (BASE_MIN_Speed != MIN_Speed && !commandCompleted){
-          Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
+          //Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
           slow = true;
           PWMA= (BASE_MIN_Speed / BASE_MAX_Speed) * PWMWriteRange * 1.0;//0.5
           PWMB= (BASE_MIN_Speed / BASE_MAX_Speed) * PWMWriteRange * 1.0;
@@ -173,7 +173,7 @@ void encoderMotorController::takeStep(int encoder){
           setMotorSpeed();
         }else{
             if (!commandCompleted){
-              Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
+              //Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
               slow = true;
               if (PWMA > (minMotorSpeed * PWMWriteRange) * 1.0) PWMA = minMotorSpeed * PWMWriteRange * 1.0;
               if (PWMB > (minMotorSpeed * PWMWriteRange) * 1.0) PWMB = minMotorSpeed * PWMWriteRange * 1.0;
@@ -184,9 +184,9 @@ void encoderMotorController::takeStep(int encoder){
         if (commandCompleted){
           motorBreak();
           if(nextCommandMillis)nextCommandMillis += 100; // bot is shaking, give it more time to stop
-          Serial.println("Bot rocking");
+          //Serial.println("Bot rocking");
         }
-        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){// 0.5//2.5
+        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){// 0.5
           analogWrite(motorAPin1,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[0] > 0) );
           analogWrite(motorAPin2,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[0] < 0) );
           analogWrite(motorBPin1,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[1] > 0) );
@@ -199,7 +199,7 @@ void encoderMotorController::takeStep(int encoder){
           //setMotorSpeed();
           //motorBreak();
           commandCompleted = true;
-          Serial.println("Stop, Heading" + String(heading) + "Target" + String(targetHeading));
+          //Serial.println("Stop, Heading" + String(heading) + "Target" + String(targetHeading));
         }
       }
   }
@@ -210,7 +210,7 @@ void encoderMotorController::takeStep(int encoder){
 //      wheelTargetSpeed[1] = botTargetSpeed;
 //      PID();
 //    }
-      Serial.println("HTT" + String(headingToTarget) + "H" + String(heading) + "TH" + String(targetHeading));
+      //Serial.println("HTT" + String(headingToTarget) + "H" + String(heading) + "TH" + String(targetHeading));
   }
 }
 
@@ -499,7 +499,7 @@ void encoderMotorController::motorBreak(){
   analogWrite(motorAPin2, PWMWriteRange);
   analogWrite(motorBPin1, PWMWriteRange);
   analogWrite(motorBPin2, PWMWriteRange);
-  Serial.println("BREAK");
+  //Serial.println("BREAK");
 }
 void encoderMotorController::PID(){
       // calculate error
@@ -918,6 +918,6 @@ void encoderMotorController::increaseMinSpeed(int wheel){
       if (MIN_Speed > (MAX_Speed - (MAX_Speed * 0.1))){
       MIN_Speed = MAX_Speed - (MAX_Speed * 0.1);
     }
-    Serial.println("New Min Speed" + String(MIN_Speed) + "New Max Speed" + String(MAX_Speed));
+    //Serial.println("New Min Speed" + String(MIN_Speed) + "New Max Speed" + String(MAX_Speed));
 }
 
