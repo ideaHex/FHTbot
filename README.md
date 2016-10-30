@@ -1,6 +1,5 @@
--# FHTbot
--Firmware for Makerfaire robot
-<!doctype html>
+# FHTbot
+Firmware for Makerfaire robot
 <html>
   <head>
     <title>FHTbot About</title>
