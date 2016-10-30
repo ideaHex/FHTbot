@@ -87,7 +87,6 @@ function left(){
 	clearInterval(myTimer);
 	X=0.0;
 	Y=0.0;
-	move();
 	var xhttp = new XMLHttpRequest();
     xhttp.open("GET", "/data,L,90,", true);
     xhttp.send();
@@ -98,7 +97,6 @@ function right(){
 	clearInterval(myTimer);
 	X=0.0;
 	Y=0.0;
-	move();
 	var xhttp = new XMLHttpRequest();
  	xhttp.open("GET", "/data,R,90,", true);
     xhttp.send();
@@ -109,7 +107,6 @@ function turnAround(){
 	clearInterval(myTimer);
 	X=0.0;
 	Y=0.0;
-	move();
 	var xhttp = new XMLHttpRequest();
     xhttp.open("GET", "/data,R,180,", true);
     xhttp.send();
