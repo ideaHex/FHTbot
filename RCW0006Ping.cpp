@@ -34,7 +34,7 @@ volatile int lastPingDistance = -1;                           // distance in mm
 #define MAX_MEDIAN_SAMPLES 13                                 // use an odd number
 volatile int currentMedianSample;
 volatile int medianBuffer[MAX_MEDIAN_SAMPLES];
-volatile int medianDistance = 300;
+volatile int medianDistance = 500;
 volatile int maxTimeNeeded = int((double(MAX_TEST_DISTANCE) / 10.0 * 58.0) / 1000.0);   // in ms
 volatile long previousMillis = millis();                       // used for timeout for no ping received
 volatile int minimumDelay = 24;                                // to prevent false echo's
