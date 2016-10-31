@@ -81,7 +81,7 @@ WiFiServer server(80);
 WiFiClient client;
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
-int distance = 300;
+int distance = 500;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
@@ -198,8 +198,8 @@ void loop()
         if (distance < 450 && distance > 199 && dY < 0){
           setColor(RgbColor(90,105,95));
           motors.hardRightTurn();
-          dX = 250;
-          dY = -170;
+          dX = 500;
+          dY = -100;
         }
         if (distance < 200){
          setColor(RgbColor(255,0,0));
@@ -315,6 +315,7 @@ void initHardware()
   Serial.begin(250000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FHTbot Serial Connected\r\n"));
+  Serial.println(F("\r\n         Disable any form of assisted WIFI\r\n"));
   Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
