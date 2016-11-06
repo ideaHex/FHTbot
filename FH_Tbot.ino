@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
- 
+
 #pragma GCC optimize ("-O2")           // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -25,9 +25,9 @@ limitations under the License.
 #include "NeoPixelAnimations.h"
 #include "botTemp.h"
 
-extern "C" { 
-   #include "user_interface.h" 
- } 
+extern "C" {
+   #include "user_interface.h"
+ }
 
 //////////////////////
 // WiFi Definitions //
@@ -44,7 +44,7 @@ bool enableCompatibilityMode = false;   // turn on compatibility mode for older 
 
 void setupWiFi(void);
 void initHardware(void);
-void sendFile(File);
+void sendFile(String);
 String getContentType(String);
 void updateMotors();
 void updTemp();
@@ -53,6 +53,9 @@ void leftBumperHitFunction();
 void leftBumperReset();
 void rightBumperHitFunction();
 void rightBumperReset();
+void checkBoredBot();
+void motorLeftEncoderInterruptHandler();
+void motorRightEncoderInterruptHandler();
 
 /////////////////////
 // Pin Definitions //
@@ -112,7 +115,7 @@ void CheckHeartBeat(void)
   }
   else
   {
-    Stop();                             
+    Stop();
   }
 }
 
@@ -130,7 +133,7 @@ void loop()
 {
   // time dependant functions here
   checkBoredBot();
-  
+
   if (pingOn){
    getDistance();                       // ping pulse/update function must be called to ping
    distance = getMedian();
@@ -141,12 +144,12 @@ void loop()
           }
     }
   }
-  
+
   if (driverAssist){
   testBumper();
   }
    dnsServer.processNextRequest();      // update DNS requests
-   
+
    // client functions here
   while (server.hasClient()){
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
@@ -174,7 +177,7 @@ void loop()
     }
     currentClient = 0;
   }
- 
+
   if (!req.length()){// empty request
       return;
       }
@@ -282,7 +285,7 @@ void loop()
 void setupWiFi()
 {
   WiFi.mode(WIFI_AP);
- 
+
   // Create a unique name by appending the MAC address to the AP Name
 
   AP_Name = AP_Name + " " + WiFi.softAPmacAddress();
@@ -378,7 +381,7 @@ void sendFile(String path){
 // get content type
 if(path.endsWith("/")){ path += "index.html";}
 String dataType = getContentType(path);
-  
+
 // check if theres a .gz'd version and send that instead
 String gzPath = path + ".gz";
 File theBuffer;
@@ -454,12 +457,12 @@ void checkBoredBot(){
           int events = 4;
           int pickedEvent = random(1,(events+1));
           switch(pickedEvent){
-            
+
             case 1:                 // play vroom and bright light
               setColor(RgbColor(80,80,80));
               motors.playVroom();
             break;
-            
+
             case 2:                 // random colors
             for (int a = 0; a < 50; a++){
               pixelTest();
