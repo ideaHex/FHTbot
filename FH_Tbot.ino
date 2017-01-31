@@ -80,7 +80,7 @@ Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
-WebSocketsServer webSocket = WebSocketsServer(81);
+WebSocketsServer webSocket = WebSocketsServer(8888);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 int distance = 500;
