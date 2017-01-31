@@ -291,25 +291,27 @@ void executeRequest(String req){
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
   switch(type){
-    case WStype_DISCONNECTED:
+    case WStype_DISCONNECTED:{
       //perform disconnection events (i.e. send bot to idle.)
       Serial.println(num + " Disconnected!\n");
+    }
       break;
     case WStype_CONNECTED:{
       //HANDLE NEW CLIENT CONNECTION
-      //IPAddress ip = webSocket.remoteIP(num);
-      //Serial.println(num + " Connected from "+ ip[0] + "."+ip[1]+"."+ip[2]+"."+ip[3]+" url: "+payload+"\n");
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " url: " + String(*payload) + "\n");
       //ACK connection to client
       webSocket.sendTXT(num, "Connected");
+    }
       break;
-    case WStype_TEXT:
+    case WStype_TEXT:{
       //Perform actions based on a good payload.
-      //Serial.println(num + "get Text: "+ payload +"\n");
+      Serial.println(String(num) + "get Text: " + String(*payload) + "\n");
       //executeRequest(payload);
+    }
       break;
     }
   }
-}
 
 void setupWiFi()
 {
