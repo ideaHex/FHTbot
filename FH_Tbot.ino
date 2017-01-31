@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves, Alexander Battarbee.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@ limitations under the License.
  
 #pragma GCC optimize ("-O2")           // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
+#include <WebSockets.h>
+#include <WebSocketsServer.h>
+#include <WebSocketsClient.h>
 #include <FS.h>
 #include <DNSServer.h>
 #include <Ticker.h>
@@ -39,10 +42,8 @@ String AP_Name = "FHTbot";              // This is the Wifi Name(SSID), some num
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 
-
-
-
 void setupWiFi(void);
+void setupWebsocket(void);
 void initHardware(void);
 void sendFile(File);
 String getContentType(String);
@@ -79,6 +80,7 @@ Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
+WebSocketsServer webSocket = WebSocketsServer(81);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 int distance = 500;
@@ -174,7 +176,13 @@ void loop()
     }
     currentClient = 0;
   }
- 
+  executeRequest(req);
+  //Loop WebSocket Server
+  webSocket.loop();
+
+}
+void executeRequest(String req){
+  
   if (!req.length()){// empty request
       return;
       }
@@ -278,6 +286,30 @@ void loop()
           sendFile(fileString);
         }
 }
+/**
+ * Handles Websocket reception, deciding what needs to be done vs the type of message.
+ */
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
+  switch(type){
+    case WStype_DISCONNECTED:
+      //perform disconnection events (i.e. send bot to idle.)
+      Serial.println(num + " Disconnected!\n");
+      break;
+    case WStype_CONNECTED:{
+      //HANDLE NEW CLIENT CONNECTION
+      //IPAddress ip = webSocket.remoteIP(num);
+      //Serial.println(num + " Connected from "+ ip[0] + "."+ip[1]+"."+ip[2]+"."+ip[3]+" url: "+payload+"\n");
+      //ACK connection to client
+      webSocket.sendTXT(num, "Connected");
+      break;
+    case WStype_TEXT:
+      //Perform actions based on a good payload.
+      //Serial.println(num + "get Text: "+ payload +"\n");
+      //executeRequest(payload);
+      break;
+    }
+  }
+}
 
 void setupWiFi()
 {
@@ -308,6 +340,12 @@ void setupWiFi()
   dnsServer.start(DNS_PORT, "*", apIP);// default FHTbot.com  //must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
+}
+
+void setupWebsocket(){
+  //start websocket
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
 }
 
 void initHardware()
