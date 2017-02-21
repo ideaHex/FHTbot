@@ -308,10 +308,15 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       break;
     case WStype_TEXT:{
       //Perform actions based on a good payload.
-      Serial.println(String(num) + "get Text: " + String(*payload) + "\n");
+      Serial.println("Starting charstream to char array conversion");
+      char A[payLength + 1];
+      char * strncpy(char * A, const char * payload, size_t payLength);
+      A[payLength] = '\0';
+      String b((char *) payload);
+      Serial.println(String(num) + "get Text: " + b + " length: " + String(payLength) + "\n");
       //Heartbeat
       HeartBeatRcvd = true;
-      executeRequest(String(*payload));
+      executeRequest(b);
       //Feedback
     }
       break;
