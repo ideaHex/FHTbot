@@ -303,13 +303,16 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       IPAddress ip = webSocket.remoteIP(num);
       Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " url: " + String(*payload) + "\n");
       //ACK connection to client
-      webSocket.sendTXT(num, "Connected");
+      webSocket.sendTXT(num, "Connected to FH_Tbot");
     }
       break;
     case WStype_TEXT:{
       //Perform actions based on a good payload.
       Serial.println(String(num) + "get Text: " + String(*payload) + "\n");
-      //executeRequest(payload);
+      //Heartbeat
+      HeartBeatRcvd = true;
+      executeRequest(String(*payload));
+      //Feedback
     }
       break;
     }
