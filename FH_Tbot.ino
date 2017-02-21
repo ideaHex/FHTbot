@@ -80,7 +80,7 @@ Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
-WebSocketsServer webSocket = WebSocketsServer(8888);
+WebSocketsServer webSocket = WebSocketsServer(81);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 int distance = 500;
@@ -95,7 +95,7 @@ long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
-//#define Diag                           // if not defined disables serial communication after initial feedback
+#define Diag                           // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
@@ -123,6 +123,7 @@ void setup()
   system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
+  setupWebsocket();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
@@ -290,6 +291,7 @@ void executeRequest(String req){
  * Handles Websocket reception, deciding what needs to be done vs the type of message.
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
+  Serial.println("WEBSOCKET EVENT");
   switch(type){
     case WStype_DISCONNECTED:{
       //perform disconnection events (i.e. send bot to idle.)
@@ -346,6 +348,7 @@ void setupWiFi()
 
 void setupWebsocket(){
   //start websocket
+  Serial.println("Establishing Websocket Server");
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
