@@ -96,6 +96,7 @@ int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 #define Diag                           // if not defined disables serial communication after initial feedback
+long timerPing;
 
 void Stop(void)
 {
@@ -181,6 +182,63 @@ void loop()
   //Loop WebSocket Server
   webSocket.loop();
 
+}
+/**
+ * A faster version of exeReq for websockets.
+ * Features WS response and a shorter command list.
+ */
+void fastExecuteRequest(String req){
+  //Empty request tripwire
+  if(!req.length()){
+    //empty request
+    return;
+  }
+  HeartBeatRcvd = true;
+  if (req.indexOf("/HB") != -1){
+        pingOn = false;
+        driverAssist = false;
+        HeartBeatRcvd = true;            
+        yield();
+        return;
+      }
+  int indexOfX = req.indexOf("/X");
+  int indexOfY = req.indexOf("/Y");
+  if (indexOfX != -1 && indexOfY != -1){
+    pingOn = true;
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;
+    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    yield();
+    String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
+    int dX = xOffset.toInt();
+    String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
+    int dY = yOffset.toInt();
+    // driver assist
+    if (driverAssist){
+      updateBlinkers(dX,dY);
+        if (distance < 450 && distance > 199 && dY < 0){
+          setColor(RgbColor(90,105,95));
+          motors.hardRightTurn();
+          dX = 500;
+          dY = -100;
+        }
+        if (distance < 200){
+         setColor(RgbColor(255,0,0));
+          dY = 500;
+        }
+    }else{
+      pixelTest();
+    }
+    motors.manualDrive(dX,dY);
+  }
+  if (req.indexOf("data,") != -1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          req.remove(0,req.indexOf("data,"));
+          req.trim();
+          motors.startCommandSet(req);
+          return;
+      }
 }
 void executeRequest(String req){
   
@@ -292,6 +350,8 @@ void executeRequest(String req){
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
   Serial.println("WEBSOCKET EVENT");
+  Serial.println(millis()- timerPing);
+  timerPing = millis();
   switch(type){
     case WStype_DISCONNECTED:{
       //perform disconnection events (i.e. send bot to idle.)
@@ -314,9 +374,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       A[payLength] = '\0';
       String b((char *) payload);
       Serial.println(String(num) + "get Text: " + b + " length: " + String(payLength) + "\n");
+      //TEMP BOUNCE
+      webSocket.sendTXT(num, "Pong");
       //Heartbeat
       HeartBeatRcvd = true;
-      executeRequest(b);
+      fastExecuteRequest(b);
       //Feedback
     }
       break;
@@ -498,6 +560,7 @@ else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
 else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
 return dataType;
 }
+
 void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       // bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
