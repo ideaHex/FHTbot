@@ -196,12 +196,11 @@ void fastExecuteRequest(String req){
   }
   HeartBeatRcvd = true;
   if (req.indexOf("/HB") != -1){
-        pingOn = false;
-        driverAssist = false;
-        HeartBeatRcvd = true;            
+        //Fast Catch and Release, HB handled above.        
         yield();
         return;
       }
+  //Serial.println("\r\n" + req);
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1){
@@ -356,7 +355,10 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
   switch(type){
     case WStype_DISCONNECTED:{
       //perform disconnection events (i.e. send bot to idle.)
-      Serial.println(num + " Disconnected!\n");
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+      //Stop Bot
+      Stop();
     }
       break;
     case WStype_CONNECTED:{
@@ -366,8 +368,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       //ACK connection to client
       webSocket.sendTXT(num, "Connected to FH_Tbot");
     }
-      break;
-    case WStype_TEXT:{
+    break;
+      case WStype_TEXT:{
       //Perform actions based on a good payload.
       Serial.println("Starting charstream to char array conversion");
       char A[payLength + 1];
@@ -376,7 +378,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       String b((char *) payload);
       Serial.println(String(num) + "get Text: " + b + " length: " + String(payLength) + "\n");
       //TEMP BOUNCE
-      webSocket.sendTXT(num, "Pong");
+      //webSocket.sendTXT(num, "Pong");
       //Heartbeat
       HeartBeatRcvd = true;
       fastExecuteRequest(b);
