@@ -122,6 +122,7 @@ void CheckHeartBeat(void)
 void setup()
 {
   system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
+  system_phy_set_max_tpw(10);
   initHardware();
   setupWiFi();
   setupWebsocket();
@@ -395,6 +396,18 @@ void setupWiFi()
   char AP_NameChar[AP_Name.length() + 1];
   AP_Name.toCharArray(AP_NameChar,AP_Name.length() + 1);
 
+  /*
+   * struct softap_config {
+      uint8 ssid[32];
+      uint8 password[64];
+      uint8 ssid_len;
+      uint8 channel; // support 1 ~ 13
+      uint8 authmode; // Don’t support AUTH_WEP in SoftAP mode
+      uint8 ssid_hidden; // default 0
+      uint8 max_connection; // default 4, max 4
+      uint16 beacon_interval; // 100 ~ 60000 ms, default 100
+    };
+   */
   // setup AP, start DNS server, start Web server
 
   int channel = random(1,13 + 1);               // have to add 1 or will be 1 - 12
