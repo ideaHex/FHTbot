@@ -54,6 +54,7 @@ void leftBumperHitFunction();
 void leftBumperReset();
 void rightBumperHitFunction();
 void rightBumperReset();
+void updateClient();
 
 /////////////////////
 // Pin Definitions //
@@ -197,6 +198,7 @@ void fastExecuteRequest(String req){
   HeartBeatRcvd = true;
   if (req.indexOf("/HB") != -1){
         //Fast Catch and Release, HB handled above.        
+        updateClient();
         yield();
         return;
       }
@@ -207,7 +209,7 @@ void fastExecuteRequest(String req){
     pingOn = true;
     if (req.indexOf("/HBDA") != -1)driverAssist = true;
     if (req.indexOf("/HBDM") != -1)driverAssist = false;
-    serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
@@ -226,17 +228,18 @@ void fastExecuteRequest(String req){
          setColor(RgbColor(255,0,0));
           dY = 500;
         }
+        updateClient();
     }else{
       pixelTest();
     }
     motors.manualDrive(dX,dY);
   }
   if (req.indexOf("data,") != -1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
           yield();
           req.remove(0,req.indexOf("data,"));
           req.trim();
-          motors.startCommandSet(req);
+          motors.startCommandSet(req);          
           return;
       }
 }
@@ -634,5 +637,19 @@ void testBumper(){
           motors.manualDrive(0,500);
     }
      #endif
+}
+
+/**
+ * Updates websocket client with distance/temperature information.
+ */
+void updateClient(){
+  
+  String s = "/T";
+  s += getCurrentTemperature();
+  s += ",";
+  s += "/D";
+  s += distance;
+  webSocket.sendTXT(0,s);
+  Serial.println("Return Message: " + s);
 }
 
