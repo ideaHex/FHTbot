@@ -61,7 +61,7 @@ void rightBumperReset();
 // D4 is used for neoPixelBus (TXD1)
 // D0 is used to trigger ping
 // D8 is used for echo of ping
-#define D9 3                            // D9 & D10 arn't defined so define them here
+#define D9 3                            // D9 & D10 aren't defined so define them here
 #define D10 1
 const int motorLeftA  = D6;
 const int motorLeftB  = D5;
@@ -93,12 +93,15 @@ long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
+boolean autoMode = false; 				 // drive mode with no client connected
+long autoModeNextUpdate = 0;
+long autoModeNextEvent = 0;
 //#define Diag                           // if not defined disables serial communication after initial feedback
 
 void Stop(void)
 {
   motors.manualDrive(0,0);
-  setColor(RgbColor(0,0,0));             // turn off led's to save power
+  setColor(RgbColor(0,0,0));             // turn off LED's to save power
   pingOn = false;                        // turn off ping to save power
   driverAssist = false;
 }
@@ -119,6 +122,7 @@ void CheckHeartBeat(void)
 void setup()
 {
   system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
+  system_phy_set_max_tpw(10); // 0 - 82 radio TX power
   initHardware();
   setupWiFi();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
@@ -130,6 +134,8 @@ void loop()
 {
   // time dependant functions here
   checkBoredBot();
+  
+  checkAutoMode();
   
   if (pingOn){
    getDistance();                       // ping pulse/update function must be called to ping
@@ -178,7 +184,12 @@ void loop()
   if (!req.length()){// empty request
       return;
       }
-  HeartBeatRcvd = true;                                           // recieved data, must be connected
+  HeartBeatRcvd = true;                                           // received data, must be connected
+  if (autoMode){
+		autoMode = false;										 // disable autoMode if client sends packet
+		HeartBeatRcvd = false;
+		Stop();
+  }
   //Serial.println("\r\n" + req);
   int indexOfX = req.indexOf("/X");
   int indexOfY = req.indexOf("/Y");
@@ -252,7 +263,7 @@ void loop()
               motors.startCommandSet(fileString);
               return;
           }
-          if (fileString.indexOf("feedback") != -1){             // send feedback to drive webpage
+          if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
                 int temperature = getCurrentTemperature();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
@@ -333,11 +344,18 @@ void initHardware()
   // setup motors and encoders
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
-  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attatch motor update timer
-  tempTicker.attach_ms(200,updTemp);                                      // attatch temperature sample timer
+  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attach motor update timer
+  tempTicker.attach_ms(200,updTemp);                                      // attach temperature sample timer
  #ifndef Diag
     pinMode(leftBumper, INPUT_PULLUP);
     pinMode(rightBumper, INPUT_PULLUP);
+	// test for startup auto mode
+	if (digitalRead(leftBumper) == LOW){// test for startup auto mode
+		autoMode = true;
+		motors.playCharge();
+		autoModeNextUpdate = millis()+300;
+		autoModeNextEvent = millis() + random(10000,30000);
+	};
     attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
     attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
@@ -387,7 +405,7 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
   path = gzPath;                        // got it, use this path
 }else{                                  // not here so load the standard file
   theBuffer = SPIFFS.open(path, "r");
-  if (!theBuffer){                      // this one dosn't exist either, abort.
+  if (!theBuffer){                      // this one doesn't exist either, abort.
     //Serial.println(path + "Does Not Exist");
     theBuffer.close();
     String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
@@ -507,3 +525,40 @@ void testBumper(){
      #endif
 }
 
+void checkAutoMode(){
+	if (autoMode){
+		HeartBeatRcvd = true;
+		pingOn = true;
+		driverAssist = true;
+		int dX = -1;
+		int dY = -500;
+		if (millis() > autoModeNextUpdate){
+			updateBlinkers(dX,dY);
+			autoModeNextUpdate = millis() + 500;
+			if (distance < 450 && distance > 199 && dY < 0){
+			setColor(RgbColor(90,105,95));
+			motors.hardRightTurn();
+			dX = 500;
+			dY = -100;
+			autoModeNextUpdate = millis() + 2000;
+			}
+			if (distance < 200){
+			setColor(RgbColor(255,0,0));
+			dY = 500;
+			autoModeNextUpdate = millis() + 1500;
+			}
+			motors.manualDrive(dX,dY);
+		}
+		if (millis() > autoModeNextEvent){
+			autoModeNextEvent = millis() + random(10000,30000);
+			setColor(RgbColor(30,105,35));
+			motors.hardRightTurn();
+			dX = 500;
+			dY = -100;
+			motors.manualDrive(dX,dY);
+			autoModeNextUpdate = millis() + 3000;
+			//String data = "data,L,120,";
+			//motors.startCommandSet(data);
+		}
+	}
+}
