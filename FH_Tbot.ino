@@ -80,7 +80,7 @@ Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
-WebSocketsServer webSocket = WebSocketsServer(8888);
+WebSocketsServer webSocket = WebSocketsServer(81);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 int distance = 500;
@@ -123,6 +123,7 @@ void setup()
   system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
   initHardware();
   setupWiFi();
+  setupWebsocket();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
@@ -220,30 +221,6 @@ void executeRequest(String req){
   }else{
         String fileString = req.substring(4, (req.length() - 9));
         //Serial.println("\r\n" + fileString);
-          if (fileString.indexOf("/PlayCharge") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playCharge();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarch") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarch();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioTheme") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioMainThem();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioUnderworld();
-            return;
-          }
           if (fileString.indexOf("/HB") != -1){
             pingOn = false;
             driverAssist = false;
@@ -282,6 +259,39 @@ void executeRequest(String req){
                 serverClients[currentClient].write(ss.c_str(),ss.length());
                 yield();
                 return;
+          }
+          if(fileString.indexOf("write,")!=-1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("write,"));
+              fileString.trim();
+              //TODO Save File
+              
+              return;
+          }
+          if (fileString.indexOf("/PlayCharge") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playCharge();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarch") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarch();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioTheme") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioMainThem();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioUnderworld();
+            return;
           }
           sendFile(fileString);
         }
