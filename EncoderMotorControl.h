@@ -27,9 +27,10 @@ class encoderMotorController {
   public:
   encoderMotorController(uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t,  uint8_t);        //constructor
   void playNote(int, double);                                                               // Play notes through motors
-  void manualDrive(int, int);                                                               // manual drive mode intput
+  void manualDrive(int, int);                                                               // manual drive mode input
   void update();                                                                            // use ticker to call this every updateFrequency from loop function
-  int updateFrequency = 30;                                                                 // update frequency in milli seconds
+  float updateFrequencyScaler = 0.75;
+  int updateFrequency = 30 * updateFrequencyScaler;                                         // update frequency in milli seconds
   void startCommandSet(String);                                                             // get command set from string
   void cancelCommandSet();
   void takeStep(int);
@@ -54,11 +55,11 @@ class encoderMotorController {
   #define TIME_OUT 100000                              // encoder time out in micro seconds
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.7 ;                    // in KPH
-  volatile double MIN_Speed = 0.37;                    // minimum speed in KPH
+  volatile double MIN_Speed = 0.32; //.37                   // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
-  volatile double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
+  volatile double botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.4) + MIN_Speed;
   volatile unsigned int timeOfFirstStep[2];            // first step in sample
   volatile unsigned int timeOfLastStep[2];             //step before current
   volatile unsigned int timeOfCurrentStep[2];
@@ -74,9 +75,9 @@ class encoderMotorController {
   double lastSampleDeltaT[2];
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
-  double encoderWheelSlots = 20;
+  double encoderWheelSlots = 32;
   float wheelDiameter = 64.93592;                      // in mm
-  double axleLength = 90.55;                           // distance between wheel centers in mm, last version was 93.8
+  double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
   double axleCircumference = (axleLength * 2.0) * PI;
   volatile double distancePerStep = (wheelDiameter * PI) / (encoderWheelSlots * 2.0);
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
@@ -109,7 +110,7 @@ class encoderMotorController {
   long wheelTargetSteps[2];
   double gridX = 0.0;                                  // grid coords
   double gridY = 0.0;
-  String commandSet;                                   // string to hold incomming commands
+  String commandSet;                                   // string to hold incoming commands
   boolean commandSetHasCommands = false;
   volatile boolean commandCompleted = false;
   volatile boolean slow = false;

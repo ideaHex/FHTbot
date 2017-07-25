@@ -506,7 +506,7 @@ void encoderMotorController::PID(){
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
       // convert error to PWM
-      double maxPWMChange = 100.0;
+      double maxPWMChange = 110.0 * updateFrequencyScaler;
       int PWMChangeIncreaseA = int(maxPWMChange * (makePositive(errorA) / MAX_Speed));
       int PWMChangeIncreaseB = int(maxPWMChange * (makePositive(errorB) / MAX_Speed));
       int PWMChangeDecreaseA = int(double(PWMChangeIncreaseA) * 0.5);
@@ -530,10 +530,10 @@ void encoderMotorController::PID(){
       lastError[1] = errorB;
       // special limits for turning in turtle mode
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
-        PWMChangeIncreaseA = 7;
-        PWMChangeIncreaseB = 7;
-        PWMChangeDecreaseA = 2;
-        PWMChangeDecreaseB = 2;
+        PWMChangeIncreaseA = 7 * updateFrequencyScaler;
+        PWMChangeIncreaseB = 7 * updateFrequencyScaler;
+        PWMChangeDecreaseA = 2 * updateFrequencyScaler;
+        PWMChangeDecreaseB = 2 * updateFrequencyScaler;
         if (commandCompleted || slow){
           if(commandCompleted)motorBreak();
           return;
@@ -705,6 +705,9 @@ void encoderMotorController::updateSteering(long delatT){
         double scale = positiveHeadingToTarget / MAX_heading_Change;
         if (scale < 0.3)scale = 0.3;
         double thisSpeed = botTargetSpeed * 0.22 * scale;     //thisMAXSpeed;
+		if (scale > 0.35){
+			thisSpeed = botTargetSpeed * 0.32 * scale;
+		}
           //if (positiveHeadingToTarget < 5 ){         // greater than can change in 1 second
              // thisSpeed = botTargetSpeed * 0.22 * 0.3;
          //   }
