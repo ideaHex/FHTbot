@@ -506,7 +506,7 @@ void encoderMotorController::PID(){
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
       // convert error to PWM
-      double maxPWMChange = 100.0;
+      double maxPWMChange = 110.0 * updateFrequencyScaler;
       int PWMChangeIncreaseA = int(maxPWMChange * (makePositive(errorA) / MAX_Speed));
       int PWMChangeIncreaseB = int(maxPWMChange * (makePositive(errorB) / MAX_Speed));
       int PWMChangeDecreaseA = int(double(PWMChangeIncreaseA) * 0.5);
@@ -530,10 +530,10 @@ void encoderMotorController::PID(){
       lastError[1] = errorB;
       // special limits for turning in turtle mode
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
-        PWMChangeIncreaseA = 7;
-        PWMChangeIncreaseB = 7;
-        PWMChangeDecreaseA = 2;
-        PWMChangeDecreaseB = 2;
+        PWMChangeIncreaseA = 7 * updateFrequencyScaler;
+        PWMChangeIncreaseB = 7 * updateFrequencyScaler;
+        PWMChangeDecreaseA = 2 * updateFrequencyScaler;
+        PWMChangeDecreaseB = 2 * updateFrequencyScaler;
         if (commandCompleted || slow){
           if(commandCompleted)motorBreak();
           return;
@@ -705,6 +705,9 @@ void encoderMotorController::updateSteering(long delatT){
         double scale = positiveHeadingToTarget / MAX_heading_Change;
         if (scale < 0.3)scale = 0.3;
         double thisSpeed = botTargetSpeed * 0.22 * scale;     //thisMAXSpeed;
+		if (scale > 0.35){
+			thisSpeed = botTargetSpeed * 0.32 * scale;
+		}
           //if (positiveHeadingToTarget < 5 ){         // greater than can change in 1 second
              // thisSpeed = botTargetSpeed * 0.22 * 0.3;
          //   }
@@ -736,9 +739,9 @@ void encoderMotorController::updateSteering(long delatT){
 }
 void encoderMotorController::playMarch(){
   updateBPM(104);
-  int notes[]{ NOTE_A3,NOTE_A3,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_E4,NOTE_E4,NOTE_E4,NOTE_F4,NOTE_C4,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_A4,NOTE_A3,NOTE_A3,
-  NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_A3,NOTE_C4,NOTE_A3,NOTE_C4,NOTE_E4,
-  NOTE_A4,NOTE_A3,NOTE_A3,NOTE_A4,NOTE_AS4,NOTE_G4,NOTE_GS4,NOTE_E4,NOTE_F4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_DS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_AS3,NOTE_F3,NOTE_C4,NOTE_A3,
+  int notes[]{NOTE_A3,NOTE_A3,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_E4,NOTE_E4,NOTE_E4,NOTE_F4,NOTE_C4,NOTE_GS3,NOTE_F3,NOTE_C4,NOTE_A3,NOTE_A4,NOTE_A3,NOTE_A3,
+  NOTE_A4,NOTE_GS4,NOTE_G4,NOTE_FS4,NOTE_F4,NOTE_FS4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_CS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_GS3,NOTE_F3,NOTE_A3,NOTE_C4,NOTE_A3,NOTE_C4,NOTE_E4,
+  NOTE_A4,NOTE_A3,NOTE_A3,NOTE_A4,NOTE_GS4,NOTE_G4,NOTE_FS4,NOTE_F4,NOTE_FS4,1,NOTE_AS3,NOTE_DS4,NOTE_D4,NOTE_CS4,NOTE_C4,NOTE_B3,NOTE_C4,1,NOTE_F3,NOTE_GS3,NOTE_F3,NOTE_C4,NOTE_A3,
   NOTE_F3,NOTE_C4,NOTE_A3,0};
   double durations[]{ Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Qnote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,Qnote,Enote+Snote,Snote,Qnote,
   Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Snote,Snote,Enote,Enote,Enote,Qnote,Enote+Snote,Snote,Qnote,Enote+Snote,Snote,Hnote,
