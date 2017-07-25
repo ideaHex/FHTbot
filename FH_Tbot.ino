@@ -703,7 +703,7 @@ void checkAutoMode(){
 			//motors.startCommandSet(data);
 		}
 	}
-
+}
 /**
  * Updates websocket client with distance/temperature information.
  */
