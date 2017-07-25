@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves, Alexander Battarbee.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@ limitations under the License.
 
 #pragma GCC optimize ("-O2")           // O0 none, O1 Moderate optimization, 02, Full optimization, O3, as O2 plus attempts to vectorize loops, Os Optimize space
 #include <ESP8266WiFi.h>
+#include <WebSockets.h>
+#include <WebSocketsServer.h>
+#include <WebSocketsClient.h>
 #include <FS.h>
 #include <DNSServer.h>
 #include <Ticker.h>
@@ -39,10 +42,8 @@ String AP_Name = "FHTbot";              // This is the Wifi Name(SSID), some num
 bool enableCompatibilityMode = false;   // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
 
 
-
-
-
 void setupWiFi(void);
+void setupWebsocket(void);
 void initHardware(void);
 void sendFile(String);
 String getContentType(String);
@@ -56,6 +57,8 @@ void rightBumperReset();
 void checkBoredBot();
 void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
+void updateClient();
+
 
 /////////////////////
 // Pin Definitions //
@@ -82,6 +85,7 @@ Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
 WiFiClient client;
+WebSocketsServer webSocket = WebSocketsServer(81);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
 int distance = 500;
@@ -100,6 +104,8 @@ boolean autoMode = false; 				 // drive mode with no client connected
 long autoModeNextUpdate = 0;
 long autoModeNextEvent = 0;
 //#define Diag                           // if not defined disables serial communication after initial feedback
+long timerPing;
+
 
 void Stop(void)
 {
@@ -128,6 +134,7 @@ void setup()
   system_phy_set_max_tpw(10); // 0 - 82 radio TX power
   initHardware();
   setupWiFi();
+  setupWebsocket();
   HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
@@ -181,7 +188,69 @@ void loop()
     }
     currentClient = 0;
   }
-
+  executeRequest(req);
+  //Loop WebSocket Server
+  webSocket.loop();
+}
+/**
+ * A faster version of exeReq for websockets.
+ * Features WS response and a shorter command list.
+ */
+void fastExecuteRequest(String req){
+  //Empty request tripwire
+  if(!req.length()){
+    //empty request
+    return;
+  }
+  HeartBeatRcvd = true;
+  if (req.indexOf("/HB") != -1){
+        //Fast Catch and Release, HB handled above.        
+        updateClient();
+        yield();
+        return;
+      }
+  //Serial.println("\r\n" + req);
+  int indexOfX = req.indexOf("/X");
+  int indexOfY = req.indexOf("/Y");
+  if (indexOfX != -1 && indexOfY != -1){
+    pingOn = true;
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;
+    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    yield();
+    String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
+    int dX = xOffset.toInt();
+    String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
+    int dY = yOffset.toInt();
+    // driver assist
+    if (driverAssist){
+      updateBlinkers(dX,dY);
+        if (distance < 450 && distance > 199 && dY < 0){
+          setColor(RgbColor(90,105,95));
+          motors.hardRightTurn();
+          dX = 500;
+          dY = -100;
+        }
+        if (distance < 200){
+         setColor(RgbColor(255,0,0));
+          dY = 500;
+        }
+        updateClient();
+    }else{
+      pixelTest();
+    }
+    motors.manualDrive(dX,dY);
+  }
+  if (req.indexOf("data,") != -1){
+          //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          req.remove(0,req.indexOf("data,"));
+          req.trim();
+          motors.startCommandSet(req);          
+          return;
+      }
+}
+void executeRequest(String req){
   if (!req.length()){// empty request
       return;
       }
@@ -224,30 +293,6 @@ void loop()
   }else{
         String fileString = req.substring(4, (req.length() - 9));
         //Serial.println("\r\n" + fileString);
-          if (fileString.indexOf("/PlayCharge") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playCharge();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarch") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarch();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioTheme") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioMainThem();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioUnderworld();
-            return;
-          }
           if (fileString.indexOf("/HB") != -1){
             pingOn = false;
             driverAssist = false;
@@ -287,9 +332,84 @@ void loop()
                 yield();
                 return;
           }
+          if(fileString.indexOf("write,")!=-1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("write,"));
+              fileString.trim();
+              //TODO Save File
+              
+              return;
+          }
+          if (fileString.indexOf("/PlayCharge") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playCharge();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarch") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarch();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioTheme") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioMainThem();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioUnderworld();
+            return;
+          }
           sendFile(fileString);
         }
 }
+/**
+ * Handles Websocket reception, deciding what needs to be done vs the type of message.
+ */
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
+  Serial.println("WEBSOCKET EVENT");
+  Serial.println(millis()- timerPing);
+  timerPing = millis();
+  switch(type){
+    case WStype_DISCONNECTED:{
+      //perform disconnection events (i.e. send bot to idle.)
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+      //Stop Bot
+      Stop();
+    }
+      break;
+    case WStype_CONNECTED:{
+      //HANDLE NEW CLIENT CONNECTION
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " url: " + String(*payload) + "\n");
+      //ACK connection to client
+      webSocket.sendTXT(num, "Connected to FH_Tbot");
+    }
+    break;
+      case WStype_TEXT:{
+      //Perform actions based on a good payload.
+      Serial.println("Starting charstream to char array conversion");
+      char A[payLength + 1];
+      char * strncpy(char * A, const char * payload, size_t payLength);
+      A[payLength] = '\0';
+      String b((char *) payload);
+      Serial.println(String(num) + "get Text: " + b + " length: " + String(payLength) + "\n");
+      //TEMP BOUNCE
+      //webSocket.sendTXT(num, "Pong");
+      //Heartbeat
+      HeartBeatRcvd = true;
+      fastExecuteRequest(b);
+      //Feedback
+    }
+      break;
+    }
+  }
 
 void setupWiFi()
 {
@@ -301,6 +421,18 @@ void setupWiFi()
   char AP_NameChar[AP_Name.length() + 1];
   AP_Name.toCharArray(AP_NameChar,AP_Name.length() + 1);
 
+  /*
+   * struct softap_config {
+      uint8 ssid[32];
+      uint8 password[64];
+      uint8 ssid_len;
+      uint8 channel; // support 1 ~ 13
+      uint8 authmode; // Don’t support AUTH_WEP in SoftAP mode
+      uint8 ssid_hidden; // default 0
+      uint8 max_connection; // default 4, max 4
+      uint16 beacon_interval; // 100 ~ 60000 ms, default 100
+    };
+   */
   // setup AP, start DNS server, start Web server
 
   int channel = random(1,13 + 1);               // have to add 1 or will be 1 - 12
@@ -320,6 +452,13 @@ void setupWiFi()
   dnsServer.start(DNS_PORT, "*", apIP);// default FHTbot.com  //must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
+}
+
+void setupWebsocket(){
+  //start websocket
+  Serial.println("Establishing Websocket Server");
+  webSocket.begin();
+  webSocket.onEvent(webSocketEvent);
 }
 
 void initHardware()
@@ -448,6 +587,7 @@ String lowerPath = path.substring(path.length()-4,path.length());
 lowerPath.toLowerCase();
 
 if(lowerPath.endsWith(".src")) lowerPath = lowerPath.substring(0, path.lastIndexOf("."));
+else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
 else if(lowerPath.endsWith(".html")) dataType = F("text/html");
 else if(lowerPath.endsWith(".htm")) dataType = F("text/html");
 else if(lowerPath.endsWith(".png")) dataType = F("image/png");
@@ -463,9 +603,10 @@ else if(lowerPath.endsWith(".ogg")) dataType = F("audio/ogg");
 else if(lowerPath.endsWith(".xml")) dataType = F("text/xml");
 else if(lowerPath.endsWith(".pdf")) dataType = F("application/x-pdf");
 else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
-else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
+
 return dataType;
 }
+
 void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       // bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
@@ -525,6 +666,7 @@ void testBumper(){
     }
      #endif
 }
+
 void checkAutoMode(){
 	if (autoMode){
 		HeartBeatRcvd = true;
@@ -561,5 +703,18 @@ void checkAutoMode(){
 			//motors.startCommandSet(data);
 		}
 	}
+
+/**
+ * Updates websocket client with distance/temperature information.
+ */
+void updateClient(){
+  
+  String s = "/T";
+  s += getCurrentTemperature();
+  s += ",";
+  s += "/D";
+  s += distance;
+  webSocket.sendTXT(0,s);
+  Serial.println("Return Message: " + s);
 }
 

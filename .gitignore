@@ -1,0 +1,8 @@
+
+\.build/
+
+data/
+
+dataold/
+
+*.bak
