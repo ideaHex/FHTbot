@@ -54,6 +54,7 @@ void leftBumperHitFunction();
 void leftBumperReset();
 void rightBumperHitFunction();
 void rightBumperReset();
+void updateClient();
 
 /////////////////////
 // Pin Definitions //
@@ -95,7 +96,8 @@ long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
-//#define Diag                           // if not defined disables serial communication after initial feedback
+#define Diag                           // if not defined disables serial communication after initial feedback
+long timerPing;
 
 void Stop(void)
 {
@@ -121,6 +123,7 @@ void CheckHeartBeat(void)
 void setup()
 {
   system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
+  system_phy_set_max_tpw(10);
   initHardware();
   setupWiFi();
   setupWebsocket();
@@ -181,6 +184,64 @@ void loop()
   //Loop WebSocket Server
   webSocket.loop();
 
+}
+/**
+ * A faster version of exeReq for websockets.
+ * Features WS response and a shorter command list.
+ */
+void fastExecuteRequest(String req){
+  //Empty request tripwire
+  if(!req.length()){
+    //empty request
+    return;
+  }
+  HeartBeatRcvd = true;
+  if (req.indexOf("/HB") != -1){
+        //Fast Catch and Release, HB handled above.        
+        updateClient();
+        yield();
+        return;
+      }
+  //Serial.println("\r\n" + req);
+  int indexOfX = req.indexOf("/X");
+  int indexOfY = req.indexOf("/Y");
+  if (indexOfX != -1 && indexOfY != -1){
+    pingOn = true;
+    if (req.indexOf("/HBDA") != -1)driverAssist = true;
+    if (req.indexOf("/HBDM") != -1)driverAssist = false;
+    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    yield();
+    String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
+    int dX = xOffset.toInt();
+    String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
+    int dY = yOffset.toInt();
+    // driver assist
+    if (driverAssist){
+      updateBlinkers(dX,dY);
+        if (distance < 450 && distance > 199 && dY < 0){
+          setColor(RgbColor(90,105,95));
+          motors.hardRightTurn();
+          dX = 500;
+          dY = -100;
+        }
+        if (distance < 200){
+         setColor(RgbColor(255,0,0));
+          dY = 500;
+        }
+        updateClient();
+    }else{
+      pixelTest();
+    }
+    motors.manualDrive(dX,dY);
+  }
+  if (req.indexOf("data,") != -1){
+          //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          req.remove(0,req.indexOf("data,"));
+          req.trim();
+          motors.startCommandSet(req);          
+          return;
+      }
 }
 void executeRequest(String req){
   
@@ -300,10 +361,16 @@ void executeRequest(String req){
  * Handles Websocket reception, deciding what needs to be done vs the type of message.
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLength){
+  Serial.println("WEBSOCKET EVENT");
+  Serial.println(millis()- timerPing);
+  timerPing = millis();
   switch(type){
     case WStype_DISCONNECTED:{
       //perform disconnection events (i.e. send bot to idle.)
-      Serial.println(num + " Disconnected!\n");
+      IPAddress ip = webSocket.remoteIP(num);
+      Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+      //Stop Bot
+      Stop();
     }
       break;
     case WStype_CONNECTED:{
@@ -311,13 +378,23 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
       IPAddress ip = webSocket.remoteIP(num);
       Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " url: " + String(*payload) + "\n");
       //ACK connection to client
-      webSocket.sendTXT(num, "Connected");
+      webSocket.sendTXT(num, "Connected to FH_Tbot");
     }
-      break;
-    case WStype_TEXT:{
+    break;
+      case WStype_TEXT:{
       //Perform actions based on a good payload.
-      Serial.println(String(num) + "get Text: " + String(*payload) + "\n");
-      //executeRequest(payload);
+      Serial.println("Starting charstream to char array conversion");
+      char A[payLength + 1];
+      char * strncpy(char * A, const char * payload, size_t payLength);
+      A[payLength] = '\0';
+      String b((char *) payload);
+      Serial.println(String(num) + "get Text: " + b + " length: " + String(payLength) + "\n");
+      //TEMP BOUNCE
+      //webSocket.sendTXT(num, "Pong");
+      //Heartbeat
+      HeartBeatRcvd = true;
+      fastExecuteRequest(b);
+      //Feedback
     }
       break;
     }
@@ -333,6 +410,18 @@ void setupWiFi()
   char AP_NameChar[AP_Name.length() + 1];
   AP_Name.toCharArray(AP_NameChar,AP_Name.length() + 1);
 
+  /*
+   * struct softap_config {
+      uint8 ssid[32];
+      uint8 password[64];
+      uint8 ssid_len;
+      uint8 channel; // support 1 ~ 13
+      uint8 authmode; // Don’t support AUTH_WEP in SoftAP mode
+      uint8 ssid_hidden; // default 0
+      uint8 max_connection; // default 4, max 4
+      uint16 beacon_interval; // 100 ~ 60000 ms, default 100
+    };
+   */
   // setup AP, start DNS server, start Web server
 
   int channel = random(1,13 + 1);               // have to add 1 or will be 1 - 12
@@ -356,6 +445,7 @@ void setupWiFi()
 
 void setupWebsocket(){
   //start websocket
+  Serial.println("Establishing Websocket Server");
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
@@ -497,6 +587,7 @@ else if(lowerPath.endsWith(".zip")) dataType = F("application/x-zip");
 else if(lowerPath.endsWith(".gz")) dataType = F("application/x-gzip");
 return dataType;
 }
+
 void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       // bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
@@ -555,5 +646,19 @@ void testBumper(){
           motors.manualDrive(0,500);
     }
      #endif
+}
+
+/**
+ * Updates websocket client with distance/temperature information.
+ */
+void updateClient(){
+  
+  String s = "/T";
+  s += getCurrentTemperature();
+  s += ",";
+  s += "/D";
+  s += distance;
+  webSocket.sendTXT(0,s);
+  Serial.println("Return Message: " + s);
 }
 
