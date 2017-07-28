@@ -22,7 +22,7 @@ NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4);
 int makePositive(int);
 
 void pixelTest(){
-    byte brightness = 20; // max is 255
+    byte brightness = 17; // max is 255
     strip.SetPixelColor(0, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(1, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(2, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
@@ -32,7 +32,7 @@ void pixelTest(){
     strip.Show();
 }
 void smile(){
-    int a = 25, b = 0;
+    int a = 22, b = 0;
     strip.SetPixelColor(0, RgbColor(0,0,0));
     strip.SetPixelColor(1, RgbColor(0,0,0));
     strip.SetPixelColor(2, RgbColor(0,0,0));
@@ -80,24 +80,24 @@ void updateBlinkers(int indexOfX, int indexOfY){
     if (makePositive(indexOfX) > 30 ){
       if(indexOfX < 0 ){
         //Update Left
-        px[2] = RgbColor(80,40,0);
-        px[5] = RgbColor(80,40,0);
+        px[2] = RgbColor(75,35,0);
+        px[5] = RgbColor(75,35,0);
       }else if (indexOfX > 0){
         //update Right
-        px[0] =  RgbColor(80,40,0);
-        px[3] = RgbColor(80,40,0);
+        px[0] =  RgbColor(75,35,0);
+        px[3] = RgbColor(75,35,0);
       }else{
         //Equals 0 no indication        
       }      
     }else{
       if(indexOfY < 0 ){
-        px[0] = RgbColor(80,40,0);
-        px[1] = RgbColor(80,40,0);
-        px[2] = RgbColor(80,40,0);
+        px[0] = RgbColor(75,35,0);
+        px[1] = RgbColor(75,35,0);
+        px[2] = RgbColor(75,35,0);
       }else if (indexOfY > 0){    
-        px[3] = RgbColor(80,40,0);
-        px[4] = RgbColor(80,40,0);
-        px[5] = RgbColor(80,40,0);
+        px[3] = RgbColor(75,35,0);
+        px[4] = RgbColor(75,35,0);
+        px[5] = RgbColor(75,35,0);
       }else{
         //Equals 0 no indication
       }

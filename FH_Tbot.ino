@@ -314,7 +314,7 @@ void executeRequest(String req){
                 float voltage = getCurrentVoltage();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-                s += (";var tmp=");
+                s += (";var volt=");
                 s += voltage;
                 s += (";var dis=");
                 s += distance;
@@ -499,6 +499,7 @@ void initHardware()
     attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
     attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
+ Stop(); // incase of reset, stop motors !
 }
 void leftBumperHitFunction(){
   if (!leftBumperHit){

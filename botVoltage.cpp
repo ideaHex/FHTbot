@@ -23,15 +23,14 @@ int currentVoltageSampleNumber = 0;
 float Voltage = 0;
 
 void updateVoltage(){
-  if (currentVoltageSampleNumber < MAX_SAMPLES){
+  while (currentVoltageSampleNumber < MAX_SAMPLES){
     sampleBuffer += analogRead(A0);
     currentVoltageSampleNumber++;
-  }else{
+  }
     double averageSamples = double(double(sampleBuffer) / double(MAX_SAMPLES));
     currentVoltageSampleNumber = 0;
     sampleBuffer = 0;
-    Voltage = (averageSamples / 910.0) * 6.0; // 944 default
-  }
+    Voltage = (averageSamples / 910.0) * 6.0;
 }
 
 float getCurrentVoltage(){
