@@ -15,6 +15,6 @@ limitations under the License.
 */
 #pragma GCC optimize ("-O2")
 
-void updateTemperature();
-int getCurrentTemperature();
+void updateVoltage();
+float getCurrentVoltage();
 

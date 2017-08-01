@@ -26,7 +26,7 @@ limitations under the License.
 #include "RCW0006Ping.h"
 #include <NeoPixelBus.h>
 #include "NeoPixelAnimations.h"
-#include "botTemp.h"
+#include "botVoltage.h"
 
 extern "C" {
    #include "user_interface.h"
@@ -48,7 +48,6 @@ void initHardware(void);
 void sendFile(String);
 String getContentType(String);
 void updateMotors();
-void updTemp();
 void testBumper();
 void leftBumperHitFunction();
 void leftBumperReset();
@@ -57,6 +56,7 @@ void rightBumperReset();
 void checkBoredBot();
 void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
+void checkAutoMode();
 void updateClient();
 
 
@@ -80,7 +80,6 @@ const int rightBumper = D10;
 
 encoderMotorController motors(motorLeftA,motorLeftB,motorRightA,motorRightB,motorLeftEncoder,motorRightEncoder);
 Ticker motorControllerTicker;
-Ticker tempTicker;
 Ticker lBH;                            // left bumper hit reverse timer
 Ticker rBH;                            // right bumper hit reverse timer
 WiFiServer server(80);
@@ -160,6 +159,9 @@ void loop()
   testBumper();
   }
    dnsServer.processNextRequest();      // update DNS requests
+   
+     //Loop WebSocket Server
+		webSocket.loop();
 
    // client functions here
   while (server.hasClient()){
@@ -189,8 +191,6 @@ void loop()
     currentClient = 0;
   }
   executeRequest(req);
-  //Loop WebSocket Server
-  webSocket.loop();
 }
 /**
  * A faster version of exeReq for websockets.
@@ -310,11 +310,12 @@ void executeRequest(String req){
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
-                int temperature = getCurrentTemperature();
+				updateVoltage(); //TODO: change this so it only calls when bot isn't moving
+                float voltage = getCurrentVoltage();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-                s += (";var tmp=");
-                s += temperature;
+                s += (";var volt=");
+                s += voltage;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
@@ -485,7 +486,6 @@ void initHardware()
   attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
   attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
   motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attach motor update timer
-  tempTicker.attach_ms(200,updTemp);                                      // attach temperature sample timer
  #ifndef Diag
     pinMode(leftBumper, INPUT_PULLUP);
     pinMode(rightBumper, INPUT_PULLUP);
@@ -499,6 +499,7 @@ void initHardware()
     attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
     attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
+ Stop(); // incase of reset, stop motors !
 }
 void leftBumperHitFunction(){
   if (!leftBumperHit){
@@ -647,9 +648,6 @@ void checkBoredBot(){
   }
 }
 
-void updTemp(){
-  updateTemperature();
-}
 
 void testBumper(){
     #ifndef Diag
@@ -678,16 +676,16 @@ void checkAutoMode(){
 			updateBlinkers(dX,dY);
 			autoModeNextUpdate = millis() + 500;
 			if (distance < 450 && distance > 199 && dY < 0){
-			setColor(RgbColor(90,105,95));
-			motors.hardRightTurn();
-			dX = 500;
-			dY = -100;
-			autoModeNextUpdate = millis() + 2000;
+				setColor(RgbColor(90,105,95));
+				motors.hardRightTurn();
+				dX = 500;
+				dY = -100;
+				autoModeNextUpdate = millis() + 2000;
 			}
 			if (distance < 200){
-			setColor(RgbColor(255,0,0));
-			dY = 500;
-			autoModeNextUpdate = millis() + 1500;
+				setColor(RgbColor(255,0,0));
+				dY = 500;
+				autoModeNextUpdate = millis() + 1000;
 			}
 			motors.manualDrive(dX,dY);
 		}
@@ -698,7 +696,7 @@ void checkAutoMode(){
 			dX = 500;
 			dY = -100;
 			motors.manualDrive(dX,dY);
-			autoModeNextUpdate = millis() + 3000;
+			autoModeNextUpdate = millis() + 2000;
 			//String data = "data,L,120,";
 			//motors.startCommandSet(data);
 		}
@@ -710,7 +708,7 @@ void checkAutoMode(){
 void updateClient(){
   
   String s = "/T";
-  s += getCurrentTemperature();
+  s += getCurrentVoltage();
   s += ",";
   s += "/D";
   s += distance;

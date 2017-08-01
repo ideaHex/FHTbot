@@ -258,8 +258,14 @@ void encoderMotorController::manualDrive(int X, int Y){
         timeOfFirstStep[a] = timeOfLastStep[a];
         motorDirection[a] = -motorDirection[a];
       }
-      PWMA = PWMWriteRange * 0.5;
-      PWMB = PWMWriteRange * 0.5;
+	  /*
+	  PWMA = 0;
+      PWMB = 0;
+      setMotorSpeed();
+	  delay(10);
+	  */
+      PWMA = PWMWriteRange * minMotorSpeed; // 0.5
+      PWMB = PWMWriteRange * minMotorSpeed; // 0.5
       setMotorSpeed();
     }
   lastX = X;
@@ -506,7 +512,7 @@ void encoderMotorController::PID(){
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
       // convert error to PWM
-      double maxPWMChange = 110.0 * updateFrequencyScaler;
+      double maxPWMChange = 75.0 * updateFrequencyScaler;
       int PWMChangeIncreaseA = int(maxPWMChange * (makePositive(errorA) / MAX_Speed));
       int PWMChangeIncreaseB = int(maxPWMChange * (makePositive(errorB) / MAX_Speed));
       int PWMChangeDecreaseA = int(double(PWMChangeIncreaseA) * 0.5);
@@ -887,11 +893,15 @@ Wnote = 4*Qnote;                                  // whole 4/4
 }
 
 void encoderMotorController::hardRightTurn(){     // emergency turn
+  //motorBreak();
+  //delay(5);
   PWMA = PWMWriteRange;
   PWMB = minMotorSpeed * PWMWriteRange;
   setMotorSpeed();
 }
 void encoderMotorController::hardLeftTurn(){     // emergency turn
+  //motorBreak();
+  //delay(5);
   PWMB = PWMWriteRange;
   PWMA = minMotorSpeed * PWMWriteRange;
   setMotorSpeed();
