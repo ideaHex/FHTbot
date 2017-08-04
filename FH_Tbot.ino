@@ -58,6 +58,7 @@ void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
 void checkAutoMode();
 void updateClient();
+void updateMotorSpeed(void);
 
 
 /////////////////////
@@ -116,6 +117,7 @@ void Stop(void)
 
 void CheckHeartBeat(void)
 {
+	updateMotorSpeed(); 				// check battery level and adjust speed
   if (HeartBeatRcvd == true)
   {
     HeartBeatRcvd = false;
@@ -129,8 +131,8 @@ void CheckHeartBeat(void)
 
 void setup()
 {
-  system_update_cpu_freq(160);           // set cpu to 80MHZ or 160MHZ !
-  system_phy_set_max_tpw(10); // 0 - 82 radio TX power
+  system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
+  system_phy_set_max_tpw(20); // 0 - 82 radio TX power
   initHardware();
   setupWiFi();
   setupWebsocket();
@@ -312,10 +314,13 @@ void executeRequest(String req){
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
 				updateVoltage(); //TODO: change this so it only calls when bot isn't moving
                 float voltage = getCurrentVoltage();
+				int batteryLevel = motors.getBatteryLevel();
                 String s,h;
                 s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
                 s += (";var volt=");
                 s += voltage;
+				s += (";var bLev=");
+                s += batteryLevel;
                 s += (";var dis=");
                 s += distance;
                 s += (";var kph=");
@@ -671,15 +676,15 @@ void checkAutoMode(){
 		pingOn = true;
 		driverAssist = true;
 		int dX = -1;
-		int dY = -500;
+		int dY = -430;
 		if (millis() > autoModeNextUpdate){
 			updateBlinkers(dX,dY);
 			autoModeNextUpdate = millis() + 500;
-			if (distance < 450 && distance > 199 && dY < 0){
+			if (distance < 460 && distance > 199 && dY < 0){
 				setColor(RgbColor(90,105,95));
 				motors.hardRightTurn();
 				dX = 500;
-				dY = -100;
+				dY = -50;
 				autoModeNextUpdate = millis() + 2000;
 			}
 			if (distance < 200){
@@ -716,3 +721,8 @@ void updateClient(){
   Serial.println("Return Message: " + s);
 }
 
+void updateMotorSpeed(){
+				updateVoltage();
+                float voltage = getCurrentVoltage();
+				motors.updateMotorSpeed(voltage);
+}

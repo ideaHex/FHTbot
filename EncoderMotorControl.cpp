@@ -18,6 +18,7 @@ limitations under the License.
 
 encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 ,uint8_t motorB_pin_1 , uint8_t motorB_pin_2,uint8_t encoderA_pin_1,uint8_t encoderA_pin_2){
   analogWriteFreq(PWMFrequency); //Theoretical max frequency is 80000000/range, range = 1024 so 78Khz here
+  analogWriteRange(PWMWriteRange);
   motorAPin1 = motorA_pin_1;
   motorAPin2 = motorA_pin_2;
   motorBPin1 = motorB_pin_1;
@@ -258,15 +259,20 @@ void encoderMotorController::manualDrive(int X, int Y){
         timeOfFirstStep[a] = timeOfLastStep[a];
         motorDirection[a] = -motorDirection[a];
       }
-	  /*
+
 	  PWMA = 0;
       PWMB = 0;
       setMotorSpeed();
-	  delay(10);
-	  */
-      PWMA = PWMWriteRange * minMotorSpeed; // 0.5
-      PWMB = PWMWriteRange * minMotorSpeed; // 0.5
+	  Y = 0;
+	  botTargetSpeed = 0;
+	  wheelTargetSpeed[0] = 0;
+	  wheelTargetSpeed[1] = 0;
+	  delay(500);
+	  /*
+      PWMA = PWMWriteRange * 0.5;
+      PWMB = PWMWriteRange * 0.5;
       setMotorSpeed();
+	  */
     }
   lastX = X;
   lastY = Y;
@@ -908,6 +914,7 @@ void encoderMotorController::hardLeftTurn(){     // emergency turn
 }
 
 void encoderMotorController::increaseMinSpeed(int wheel){
+	/*
      if (!wheel){ // stop wheel completely so next cycle it will get a surge in boost mode
      PWMA = 0;
      }else{
@@ -932,5 +939,48 @@ void encoderMotorController::increaseMinSpeed(int wheel){
       MIN_Speed = MAX_Speed - (MAX_Speed * 0.1);
     }
     //Serial.println("New Min Speed" + String(MIN_Speed) + "New Max Speed" + String(MAX_Speed));
+	*/
 }
 
+void encoderMotorController::updateMotorSpeed(double voltage){
+	if (voltage >= 5.8 && batteryLevel == 1){
+		return;
+	}
+	if (voltage > 5.5  && voltage < 5.8 && batteryLevel < 2){
+		batteryLevel = 2;
+		return;
+	}
+	if (voltage > 5 && voltage < 5.5 && batteryLevel < 3){
+		MIN_Speed = BASE_MIN_Speed;
+		MAX_Speed = BASE_MAX_Speed;
+		startPWMBoost = BASE_START_BOOST;
+		batteryLevel = 3;
+		return;
+	}
+	if (voltage > 4.5 && voltage < 5 && batteryLevel < 4){
+		MIN_Speed = BASE_MIN_Speed + 0.09;
+		MAX_Speed = 1.4;
+		startPWMBoost = BASE_START_BOOST + 50;
+		batteryLevel = 4;
+		return;
+	}
+	if (voltage > 4.3 && voltage < 4.5 && batteryLevel < 5){
+		MIN_Speed = BASE_MIN_Speed + 0.12;
+		MAX_Speed = 1.3;
+		startPWMBoost = BASE_START_BOOST + 100;
+		batteryLevel = 5;
+		return;
+	}
+	if (voltage < 4.3 && batteryLevel < 6){
+		//below minimum voltage
+		MIN_Speed = BASE_MIN_Speed + 0.18;
+		MAX_Speed = 0.9;
+		startPWMBoost = BASE_START_BOOST;
+		batteryLevel = 6;
+		return;
+	}
+}
+
+int encoderMotorController::getBatteryLevel(){
+	return batteryLevel;
+}

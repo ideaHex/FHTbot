@@ -48,6 +48,8 @@ class encoderMotorController {
   void playMarioMainThem();
   void playMarioUnderworld();
   void playVroom();
+  void updateMotorSpeed(double);
+  int getBatteryLevel(void);
 
   private:
 
@@ -74,7 +76,7 @@ class encoderMotorController {
   volatile long totalSteps[2];
   double lastSampleDeltaT[2];
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
-  int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
+  int PWMWriteRange = 1024;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   double encoderWheelSlots = 32;
   float wheelDiameter = 64.93592;                      // in mm
   double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
@@ -84,6 +86,7 @@ class encoderMotorController {
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
   volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.5; // add default:35% above minimum speed by default
+  volatile double BASE_START_BOOST = startPWMBoost;
   volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
@@ -119,6 +122,7 @@ class encoderMotorController {
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
   volatile long delaybetweenCommands = 300;             // default 350
+  int batteryLevel = 1; // current charge level 1 full 10 flat
   
   // private functions
   float checkNormal(float);
