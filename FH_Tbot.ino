@@ -103,7 +103,7 @@ boolean rightBumperHit = false;
 boolean autoMode = false; 				 // drive mode with no client connected
 long autoModeNextUpdate = 0;
 long autoModeNextEvent = 0;
-//#define Diag                           // if not defined disables serial communication after initial feedback
+#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 
 
@@ -160,7 +160,9 @@ void loop()
   testBumper();
   }
    dnsServer.processNextRequest();      // update DNS requests
-
+  
+  //Loop WebSocket Server
+  webSocket.loop();
    // client functions here
   while (server.hasClient()){
     for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
@@ -181,6 +183,7 @@ void loop()
     if (serverClients[i] && serverClients[i].connected()){
         if (serverClients[i].available()){
           req = serverClients[i].readStringUntil('\r');   // Read the first line of the request
+          //Serial.println((serverClients[i].readString()+"\r\n"));
           serverClients[i].flush();
           currentClient = i;
           break;
@@ -189,8 +192,6 @@ void loop()
     currentClient = 0;
   }
   executeRequest(req);
-  //Loop WebSocket Server
-  webSocket.loop();
 }
 /**
  * A faster version of exeReq for websockets.
