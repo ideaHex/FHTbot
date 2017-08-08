@@ -197,7 +197,7 @@ void loop() {
  * A faster version of exeReq for websockets.
  * Features WS response and a shorter command list.
  */
-void fastExecuteRequest(String req) {
+void WSRequest(String req) {
   // Empty request tripwire
   if (!req.length()) {
     // empty request
@@ -426,7 +426,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     // webSocket.sendTXT(num, "Pong");
     // Heartbeat
     HeartBeatRcvd = true;
-    fastExecuteRequest(b);
+    WSRequest(b);
     // Feedback
   } break;
   }
