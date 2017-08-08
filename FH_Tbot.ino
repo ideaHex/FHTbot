@@ -194,7 +194,7 @@ void loop() {
  * A faster version of exeReq for websockets.
  * Features WS response and a shorter command list.
  */
-void WSRequest(String req) {
+void WSRequest(String req, int clientNum) {
   // Empty request tripwire
   if (!req.length()) {
     // empty request
@@ -250,6 +250,25 @@ void WSRequest(String req) {
     req.trim();
     motors.startCommandSet(req);
     return;
+  }
+  if (req.indexOf("save,") != -1) {
+    //File pushed turtle mode to be saved
+    //save,fileName,xmlstring
+    String dataString = req.substring(req.indexOf(","));
+    int titleComma dataString.indexOf(",");
+    String fileName = "/T/" + dataString.substring(0,titleComma);
+    File dataFile = SPIFFS.open(fileName,"w");
+    if(dataFile){
+      //Write to file
+      dataFile.print(dataString.substring(titleComma));
+      dataFile.close();
+      //respond to client
+      webSocket.sendTXT(clientNum, "File Saved Successfully");
+    }else{
+      Serial.println("Failed to create file");
+      //respond to client  
+      webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
+    }
   }
 }
 void executeRequest(String req) {
