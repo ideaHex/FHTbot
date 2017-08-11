@@ -55,9 +55,11 @@ class encoderMotorController {
 
   #define MAX_STEP_TIMING_BUFFER 50
   #define TIME_OUT 100000                              // encoder time out in micro seconds
+  #define PWM_PERIOD 100000							   // 50000
+  #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.7 ;                    // in KPH
-  volatile double MIN_Speed = 0.32; //.37                   // minimum speed in KPH
+  volatile double MIN_Speed = 0.30; //.37              // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
@@ -76,7 +78,16 @@ class encoderMotorController {
   volatile long totalSteps[2];
   double lastSampleDeltaT[2];
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
-  int PWMWriteRange = 1024;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
+  int PWMWriteRange = PWM_PERIOD;                       //The new pwm range must equal the period to function properly
+  int minPWMModifier = 1 + (PWMWriteRange * (1.0 / 1023.0));
+  uint32 io_info[PWM_CHANNELS][3] = {
+	// MUX, FUNC, PIN
+	{PERIPHS_IO_MUX_MTDI_U,  FUNC_GPIO12, 12}, // D6
+	{PERIPHS_IO_MUX_MTMS_U,  FUNC_GPIO14, 14}, // D5
+	{PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4,   4}, // D2
+	{PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0,   0}, // D3
+};
+  double maxPWMChange = 75.0 * updateFrequencyScaler * (PWM_PERIOD / 1023);
   double encoderWheelSlots = 32;
   float wheelDiameter = 64.93592;                      // in mm
   double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
@@ -85,7 +96,7 @@ class encoderMotorController {
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
-  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.5; // add default:35% above minimum speed by default
+  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.80; // add default:35% above minimum speed by default
   volatile double BASE_START_BOOST = startPWMBoost;
   volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];
@@ -122,7 +133,7 @@ class encoderMotorController {
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
   volatile long delaybetweenCommands = 300;             // default 350
-  int batteryLevel = 1; // current charge level 1 full 10 flat
+  int batteryLevel = 1; 								// current charge level 1 full 8 flat
   
   // private functions
   float checkNormal(float);
@@ -137,7 +148,6 @@ class encoderMotorController {
   void PID();
   void updateSteering(long);
   void updateBPM(double);
-  void increaseMinSpeed(int);
   void motorBreak();
   
   // DURATION OF THE NOTES 

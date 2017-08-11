@@ -103,7 +103,7 @@ boolean rightBumperHit = false;
 boolean autoMode = false; 				 // drive mode with no client connected
 long autoModeNextUpdate = 0;
 long autoModeNextEvent = 0;
-//#define Diag                           // if not defined disables serial communication after initial feedback
+#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 
 
@@ -136,7 +136,7 @@ void setup()
   initHardware();
   setupWiFi();
   setupWebsocket();
-  HeartBeatTicker.attach_ms(1000, CheckHeartBeat);
+  HeartBeatTicker.attach_ms(991, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
 }
@@ -312,7 +312,6 @@ void executeRequest(String req){
               return;
           }
           if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
-				updateVoltage(); //TODO: change this so it only calls when bot isn't moving
                 float voltage = getCurrentVoltage();
 				int batteryLevel = motors.getBatteryLevel();
                 String s,h;
@@ -469,7 +468,7 @@ void setupWebsocket(){
 
 void initHardware()
 {
-  Serial.begin(250000);
+  Serial.begin(2000000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FHTbot Serial Connected\r\n"));
   Serial.println(F("\r\n         Disable any form of assisted WIFI\r\n"));
@@ -505,10 +504,11 @@ void initHardware()
     attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
  Stop(); // incase of reset, stop motors !
+ resetVoltageFilter();				// setup voltage filter for first samples
 }
 void leftBumperHitFunction(){
   if (!leftBumperHit){
-    lBH.once_ms(500,leftBumperReset);
+    lBH.once_ms(1500,leftBumperReset);
     //setColor(RgbColor(255,0,0));
   }
   leftBumperHit = true;
@@ -518,7 +518,7 @@ void leftBumperReset(){
 }
 void rightBumperHitFunction(){
   if (!rightBumperHit){
-    rBH.once_ms(500,rightBumperReset);
+    rBH.once_ms(1500,rightBumperReset);
     //setColor(RgbColor(255,0,0));
   }
   rightBumperHit = true;
@@ -658,14 +658,17 @@ void testBumper(){
     #ifndef Diag
     if (!leftBumperHit && rightBumperHit){
           motors.manualDrive(-250,500);
+		  motors.manualDrive(-250,500);
           motors.hardLeftTurn();
     }
     if (!rightBumperHit && leftBumperHit){
           motors.manualDrive(250,500);
+		  motors.manualDrive(250,500);
           motors.hardRightTurn();                               // in reverse right becomes left
     }
      if (rightBumperHit && leftBumperHit){
           motors.manualDrive(0,500);
+		  motors.manualDrive(0,500);
     }
      #endif
 }
@@ -680,6 +683,7 @@ void checkAutoMode(){
 		if (millis() > autoModeNextUpdate){
 			updateBlinkers(dX,dY);
 			autoModeNextUpdate = millis() + 500;
+			if (leftBumperHit || rightBumperHit)autoModeNextUpdate = millis() + 2000;
 			if (distance < 460 && distance > 199 && dY < 0){
 				setColor(RgbColor(90,105,95));
 				motors.hardRightTurn();
@@ -690,7 +694,7 @@ void checkAutoMode(){
 			if (distance < 200){
 				setColor(RgbColor(255,0,0));
 				dY = 500;
-				autoModeNextUpdate = millis() + 1000;
+				autoModeNextUpdate = millis() + 1200;
 			}
 			motors.manualDrive(dX,dY);
 		}

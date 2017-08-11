@@ -14,7 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma GCC optimize ("-O2")
-
+#define MAX_VOLTAGE_MEDIAN_SAMPLES 9                                 // use an odd number
+void addToVoltageFilter(double);
+void resetVoltageFilter();
 void updateVoltage();
 float getCurrentVoltage();
 
