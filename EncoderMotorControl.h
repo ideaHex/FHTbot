@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class encoderMotorController {
 
   #define MAX_STEP_TIMING_BUFFER 50
   #define TIME_OUT 100000                              // encoder time out in micro seconds
-  #define PWM_PERIOD 100000							   // 50000
+  #define PWM_PERIOD 125000							   // 40 Hz  1/(PWM_PERIOD * 200ns)
   #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.7 ;                    // in KPH
@@ -96,7 +96,7 @@ class encoderMotorController {
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
-  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.80; // add default:35% above minimum speed by default
+  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.70; // add default:35% above minimum speed by default
   volatile double BASE_START_BOOST = startPWMBoost;
   volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];

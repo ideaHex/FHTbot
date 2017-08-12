@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ volatile int currentMedianSample;
 volatile int medianBuffer[MAX_MEDIAN_SAMPLES];
 volatile int medianDistance = 500;
 volatile int maxTimeNeeded = int((double(MAX_TEST_DISTANCE) / 10.0 * 58.0) / 1000.0);   // in ms
-volatile long previousMillis = millis();                       // used for timeout for no ping received
+volatile long previousMillis = millis();                       // used for time out for no ping received
 volatile int minimumDelay = 24;                                // to prevent false echo's
 volatile long currentTimeout;
 
@@ -70,11 +70,6 @@ void addToFilter(int pD){
     }
     if (currentMedianSample == MAX_MEDIAN_SAMPLES){
       medianDistance = medianBuffer[int(MAX_MEDIAN_SAMPLES / 2.0)];
-//      for (int a = 0; a < MAX_MEDIAN_SAMPLES; a++){
-//      Serial.print(" "+String(medianBuffer[a]));
-//      }
-//      Serial.println();
-//      Serial.println("D"+String(medianDistance));
       resetFilter();
     }
 }
@@ -103,7 +98,6 @@ void triggerPing(){
 int getDistance(){                                              // returns distance or last distance or -1 if not available
   currentTimeout = millis() - previousMillis;
   if (pingDistance != -1 && currentTimeout > minimumDelay){
-      //Serial.printf("Distance: %d mm \r\n", pingDistance);
       lastPingDistance = pingDistance;                          // last real distance
       pingDistance = -1;
       triggerPing();

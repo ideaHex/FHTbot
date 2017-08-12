@@ -103,7 +103,7 @@ boolean rightBumperHit = false;
 boolean autoMode = false; 				 // drive mode with no client connected
 long autoModeNextUpdate = 0;
 long autoModeNextEvent = 0;
-#define Diag                           // if not defined disables serial communication after initial feedback
+//#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 
 
@@ -132,7 +132,7 @@ void CheckHeartBeat(void)
 void setup()
 {
   system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
-  system_phy_set_max_tpw(20); // 0 - 82 radio TX power
+  system_phy_set_max_tpw(30); 			// 0 - 82 radio TX power
   initHardware();
   setupWiFi();
   setupWebsocket();
@@ -503,7 +503,7 @@ void initHardware()
     attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
     attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
  #endif
- Stop(); // incase of reset, stop motors !
+ Stop(); 							// incase of reset, stop motors !
  resetVoltageFilter();				// setup voltage filter for first samples
 }
 void leftBumperHitFunction(){
@@ -558,7 +558,7 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
     serverClients[currentClient].write( notFound.c_str(),notFound.length() );
     //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
-    return; // failed to read file
+    return; 							// failed to read file
   }
 }
 
@@ -567,7 +567,7 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
     s += theBuffer.size();
     s += F("\r\ncontent-type: ");
     s += dataType;
-    s += F("\r\nconnection: close"); // last one added X-Content-Type-Options: nosniff\r\n
+    s += F("\r\nconnection: close"); 	// last one added X-Content-Type-Options: nosniff\r\n
   if (path.endsWith(".gz")){
     s += F("\r\nContent-Encoding: gzip\r\n\r\n");
   }else{
@@ -614,7 +614,7 @@ return dataType;
 }
 
 void checkBoredBot(){
-    if (millis() > nextBoredBotEvent){       // bored bot event called here
+    if (millis() > nextBoredBotEvent){       					// bored bot event called here
           nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
           // different events to be put here
           int events = 4;
