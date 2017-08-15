@@ -270,9 +270,10 @@ void WSRequest(String req, int clientNum) {
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
   }
+  /* Placeholder until directory listing is figured out.
   if(req.indexOf("load,")!= 1){
     
-  }
+  }*/
 }
 void executeRequest(String req) {
   if (!req.length()) { // empty request
