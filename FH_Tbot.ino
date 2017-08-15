@@ -255,7 +255,7 @@ void WSRequest(String req, int clientNum) {
     //File pushed turtle mode to be saved
     //save,fileName,xmlstring
     String dataString = req.substring(req.indexOf(","));
-    int titleComma dataString.indexOf(",");
+    int titleComma = dataString.indexOf(",");
     String fileName = "/T/" + dataString.substring(0,titleComma);
     File dataFile = SPIFFS.open(fileName,"w");
     if(dataFile){
@@ -269,6 +269,9 @@ void WSRequest(String req, int clientNum) {
       //respond to client  
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
+  }
+  if(req.indexOf("load,")!= 1){
+    
   }
 }
 void executeRequest(String req) {
@@ -442,7 +445,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     // webSocket.sendTXT(num, "Pong");
     // Heartbeat
     HeartBeatRcvd = true;
-    WSRequest(b);
+    WSRequest(b, num);
     // Feedback
   } break;
   }
