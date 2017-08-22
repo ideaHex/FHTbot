@@ -252,7 +252,7 @@ void WSRequest(String req, int clientNum) {
     return;
   }
   if (req.indexOf("save,") != -1) {
-    //File pushed turtle mode to be saved
+    //File pushed by turtle mode to be saved
     //save,fileName,xmlstring
     String dataString = req.substring(req.indexOf(","));
     int titleComma = dataString.indexOf(",");
@@ -266,14 +266,22 @@ void WSRequest(String req, int clientNum) {
       webSocket.sendTXT(clientNum, "File Saved Successfully");
     }else{
       Serial.println("Failed to create file");
-      //respond to client  
+      //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
   }
-  /* Placeholder until directory listing is figured out.
-  if(req.indexOf("load,")!= 1){
-    
-  }*/
+  //Listing directory contents
+  if(req.indexOf("ls,")!= 1){
+     //load dir object
+     Dir dir = SPIFFS.openDir(req.substring(req.indexOf(",")));
+     String out = "";
+     while(dir.next()){
+      File f = dir.openFile("r");
+      //Compiling comma delimited list of file names
+      out += dir.fileName();
+     }
+     webSocket.sendTXT(clientNum, out);
+  }
 }
 void executeRequest(String req) {
   if (!req.length()) { // empty request
