@@ -16,11 +16,8 @@ limitations under the License.
 
 #include "EncoderMotorControl.h"
 extern "C"{
-
 	#include "pwm.h"
-
 	#include "user_interface.h"
-
 }
 
 encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 ,uint8_t motorB_pin_1 , uint8_t motorB_pin_2,uint8_t encoderA_pin_1,uint8_t encoderA_pin_2){
@@ -203,7 +200,7 @@ void encoderMotorController::takeStep(int encoder){
           if(nextCommandMillis)nextCommandMillis += 100; // bot is shaking, give it more time to stop
           //Serial.println("Bot rocking");
         }
-        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){// 0.5
+        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){
           PWMA=0;
           PWMB=0;
           slow = false;
@@ -216,14 +213,14 @@ void encoderMotorController::takeStep(int encoder){
       }
   }
   
-  if (botTurnDirection == none && botTargetSpeed > 0){
+  //if (botTurnDirection == none && botTargetSpeed > 0){
 //    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
 //      wheelTargetSpeed[0] = botTargetSpeed;
 //      wheelTargetSpeed[1] = botTargetSpeed;
 //      PID();
 //    }
       //Serial.println("HTT" + String(headingToTarget) + "H" + String(heading) + "TH" + String(targetHeading));
-  }
+  //}
 }
 
 void encoderMotorController::manualDrive(int X, int Y){
@@ -443,9 +440,6 @@ void encoderMotorController::update(){
     timeOfCurrentStep[0] = timeOfLastStep[0];
     timeOfFirstStep[0] = timeOfLastStep[0];
     wheelSpeed[0] = 0;
-   // if (boostOn[0]){
-   //   increaseMinSpeed(0);
-   // }
     //Serial.println("STOP0" + String(boostOn[0]));
   }
     if ((micros() - timeOfCurrentStep[1]) > minCalculatedSpeedTimePerStep){
@@ -453,9 +447,6 @@ void encoderMotorController::update(){
     timeOfCurrentStep[1] = timeOfLastStep[1];
     timeOfFirstStep[1] = timeOfLastStep[1];
     wheelSpeed[1] = 0;
-    //if (boostOn[1]){
-    //  increaseMinSpeed(1);
-    //}
     //Serial.println("STOP1" + String(boostOn[1]));
   }
   
@@ -631,15 +622,6 @@ void encoderMotorController::PID(){
    if (!wheelTargetSpeed[1] && !wheelSpeed[1]){
     PWMB = 0;
    }
-   /*
-   // test for stalled motor, if battery is low enough the motor can stop at full PWM !
-   if ((!boostOn[0] || PWMA == PWMWriteRange) && !wheelSpeed[0] && wheelTargetSpeed[0] && startPWMBoost != PWMWriteRange - 1){ // if motor isn't in start mode and the wheel isn't turning
-    increaseMinSpeed(0);
-   }
-   if ((!boostOn[1] || PWMB == PWMWriteRange) && !wheelSpeed[1] && wheelTargetSpeed[1] && startPWMBoost != PWMWriteRange - 1){
-    increaseMinSpeed(1);
-   }
-   */
    //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB));
    setMotorSpeed(); 			// send pwm to motors
 }
@@ -675,8 +657,7 @@ void encoderMotorController::updateSteering(long delatT){
       motorDirection[1] = botTargetDirection;
       //double changeDegreesPerSecond = 0;
 
-      double positiveHeadingToTarget = makePositive(headingToTarget); 
-      //positiveHeadingToTarget >= anglePerStep  &&     
+      double positiveHeadingToTarget = makePositive(headingToTarget);     
    if (botTurnDirection != none){ 					// change speed to correct heading for bot pivit
       if (botTurnDirection == turnRight){
         if (PWMA > startPWMBoost && !boostOn[0]){ 	// help prevent overshoot
@@ -690,7 +671,7 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
-        }else{// heading is less than max or is 0 change 
+        }else{												// heading is less than max or is 0 change 
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
@@ -917,7 +898,6 @@ void encoderMotorController::hardLeftTurn(){     // emergency turn
   PWMA = minMotorSpeed * PWMWriteRange;
   setMotorSpeed();
 }
-
 
 void encoderMotorController::updateMotorSpeed(double voltage){
 	if (voltage >= 5.8 && batteryLevel == 1){

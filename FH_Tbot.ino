@@ -509,7 +509,6 @@ void initHardware()
 void leftBumperHitFunction(){
   if (!leftBumperHit){
     lBH.once_ms(1500,leftBumperReset);
-    //setColor(RgbColor(255,0,0));
   }
   leftBumperHit = true;
 }
@@ -519,7 +518,6 @@ void leftBumperReset(){
 void rightBumperHitFunction(){
   if (!rightBumperHit){
     rBH.once_ms(1500,rightBumperReset);
-    //setColor(RgbColor(255,0,0));
   }
   rightBumperHit = true;
 }
@@ -652,7 +650,6 @@ void checkBoredBot(){
           }
   }
 }
-
 
 void testBumper(){
     #ifndef Diag

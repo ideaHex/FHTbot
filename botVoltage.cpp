@@ -29,7 +29,6 @@ float getCurrentVoltage(){
   return Voltage;
 }
 
-
 void addToVoltageFilter(double pD){
   currentVoltageMedianSample++;
     for (int a = 0 ; a < MAX_VOLTAGE_MEDIAN_SAMPLES; a++){
