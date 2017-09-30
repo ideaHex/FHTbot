@@ -157,7 +157,7 @@ void loop() {
     testBumper();
   }
    dnsServer.processNextRequest();      // update DNS requests
-  
+
   //Loop WebSocket Server
   webSocket.loop();
    // client functions here
@@ -255,7 +255,7 @@ void WSRequest(String req, int clientNum) {
     //File pushed turtle mode to be saved
     //save,fileName,xmlstring
     String dataString = req.substring(req.indexOf(","));
-    int titleComma dataString.indexOf(",");
+    int titleComma = dataString.indexOf(",");
     String fileName = "/T/" + dataString.substring(0,titleComma);
     File dataFile = SPIFFS.open(fileName,"w");
     if(dataFile){
@@ -266,7 +266,7 @@ void WSRequest(String req, int clientNum) {
       webSocket.sendTXT(clientNum, "File Saved Successfully");
     }else{
       Serial.println("Failed to create file");
-      //respond to client  
+      //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
   }
@@ -442,7 +442,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
     // webSocket.sendTXT(num, "Pong");
     // Heartbeat
     HeartBeatRcvd = true;
-    WSRequest(b);
+    WSRequest(b, num);
     // Feedback
   } break;
   }
@@ -763,10 +763,9 @@ void checkAutoMode() {
 void updateClient() {
 
   String s = "/T";
-  s += getCurrentTemperature();
-  s += ",";
-  s += "/D";
-  s += distance;
+  s.concat(getCurrentTemperature());
+  s.concat(",/D");
+  s.concat(distance);
   webSocket.sendTXT(0, s);
   Serial.println("Return Message: " + s);
 }
