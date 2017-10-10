@@ -158,7 +158,7 @@ void loop() {
     testBumper();
   }
    dnsServer.processNextRequest();      // update DNS requests
-  
+
   //Loop WebSocket Server
   webSocket.loop();
    // client functions here
@@ -781,20 +781,11 @@ void checkAutoMode() {
  * TODO CHANGE TO CHAR ARRAY
  */
 void updateClient() {
-  if(updateRound == 0){
-    String s = "/T";
-    s += getCurrentTemperature();
-    s += ",";
-    s += "/D";
-    s += distance;
-    webSocket.sendTXT(0, s);
-    Serial.println("Return Message: " + s);
-    updateRound ++;
-  }else{
-    if(updateRound < 4){
-      updateRound ++;
-    }else{
-      updateRound = 0;
-    }
-  }
+
+  String s = "/T";
+  s.concat(getCurrentTemperature());
+  s.concat(",/D");
+  s.concat(distance);
+  webSocket.sendTXT(0, s);
+  Serial.println("Return Message: " + s);
 }

@@ -36,7 +36,7 @@ class encoderMotorController {
   void takeStep(int);
   void hardRightTurn();
   void hardLeftTurn();
-  
+
   double getheading();
   double getSpeed();
   double getTravel();
@@ -90,13 +90,12 @@ class encoderMotorController {
   volatile double lastError[2];
   volatile double MAX_heading_Change = 110.0;          // in degrees per second
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
-  int lastX = 0;
-  int lastY = 0;
-  const int forward = 1;
-  const int reverse = -1;
-  const int turnLeft = 1;
-  const int turnRight = -1;
-  const int none = 0;
+  int lastX = 0, lastY = 0;
+  #define forward 1
+  #define reverse -1
+  #define turnLeft 1
+  #define turnRight -1
+  #define none 0
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
@@ -120,7 +119,7 @@ class encoderMotorController {
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
   volatile long delaybetweenCommands = 300;             // default 350
-  
+
   // private functions
   float checkNormal(float);
   int makePositive(int);
@@ -136,15 +135,15 @@ class encoderMotorController {
   void updateBPM(double);
   void increaseMinSpeed(int);
   void motorBreak();
-  
-  // DURATION OF THE NOTES 
+
+  // DURATION OF THE NOTES
   double BPM = 104;
-  double Qnote = 60000/BPM;                                // quarter 1/4 
+  double Qnote = 60000/BPM;                                // quarter 1/4
   double Hnote = 2*Qnote;                                  // half 2/4
   double Enote = Qnote/2;                                  // eighth 1/8
   double Snote = Qnote/4;                                  // sixteenth 1/16
   double Wnote = 4*Qnote;                                  // whole 4/4
-  
+
 };
 
 /*************************************************
@@ -243,3 +242,11 @@ class encoderMotorController {
 
 
 #endif
+
+  int lastX = 0;
+  int lastY = 0;
+  const int forward = 1;
+  const int reverse = -1;
+  const int turnLeft = 1;
+  const int turnRight = -1;
+  const int none = 0;
