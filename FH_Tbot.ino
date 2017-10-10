@@ -96,27 +96,25 @@ String closeConnectionHeader = "";
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-long nextBoredBotEvent = 0;
+unsigned long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 boolean autoMode = false; 				 // drive mode with no client connected
-long autoModeNextUpdate = 0;
-long autoModeNextEvent = 0;
+unsigned long autoModeNextUpdate = 0;
+unsigned long autoModeNextEvent = 0;
 //#define Diag                           // if not defined disables serial communication after initial feedback
-long timerPing;
+unsigned long timerPing;
 
 
-void Stop(void)
-{
+void Stop(void){
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off LED's to save power
   pingOn = false;                        // turn off ping to save power
   driverAssist = false;
 }
 
-void CheckHeartBeat(void)
-{
+void CheckHeartBeat(void){
 	updateMotorSpeed(); 				// check battery level and adjust speed
   if (HeartBeatRcvd == true)
   {
@@ -129,8 +127,7 @@ void CheckHeartBeat(void)
   }
 }
 
-void setup()
-{
+void setup(){
   system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
   system_phy_set_max_tpw(30); 			// 0 - 82 radio TX power
   initHardware();
@@ -141,8 +138,7 @@ void setup()
   nextBoredBotEvent = millis() + boredBotTimeout;
 }
 
-void loop()
-{
+void loop(){
   // time dependant functions here
   checkBoredBot();
   checkAutoMode();
@@ -416,8 +412,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t payLen
     }
   }
 
-void setupWiFi()
-{
+void setupWiFi(){
   WiFi.mode(WIFI_AP);
 
   // Create a unique name by appending the MAC address to the AP Name
@@ -466,8 +461,7 @@ void setupWebsocket(){
   webSocket.onEvent(webSocketEvent);
 }
 
-void initHardware()
-{
+void initHardware(){
   Serial.begin(2000000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FHTbot Serial Connected\r\n"));
@@ -577,7 +571,7 @@ String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length
     theBuffer.close();
     return;
   }
-  int bufferLength = theBuffer.size();
+  uint bufferLength = theBuffer.size();
   if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
     // failed to send all file
   }
