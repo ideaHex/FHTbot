@@ -20,7 +20,7 @@ limitations under the License.
 #include "EncoderMotorControl.h"
 #include "NeoPixelAnimations.h"
 #include "RCW0006Ping.h"
-#include "botTemp.h"
+#include "botVoltage.h"
 #include <DNSServer.h>
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -58,6 +58,7 @@ void leftBumperHitFunction();
 void leftBumperReset();
 void rightBumperHitFunction();
 void rightBumperReset();
+void checkAutoMode();
 void checkBoredBot();
 void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
@@ -582,6 +583,7 @@ if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version
     yield();
     return; 							// failed to read file
   }
+  }
 
 // make header
 String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length: ");
@@ -753,8 +755,10 @@ void checkAutoMode(){
  */
 void updateClient() {
 
-  String s = "/T";
-  s.concat(getCurrentTemperature());
+  String s = "/V";
+  s.concat(getCurrentVoltage());
+  s.concat(",/B");
+  s.concat(motors.getBatteryLevel());
   s.concat(",/D");
   s.concat(distance);
   webSocket.sendTXT(0, s);
