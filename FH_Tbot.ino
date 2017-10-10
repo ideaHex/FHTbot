@@ -106,11 +106,12 @@ unsigned long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
-boolean autoMode = false; 				 // drive mode with no client connected
-unsigned long autoModeNextUpdate = 0;
-unsigned long autoModeNextEvent = 0;
-//#define Diag                           // if not defined disables serial communication after initial feedback
-unsigned long timerPing;
+boolean autoMode = false; // drive mode with no client connected
+long autoModeNextUpdate = 0;
+long autoModeNextEvent = 0;
+#define Diag                           // if not defined disables serial communication after initial feedback
+long timerPing;
+short updateRound = 0;
 
 
 void Stop(void){
@@ -216,10 +217,13 @@ void WSRequest(String req, int clientNum) {
   int indexOfY = req.indexOf("/Y");
   if (indexOfX != -1 && indexOfY != -1) {
     pingOn = true;
-    if (req.indexOf("/HBDA") != -1)
+    int indexOfHB = req.indexOf("/DA");
+    if (indexOfHB != -1){
       driverAssist = true;
-    if (req.indexOf("/HBDM") != -1)
+      }
+    if (req.indexOf("/DM") != -1){
       driverAssist = false;
+      }
     // serverClients[currentClient].write(
     // closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
@@ -227,6 +231,7 @@ void WSRequest(String req, int clientNum) {
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
+    Serial.println("dX"+String(dX)+"dY"+String(dY));
     // driver assist
     if (driverAssist) {
       updateBlinkers(dX, dY);
@@ -245,7 +250,8 @@ void WSRequest(String req, int clientNum) {
       pixelTest();
     }
     motors.manualDrive(dX, dY);
-  }
+  }else{
+    //TODO REVIEW THESE FOR FALSE ACTIVATION LS PROVED TO HIT
   if (req.indexOf("data,") != -1) {
     // serverClients[currentClient].write(
     // closeConnectionHeader.c_str(),closeConnectionHeader.length() );
@@ -256,7 +262,7 @@ void WSRequest(String req, int clientNum) {
     return;
   }
   if (req.indexOf("save,") != -1) {
-    //File pushed turtle mode to be saved
+    //File pushed by turtle mode to be saved
     //save,fileName,xmlstring
     String dataString = req.substring(req.indexOf(","));
     int titleComma = dataString.indexOf(",");
@@ -273,6 +279,19 @@ void WSRequest(String req, int clientNum) {
       //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
+  }
+  //Listing directory contents
+  if(req.indexOf("ls,")!= 1){
+     //load dir object
+     Dir dir = SPIFFS.openDir(req.substring(req.indexOf(",")));
+     String out = "";
+     while(dir.next()){
+      File f = dir.openFile("r");
+      //Compiling comma delimited list of file names
+      out += dir.fileName();
+     }
+     webSocket.sendTXT(clientNum, out);
+  }
   }
 }
 void executeRequest(String req) {
@@ -752,6 +771,7 @@ void checkAutoMode(){
 }
 /**
  * Updates websocket client with distance/temperature information.
+ * TODO CHANGE TO CHAR ARRAY
  */
 void updateClient() {
 
