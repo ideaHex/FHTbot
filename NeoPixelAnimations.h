@@ -22,7 +22,7 @@ NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4);
 int makePositive(int);
 
 void pixelTest(){
-    byte brightness = 17; // max is 255
+    byte brightness = 25; // max is 255
     strip.SetPixelColor(0, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(1, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
     strip.SetPixelColor(2, RgbColor(random(0,brightness), random(0,brightness), random(0,brightness)));
@@ -32,7 +32,7 @@ void pixelTest(){
     strip.Show();
 }
 void smile(){
-    int a = 25, b = 0;
+    int a = 35, b = 0;
     strip.SetPixelColor(0, RgbColor(0,0,0));
     strip.SetPixelColor(1, RgbColor(0,0,0));
     strip.SetPixelColor(2, RgbColor(0,0,0));
@@ -50,6 +50,7 @@ void smile(){
     strip.Show();
     delay(4+a-b);
     }
+	delay(200);
 }
 void setColor(RgbColor color){
     strip.SetPixelColor(0, color);

@@ -58,8 +58,8 @@ class encoderMotorController {
   #define PWM_PERIOD 125000							   // 40 Hz  1/(PWM_PERIOD * 200ns)
   #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
-  volatile double MAX_Speed = 1.7 ;                    // in KPH
-  volatile double MIN_Speed = 0.30; //.37              // minimum speed in KPH
+  volatile double MAX_Speed = 1.8 ;                    // in KPH
+  volatile double MIN_Speed = 0.28; //.37              // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
@@ -104,12 +104,13 @@ class encoderMotorController {
   volatile double lastError[2];
   volatile double MAX_heading_Change = 110.0;          // in degrees per second
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
-  int lastX = 0, lastY = 0;
-  #define forward 1
-  #define reverse -1
-  #define turnLeft 1
-  #define turnRight -1
-  #define none 0
+  int lastX = 0;
+  int lastY = 0;
+  volatile const int forward = 1;
+  volatile const int reverse = -1;
+  volatile const int turnLeft = 1;
+  volatile const int turnRight = -1;
+  volatile const int none = 0;
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
@@ -119,9 +120,9 @@ class encoderMotorController {
   volatile double wheelSpeed[2];
   volatile double targetHeading = 0.0;                 // in degrees
   volatile long botTargetDistance = 0;                 // in mm
-  long wheelTargetDistance[2];                         // in mm
-  long botTargetSteps = 0;
-  long wheelTargetSteps[2];
+  volatile long wheelTargetDistance[2];                         // in mm
+  volatile long botTargetSteps = 0;
+  volatile long wheelTargetSteps[2];
   double gridX = 0.0;                                  // grid coords
   double gridY = 0.0;
   String commandSet;                                   // string to hold incoming commands
@@ -255,14 +256,3 @@ class encoderMotorController {
 #define NOTE_DS8 4978
 
 #endif
-
-#endif
-
-#endif
-  int lastX = 0;
-  int lastY = 0;
-  const int forward = 1;
-  const int reverse = -1;
-  const int turnLeft = 1;
-  const int turnRight = -1;
-  const int none = 0;

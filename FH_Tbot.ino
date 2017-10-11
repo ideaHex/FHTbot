@@ -134,7 +134,7 @@ void CheckHeartBeat(void){
 
 void setup(){
   system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
-  system_phy_set_max_tpw(30); 			// 0 - 82 radio TX power
+  system_phy_set_max_tpw(82); 			// 0 - 82 radio TX power
   initHardware();
   setupWiFi();
   setupWebsocket();

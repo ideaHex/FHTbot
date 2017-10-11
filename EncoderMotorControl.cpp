@@ -365,6 +365,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = forward;
       botTargetDirection = forward;
       botTurnDirection = none;
+	  setMotorSpeed();
     }
     break;
 
@@ -378,6 +379,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = reverse;
       botTargetDirection = reverse;
       botTurnDirection = none;
+	  setMotorSpeed();
     }
     break;
 
@@ -386,7 +388,7 @@ void encoderMotorController::processCommand(String command, double value){
       botTargetSpeed = 0.0;
       targetHeading = targetHeading - value;
       if (targetHeading < 0)targetHeading += 360;
-      motorDirection[0] = forward;
+      motorDirection[0] = reverse;
       motorDirection[1] = forward;
       botTargetDirection = forward;
       botTurnDirection = turnLeft;
@@ -399,7 +401,7 @@ void encoderMotorController::processCommand(String command, double value){
       targetHeading = targetHeading + value;
       if (targetHeading > 360)targetHeading -= 360;
       motorDirection[0] = forward;
-      motorDirection[1] = forward;
+      motorDirection[1] = reverse;
       botTargetDirection = forward;
       botTurnDirection = turnRight;
     }
