@@ -918,21 +918,21 @@ void encoderMotorController::updateMotorSpeed(double voltage){
 		return;
 	}
 	if (voltage > 4.5 && voltage < 5 && batteryLevel < 5){
-		MIN_Speed = BASE_MIN_Speed + 0.09;
+		MIN_Speed = BASE_MIN_Speed + 0.10;
 		MAX_Speed = 1.4;
 		startPWMBoost = BASE_START_BOOST + (85 * minPWMModifier);
 		batteryLevel = 5;
 		return;
 	}
 	if (voltage > 4.3 && voltage < 4.5 && batteryLevel < 7){
-		MIN_Speed = BASE_MIN_Speed + 0.15;
+		MIN_Speed = BASE_MIN_Speed + 0.17;
 		MAX_Speed = 1.3;
 		startPWMBoost = BASE_START_BOOST + (125  * minPWMModifier);
 		batteryLevel = 7;
 		return;
 	}
 	if (voltage < 4.3 && batteryLevel < 8){		//below minimum voltage
-		MIN_Speed = BASE_MIN_Speed + 0.22;
+		MIN_Speed = BASE_MIN_Speed + 0.24;
 		MAX_Speed = 0.9;
 		startPWMBoost = BASE_START_BOOST + (175  * minPWMModifier);
 		batteryLevel = 8;

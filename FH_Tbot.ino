@@ -52,7 +52,6 @@ void initHardware(void);
 void sendFile(String);
 String getContentType(String);
 void updateMotors();
-void updTemp();
 void testBumper();
 void leftBumperHitFunction();
 void leftBumperReset();
@@ -109,7 +108,7 @@ boolean rightBumperHit = false;
 boolean autoMode = false; // drive mode with no client connected
 long autoModeNextUpdate = 0;
 long autoModeNextEvent = 0;
-#define Diag                           // if not defined disables serial communication after initial feedback
+//#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 short updateRound = 0;
 
