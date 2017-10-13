@@ -26,7 +26,7 @@ limitations under the License.
 
 const char *password = "12345678"; // This is the Wifi Password (only numbers and letters,  not . , |)
 String AP_Name = "FHTbot"; // This is the Wifi Name(SSID), some numbers will be added for clarity (mac address)
-bool enableCompatibilityMode = false; // turn on compatibility mode for older devices, spacifically sets no encryption and 11B wifi standard
+bool enableCompatibilityMode = false; // turn on compatibility mode for older devices, specifically sets no encryption and 11B wifi standard
 
 /////////////////////
 // Pin Definitions //
@@ -68,8 +68,9 @@ void setup() {
 	Serial.println("\r\n");
 	Serial.println("Board tester installed and running");
 	Serial.println("Plug WeMos into PCB and power with batteries");
-	Serial.println("Each function will change the LED colors");
+	Serial.println("Each function will change the LED colours");
 	Serial.println("Encoders will also run motors if attached");
+	Serial.println("* If a second colour appears during start-up there is a problem with the voltage sensor");
 	delay(100);
 	Serial.end(); // disable serial interface
 	pinMode(leftBumper,INPUT_PULLUP);
@@ -171,10 +172,7 @@ void setupWiFi(){
     WiFi.softAP(AP_NameChar, password, channel, 0);
   }
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(DNS_PORT, "*", apIP); // default FHTbot.com  //must use '.com,
-                                        // .org etc..' and cant use '@ or _
-                                        // etc...' ! . Use "*" to divert all
-                                        // **VALID** names
+  dnsServer.start(DNS_PORT, "*", apIP); // default FHTbot.com  //must use '.com, .org etc..' and cant use '@ or _ etc...' ! . Use "*" to divert all **VALID** names
   server.begin();
   server.setNoDelay(true);
 }
