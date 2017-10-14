@@ -46,6 +46,9 @@ bool enableCompatibilityMode = false; // turn on compatibility mode for older
                                       // devices, spacifically sets no
                                       // encryption and 11B wifi standard
 
+void Stop(void);
+void CheckHeartBeat(void);
+void executeRequest(String);
 void setupWiFi(void);
 void setupWebsocket(void);
 void initHardware(void);
@@ -107,20 +110,20 @@ boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 boolean autoMode = false; // drive mode with no client connected
 long autoModeNextUpdate = 0;
-long autoModeNextEvent = 0;
+unsigned long autoModeNextEvent = 0;
 //#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 short updateRound = 0;
 
 
-void Stop(void){
+void Stop(){
   motors.manualDrive(0,0);
   setColor(RgbColor(0,0,0));             // turn off LED's to save power
   pingOn = false;                        // turn off ping to save power
   driverAssist = false;
 }
 
-void CheckHeartBeat(void){
+void CheckHeartBeat(){
 	updateMotorSpeed(); 				// check battery level and adjust speed
   if (HeartBeatRcvd == true)
   {
@@ -524,8 +527,7 @@ void initHardware(){
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
-  Serial.println(
-      F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
+  Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
 #ifndef Diag

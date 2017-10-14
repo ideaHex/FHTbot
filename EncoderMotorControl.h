@@ -58,7 +58,7 @@ class encoderMotorController {
   #define PWM_PERIOD 125000							   // 40 Hz  1/(PWM_PERIOD * 200ns)
   #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
-  volatile double MAX_Speed = 1.8 ;                    // in KPH
+  volatile double MAX_Speed = 1.8;                     // in KPH
   volatile double MIN_Speed = 0.28; //.37              // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;

@@ -132,9 +132,9 @@ void encoderMotorController::takeStep(int encoder){
   if (boostOn[encoder] == true){ // first step after start
       wheelSpeed[encoder] = MIN_Speed;
       if (encoder == 0){
-        PWMA = minMotorSpeed * PWMWriteRange;
+        PWMA = (MIN_Speed / MAX_Speed) * PWMWriteRange;
       }else{
-        PWMB = minMotorSpeed * PWMWriteRange;
+        PWMB = (MIN_Speed / MAX_Speed) * PWMWriteRange;
       }
       boostOn[encoder] = false;
 	  setMotorSpeed();
@@ -392,6 +392,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = forward;
       botTargetDirection = forward;
       botTurnDirection = turnLeft;
+	  setMotorSpeed();
     }
     break;
 
@@ -404,6 +405,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = reverse;
       botTargetDirection = forward;
       botTurnDirection = turnRight;
+	  setMotorSpeed();
     }
     break;
     default:
@@ -910,28 +912,28 @@ void encoderMotorController::updateMotorSpeed(double voltage){
 		startPWMBoost = BASE_START_BOOST + (25 * minPWMModifier);
 		return;
 	}
-	if (voltage > 5 && voltage < 5.5 && batteryLevel < 4){
+	if (voltage > 5.1 && voltage < 5.5 && batteryLevel < 4){
 		MIN_Speed = BASE_MIN_Speed + 0.02;
 		MAX_Speed = 1.6;
 		startPWMBoost = BASE_START_BOOST + (50 * minPWMModifier);
 		batteryLevel = 4;
 		return;
 	}
-	if (voltage > 4.5 && voltage < 5 && batteryLevel < 5){
+	if (voltage > 4.6 && voltage < 5.1 && batteryLevel < 5){
 		MIN_Speed = BASE_MIN_Speed + 0.10;
 		MAX_Speed = 1.4;
 		startPWMBoost = BASE_START_BOOST + (85 * minPWMModifier);
 		batteryLevel = 5;
 		return;
 	}
-	if (voltage > 4.3 && voltage < 4.5 && batteryLevel < 7){
+	if (voltage > 4.4 && voltage < 4.6 && batteryLevel < 7){
 		MIN_Speed = BASE_MIN_Speed + 0.17;
 		MAX_Speed = 1.3;
 		startPWMBoost = BASE_START_BOOST + (125  * minPWMModifier);
 		batteryLevel = 7;
 		return;
 	}
-	if (voltage < 4.3 && batteryLevel < 8){		//below minimum voltage
+	if (voltage < 4.4 && batteryLevel < 8){		//below minimum voltage
 		MIN_Speed = BASE_MIN_Speed + 0.24;
 		MAX_Speed = 0.9;
 		startPWMBoost = BASE_START_BOOST + (175  * minPWMModifier);
