@@ -90,12 +90,13 @@ class encoderMotorController {
   volatile double lastError[2];
   volatile double MAX_heading_Change = 110.0;          // in degrees per second
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
-  int lastX = 0, lastY = 0;
-  #define forward 1
-  #define reverse -1
-  #define turnLeft 1
-  #define turnRight -1
-  #define none 0
+  int lastX = 0;
+  int lastY = 0;
+  const int forward = 1;
+  const int reverse = -1;
+  const int turnLeft = 1;
+  const int turnRight = -1;
+  const int none = 0;
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
@@ -243,10 +244,4 @@ class encoderMotorController {
 
 #endif
 
-  int lastX = 0;
-  int lastY = 0;
-  const int forward = 1;
-  const int reverse = -1;
-  const int turnLeft = 1;
-  const int turnRight = -1;
-  const int none = 0;
+
