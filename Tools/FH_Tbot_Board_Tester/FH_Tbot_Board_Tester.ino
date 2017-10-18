@@ -104,6 +104,7 @@ void loop() {
 		setColor(RgbColor(80, 0, 80));
 		delay(55);
 		setColor(RgbColor(0, 0, 0));
+		delay(1);
   }
 	if(digitalRead(leftBumper) == LOW || digitalRead(rightBumper) == LOW){
 		setColor(RgbColor(0, 80, 80));
