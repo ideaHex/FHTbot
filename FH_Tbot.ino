@@ -106,6 +106,7 @@ int currentClient = 0;
 boolean pingOn = false;
 unsigned long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
+boolean boredBotRunning = false;		// in middle of bored bot function
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 boolean autoMode = false; // drive mode with no client connected
@@ -118,7 +119,7 @@ short updateRound = 0;
 
 void Stop(){
   motors.manualDrive(0,0);
-  setColor(RgbColor(0,0,0));             // turn off LED's to save power
+  if (!boredBotRunning)setColor(RgbColor(0,0,0));// turn off LED's to save power
   pingOn = false;                        // turn off ping to save power
   driverAssist = false;
 }
@@ -679,18 +680,23 @@ void checkBoredBot(){
           // different events to be put here
           int events = 4;
           int pickedEvent = random(1,(events+1));
+		  boredBotRunning = true;
           switch(pickedEvent){
 
     case 1: // play vroom and bright light
       setColor(RgbColor(80, 80, 80));
+	  delay(20);
+	  setColor(RgbColor(80, 80, 80));
       motors.playVroom();
+	  boredBotRunning = false;
       break;
 
     case 2: // random colors
       for (int a = 0; a < 50; a++) {
         pixelTest();
-        delay(20);
+        delay(25);
       }
+	  boredBotRunning = false;
       break;
 
     case 3: // blinker rotation
@@ -704,10 +710,12 @@ void checkBoredBot(){
         delay(100);
         updateBlinkers(-60, -1);
       }
+	  boredBotRunning = false;
       break;
 
     case 4: // smile
       smile();
+	  boredBotRunning = false;
       break;
     }
   }

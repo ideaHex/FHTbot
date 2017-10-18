@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 #include "EncoderMotorControl.h"
+#include "fastIO.h"
 extern "C"{
 	#include "pwm.h"
 	#include "user_interface.h"
@@ -85,15 +86,15 @@ void encoderMotorController::playNote(int note,double duration){
   double a=0;
   while (a<(duration/(noteFrequency/1000.0))){
 	a++;
-	digitalWrite(motorAPin1,0);
-	digitalWrite(motorAPin2,HIGH);
-	digitalWrite(motorBPin1,0);
-	digitalWrite(motorBPin2,HIGH);
+	fastDigitalWrite(motorAPin1,0);
+	fastDigitalWrite(motorAPin2,HIGH);
+	fastDigitalWrite(motorBPin1,0);
+	fastDigitalWrite(motorBPin2,HIGH);
 	delayMicroseconds(noteHalfDuration);
-	digitalWrite(motorAPin1,HIGH);
-	digitalWrite(motorAPin2,0);
-	digitalWrite(motorBPin1,HIGH);
-	digitalWrite(motorBPin2,0);
+	fastDigitalWrite(motorAPin1,HIGH);
+	fastDigitalWrite(motorAPin2,0);
+	fastDigitalWrite(motorBPin1,HIGH);
+	fastDigitalWrite(motorBPin2,0);
 	delayMicroseconds(noteHalfDuration);
   }
   pwm_set_duty(0, 0);
