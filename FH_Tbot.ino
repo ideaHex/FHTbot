@@ -747,6 +747,7 @@ void checkAutoMode(){
 		driverAssist = true;
 		int dX = -1;
 		int dY = -430;
+		unsigned long batteryTimeOffset = motors.getBatteryLevel() * 62;
 		if (millis() > autoModeNextUpdate){
 			updateBlinkers(dX,dY);
 			autoModeNextUpdate = millis() + 500;
@@ -756,7 +757,7 @@ void checkAutoMode(){
 				motors.hardRightTurn();
 				dX = 500;
 				dY = -50;
-				autoModeNextUpdate = millis() + 2000;
+				autoModeNextUpdate = millis() + 1500 + batteryTimeOffset;
 			}
 			if (distance < 200){
 				setColor(RgbColor(255,0,0));
@@ -772,7 +773,7 @@ void checkAutoMode(){
 			dX = 500;
 			dY = -100;
 			motors.manualDrive(dX,dY);
-			autoModeNextUpdate = millis() + 2000;
+			autoModeNextUpdate = millis() + 1500 + batteryTimeOffset;
 			//String data = "data,L,120,";
 			//motors.startCommandSet(data);
 		}

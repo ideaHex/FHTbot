@@ -914,7 +914,7 @@ void encoderMotorController::updateMotorSpeed(double voltage){
 		return;
 	}
 	if (voltage > 5.1 && voltage < 5.5 && batteryLevel < 4){
-		MIN_Speed = BASE_MIN_Speed + 0.02;
+		MIN_Speed = BASE_MIN_Speed + 0.03;
 		MAX_Speed = 1.6;
 		startPWMBoost = BASE_START_BOOST + (50 * minPWMModifier);
 		batteryLevel = 4;
