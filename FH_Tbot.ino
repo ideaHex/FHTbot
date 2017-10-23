@@ -227,7 +227,9 @@ void WSRequest(String req, int clientNum) {
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
+    #ifdef Diag
     Serial.println("dX"+String(dX)+"dY"+String(dY));
+    #endif
     // driver assist
     if (driverAssist) {
       updateBlinkers(dX, dY);
@@ -260,6 +262,9 @@ void WSRequest(String req, int clientNum) {
   if (req.indexOf("save,") != -1) {
     //File pushed by turtle mode to be saved
     //save,fileName,xmlstring
+    #ifdef Diag
+    Serial.println("Save Request:" + req);
+    #endif
     String dataString = req.substring(req.indexOf(","));
     int titleComma = dataString.indexOf(",");
     String fileName = "/T/" + dataString.substring(0,titleComma);
@@ -271,7 +276,9 @@ void WSRequest(String req, int clientNum) {
       //respond to client
       webSocket.sendTXT(clientNum, "File Saved Successfully");
     }else{
+      #ifdef Diag
       Serial.println("Failed to create file");
+      #endif
       //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
@@ -286,6 +293,9 @@ void WSRequest(String req, int clientNum) {
       //Compiling comma delimited list of file names
       out += dir.fileName();
      }
+     #ifdef Diag
+     Serial.println("output:" + out);
+     #endif
      webSocket.sendTXT(clientNum, out);
   }
   }
@@ -427,39 +437,46 @@ void executeRequest(String req) {
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t payLength) {
+
+  #ifdef Diag
   Serial.println("WEBSOCKET EVENT");
   Serial.println(millis() - timerPing);
+  #endif
   timerPing = millis();
   switch (type) {
   case WStype_DISCONNECTED: {
     // perform disconnection events (i.e. send bot to idle.)
     IPAddress ip = webSocket.remoteIP(num);
-    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." +
-                   ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #ifdef Diag
+    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #endif
     // Stop Bot
     Stop();
   } break;
   case WStype_CONNECTED: {
     // HANDLE NEW CLIENT CONNECTION
     IPAddress ip = webSocket.remoteIP(num);
+    #ifdef Diag
     Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] +
                    "." + ip[2] + "." + ip[3] + " url: " + String(*payload) +
                    "\n");
+    #endif
     // ACK connection to client
     webSocket.sendTXT(num, "Connected to FH_Tbot");
   } break;
   case WStype_TEXT: {
     // Perform actions based on a good payload.
+    #ifdef Diag
     Serial.println("Starting charstream to char array conversion");
+    #endif
     char A[payLength + 1];
     char *strncpy(char *A, const char *payload, size_t payLength);
     A[payLength] = '\0';
     String b((char *)payload);
+    #ifdef Diag
     Serial.println(String(num) + "get Text: " + b +
                    " length: " + String(payLength) + "\n");
-    // TEMP BOUNCE
-    // webSocket.sendTXT(num, "Pong");
-    // Heartbeat
+    #endif
     HeartBeatRcvd = true;
     WSRequest(b, num);
     // Feedback
@@ -514,7 +531,9 @@ void setupWiFi() {
 
 void setupWebsocket() {
   // start websocket
+  #ifdef Diag
   Serial.println("Establishing Websocket Server");
+  #endif
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
@@ -532,9 +551,9 @@ void initHardware() {
       F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-#ifndef Diag
+  #ifndef Diag
   Serial.end(); // disable serial interface
-#endif
+  #endif
   pingSetup();
   strip.Begin();
   strip.Show();
@@ -545,7 +564,7 @@ void initHardware() {
   motorControllerTicker.attach_ms(motors.updateFrequency,
                                   updateMotors); // attach motor update timer
   tempTicker.attach_ms(200, updTemp); // attach temperature sample timer
-#ifndef Diag
+  #ifndef Diag
   pinMode(leftBumper, INPUT_PULLUP);
   pinMode(rightBumper, INPUT_PULLUP);
   // test for startup auto mode
@@ -557,7 +576,7 @@ void initHardware() {
   };
   attachInterrupt(leftBumper, leftBumperHitFunction, FALLING);
   attachInterrupt(rightBumper, rightBumperHitFunction, FALLING);
-#endif
+  #endif
 }
 void leftBumperHitFunction() {
   if (!leftBumperHit) {
@@ -787,5 +806,7 @@ void updateClient() {
   s.concat(",/D");
   s.concat(distance);
   webSocket.sendTXT(0, s);
+  #ifdef Diag
   Serial.println("Return Message: " + s);
+  #endif
 }
