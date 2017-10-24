@@ -75,7 +75,7 @@ class encoderMotorController {
   double lastSampleDeltaT[2];
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
-  double encoderWheelSlots = 32;
+  double encoderWheelSlots = 20;                       //THIS CONTROLS THE NUMBER OF WINDOWS ON THE ENCODER WHEELS
   float wheelDiameter = 64.93592;                      // in mm
   double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
   double axleCircumference = (axleLength * 2.0) * PI;
