@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma GCC optimize ("-O2")
-
-void updateTemperature();
-int getCurrentTemperature();
-
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include <Arduino.h>
+#endif
+void fastDigitalWrite(int,bool);

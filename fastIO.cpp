@@ -13,13 +13,16 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-#pragma GCC optimize ("-O2")
- void pingSetup();
- void startup();
- void calculateDistance();
- void triggerPing();
- int getDistance();
- 
- void addToFilter(int);
- void resetFilter();
- int getMedian();
+#include "fastIO.h"
+
+extern "C" {
+	#include "user_interface.h"
+}
+
+void fastDigitalWrite(int pin,bool State){
+	if (State){
+		GPOS = (1 << pin); // HIGH
+		return;
+	}
+	GPOC = (1 << pin); // LOW
+}

@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -48,14 +48,18 @@ class encoderMotorController {
   void playMarioMainThem();
   void playMarioUnderworld();
   void playVroom();
+  void updateMotorSpeed(double);
+  int getBatteryLevel(void);
 
   private:
 
   #define MAX_STEP_TIMING_BUFFER 50
   #define TIME_OUT 100000                              // encoder time out in micro seconds
+  #define PWM_PERIOD 125000							   // 40 Hz  1/(PWM_PERIOD * 200ns)
+  #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
-  volatile double MAX_Speed = 1.7 ;                    // in KPH
-  volatile double MIN_Speed = 0.32; //.37                   // minimum speed in KPH
+  volatile double MAX_Speed = 1.8;                     // in KPH
+  volatile double MIN_Speed = 0.28; //.37              // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
@@ -74,6 +78,17 @@ class encoderMotorController {
   volatile long totalSteps[2];
   double lastSampleDeltaT[2];
   int PWMFrequency = 40;                               // Theoretical max frequency is 80000000/range, range = 1023 so 78Khz here
+  int PWMWriteRange = PWM_PERIOD;                       //The new pwm range must equal the period to function properly
+  int minPWMModifier = 1 + (PWMWriteRange * (1.0 / 1023.0));
+  uint32 io_info[PWM_CHANNELS][3] = {
+	// MUX, FUNC, PIN
+	{PERIPHS_IO_MUX_MTDI_U,  FUNC_GPIO12, 12}, // D6
+	{PERIPHS_IO_MUX_MTMS_U,  FUNC_GPIO14, 14}, // D5
+	{PERIPHS_IO_MUX_GPIO4_U, FUNC_GPIO4,   4}, // D2
+	{PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0,   0}, // D3
+};
+  double maxPWMChange = 75.0 * updateFrequencyScaler * (PWM_PERIOD / 1023);
+  double encoderWheelSlots = 32;
   int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
   double encoderWheelSlots = 20;                       //THIS CONTROLS THE NUMBER OF WINDOWS ON THE ENCODER WHEELS
   float wheelDiameter = 64.93592;                      // in mm
@@ -83,7 +98,8 @@ class encoderMotorController {
   volatile double anglePerStep = (distancePerStep / axleCircumference) * 360.0; // heading change angle per step
   double distancePerDegreeChange = axleCircumference / 360.0;   // distance a wheel traveled to alter heading 1 degree
   volatile long minCalculatedSpeedTimePerStep = long(distancePerStep / (minCalculatedSpeed/3600.0));
-  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.5; // add default:35% above minimum speed by default
+  volatile double startPWMBoost = minMotorSpeed * PWMWriteRange * 1.70; // add default:35% above minimum speed by default
+  volatile double BASE_START_BOOST = startPWMBoost;
   volatile unsigned long debounceMinStepTime[2];       // minimum step time in micro seconds
   volatile boolean boostOn[2];
   volatile double heading = 0.0;
@@ -106,9 +122,9 @@ class encoderMotorController {
   volatile double wheelSpeed[2];
   volatile double targetHeading = 0.0;                 // in degrees
   volatile long botTargetDistance = 0;                 // in mm
-  long wheelTargetDistance[2];                         // in mm
-  long botTargetSteps = 0;
-  long wheelTargetSteps[2];
+  volatile long wheelTargetDistance[2];                         // in mm
+  volatile long botTargetSteps = 0;
+  volatile long wheelTargetSteps[2];
   double gridX = 0.0;                                  // grid coords
   double gridY = 0.0;
   String commandSet;                                   // string to hold incoming commands
@@ -120,7 +136,8 @@ class encoderMotorController {
   double targetDegreesPerSecond = 0;
   volatile long nextCommandMillis = 0;
   volatile long delaybetweenCommands = 300;             // default 350
-
+  int batteryLevel = 1; 								// current charge level 1 full 8 flat
+  
   // private functions
   float checkNormal(float);
   int makePositive(int);
@@ -134,7 +151,6 @@ class encoderMotorController {
   void PID();
   void updateSteering(long);
   void updateBPM(double);
-  void increaseMinSpeed(int);
   void motorBreak();
 
   // DURATION OF THE NOTES
@@ -240,7 +256,6 @@ class encoderMotorController {
 #define NOTE_CS8 4435
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
-
 
 #endif
 
