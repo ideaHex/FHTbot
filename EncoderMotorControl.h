@@ -88,9 +88,7 @@ class encoderMotorController {
 	{PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0,   0}, // D3
 };
   double maxPWMChange = 75.0 * updateFrequencyScaler * (PWM_PERIOD / 1023);
-  double encoderWheelSlots = 32;
-  int PWMWriteRange = 1023;                            // 1023 is default for 10 bit,the maximum value can be ~ frequency * 1000 /45. For example, 1KHz PWM, duty range is 0 ~ 22222
-  double encoderWheelSlots = 20;                       //THIS CONTROLS THE NUMBER OF WINDOWS ON THE ENCODER WHEELS
+  double encoderWheelSlots = 32;                       //THIS CONTROLS THE NUMBER OF WINDOWS ON THE ENCODER WHEELS
   float wheelDiameter = 64.93592;                      // in mm
   double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
   double axleCircumference = (axleLength * 2.0) * PI;
