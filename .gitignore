@@ -1,8 +1,6 @@
 
 \.build/
 
-data/
-
-dataold/
-
 *.bak
+
+data/

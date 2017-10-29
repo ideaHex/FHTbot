@@ -20,7 +20,7 @@ limitations under the License.
 #include "EncoderMotorControl.h"
 #include "NeoPixelAnimations.h"
 #include "RCW0006Ping.h"
-#include "botTemp.h"
+#include "botVoltage.h"
 #include <DNSServer.h>
 #include <ESP8266WiFi.h>
 #include <FS.h>
@@ -46,22 +46,26 @@ bool enableCompatibilityMode = false; // turn on compatibility mode for older
                                       // devices, spacifically sets no
                                       // encryption and 11B wifi standard
 
+void Stop(void);
+void CheckHeartBeat(void);
+void executeRequest(String);
 void setupWiFi(void);
 void setupWebsocket(void);
 void initHardware(void);
 void sendFile(String);
 String getContentType(String);
 void updateMotors();
-void updTemp();
 void testBumper();
 void leftBumperHitFunction();
 void leftBumperReset();
 void rightBumperHitFunction();
 void rightBumperReset();
+void checkAutoMode();
 void checkBoredBot();
 void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
 void updateClient();
+void updateMotorSpeed(void);
 
 /////////////////////
 // Pin Definitions //
@@ -100,26 +104,30 @@ String closeConnectionHeader = "";
 WiFiClient serverClients[MAX_SRV_CLIENTS];
 int currentClient = 0;
 boolean pingOn = false;
-long nextBoredBotEvent = 0;
-int boredBotTimeout = 60000; // in ms
+unsigned long nextBoredBotEvent = 0;
+int boredBotTimeout = 60000;             //in ms
+boolean boredBotRunning = false;		// in middle of bored bot function
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 boolean autoMode = false; // drive mode with no client connected
 long autoModeNextUpdate = 0;
-long autoModeNextEvent = 0;
-#define Diag                           // if not defined disables serial communication after initial feedback
+unsigned long autoModeNextEvent = 0;
+//#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
 short updateRound = 0;
 
-void Stop(void) {
-  motors.manualDrive(0, 0);
-  setColor(RgbColor(0, 0, 0)); // turn off LED's to save power
-  pingOn = false;              // turn off ping to save power
+
+void Stop(){
+  motors.manualDrive(0,0);
+  if (!boredBotRunning)setColor(RgbColor(0,0,0));// turn off LED's to save power
+  pingOn = false;                        // turn off ping to save power
   driverAssist = false;
 }
 
-void CheckHeartBeat(void) {
-  if (HeartBeatRcvd == true) {
+void CheckHeartBeat(){
+	updateMotorSpeed(); 				// check battery level and adjust speed
+  if (HeartBeatRcvd == true)
+  {
     HeartBeatRcvd = false;
     nextBoredBotEvent = millis() + boredBotTimeout; // reset bored bot timer
   } else {
@@ -127,19 +135,18 @@ void CheckHeartBeat(void) {
   }
 }
 
-void setup() {
-  system_update_cpu_freq(80); // set cpu to 80MHZ or 160MHZ !
-  system_phy_set_max_tpw(10);  // 0 - 82 radio TX power
+void setup(){
+  system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
+  system_phy_set_max_tpw(82); 			// 0 - 82 radio TX power
   initHardware();
   setupWiFi();
   setupWebsocket();
   HeartBeatTicker.attach_ms(991, CheckHeartBeat);
-  closeConnectionHeader +=
-      F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
+  closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
 }
 
-void loop() {
+void loop(){
   // time dependant functions here
   checkBoredBot();
   checkAutoMode();
@@ -227,7 +234,9 @@ void WSRequest(String req, int clientNum) {
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
+    #ifdef Diag
     Serial.println("dX"+String(dX)+"dY"+String(dY));
+    #endif
     // driver assist
     if (driverAssist) {
       updateBlinkers(dX, dY);
@@ -260,6 +269,9 @@ void WSRequest(String req, int clientNum) {
   if (req.indexOf("save,") != -1) {
     //File pushed by turtle mode to be saved
     //save,fileName,xmlstring
+    #ifdef Diag
+    Serial.println("Save Request:" + req);
+    #endif
     String dataString = req.substring(req.indexOf(","));
     int titleComma = dataString.indexOf(",");
     String fileName = "/T/" + dataString.substring(0,titleComma);
@@ -271,7 +283,9 @@ void WSRequest(String req, int clientNum) {
       //respond to client
       webSocket.sendTXT(clientNum, "File Saved Successfully");
     }else{
+      #ifdef Diag
       Serial.println("Failed to create file");
+      #endif
       //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
@@ -286,6 +300,9 @@ void WSRequest(String req, int clientNum) {
       //Compiling comma delimited list of file names
       out += dir.fileName();
      }
+     #ifdef Diag
+     Serial.println("output:" + out);
+     #endif
      webSocket.sendTXT(clientNum, out);
   }
   }
@@ -332,94 +349,87 @@ void executeRequest(String req) {
     } else {
       pixelTest();
     }
-    motors.manualDrive(dX, dY);
-  } else {
-    String fileString = req.substring(4, (req.length() - 9));
-    // Serial.println("\r\n" + fileString);
-    if (fileString.indexOf("/HB") != -1) {
-      pingOn = false;
-      driverAssist = false;
-      HeartBeatRcvd = true;
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      return;
-    }
-    if (fileString.indexOf("data,") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      fileString.remove(0, fileString.indexOf("data,"));
-      fileString.trim();
-      motors.startCommandSet(fileString);
-      return;
-    }
-    if (fileString.indexOf("feedback") !=
-        -1) { // send feedback to drive web page
-      int temperature = getCurrentTemperature();
-      String s, h;
-      s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' "
-            "content='1'></head><body><script>");
-      s += (";var tmp=");
-      s += temperature;
-      s += (";var dis=");
-      s += distance;
-      s += (";var kph=");
-      s += motors.getSpeed();
-      s += (";var movd=");
-      s += motors.getTravel();
-      s += (";var hed=");
-      s += motors.getheading();
-      s += (";</script></body></html>");
-      h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: "
-            "Close\r\ncontent-length: ");
-      h += s.length();
-      h += F("\r\n\r\n");
-      String ss = h + s;
-      serverClients[currentClient].write(ss.c_str(), ss.length());
-      yield();
-      return;
-    }
-    if (fileString.indexOf("write,") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      fileString.remove(0, fileString.indexOf("write,"));
-      fileString.trim();
-      // TODO Save File
-
-      return;
-    }
-    if (fileString.indexOf("/PlayCharge") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      motors.playCharge();
-      return;
-    }
-    if (fileString.indexOf("/PlayMarch") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      motors.playMarch();
-      return;
-    }
-    if (fileString.indexOf("/PlayMarioTheme") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      motors.playMarioMainThem();
-      return;
-    }
-    if (fileString.indexOf("/PlayMarioUnderworld") != -1) {
-      serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                         closeConnectionHeader.length());
-      yield();
-      motors.playMarioUnderworld();
-      return;
-    }
-    sendFile(fileString);
-  }
+    motors.manualDrive(dX,dY);
+  }else{
+        String fileString = req.substring(4, (req.length() - 9));
+        //Serial.println("\r\n" + fileString);
+          if (fileString.indexOf("/HB") != -1){
+            pingOn = false;
+            driverAssist = false;
+            HeartBeatRcvd = true;
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            return;
+          }
+          if (fileString.indexOf("data,") != -1){
+              serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("data,"));
+              fileString.trim();
+              motors.startCommandSet(fileString);
+              return;
+          }
+          if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
+                float voltage = getCurrentVoltage();
+				int batteryLevel = motors.getBatteryLevel();
+                String s,h;
+                s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
+                s += (";var volt=");
+                s += voltage;
+				s += (";var bLev=");
+                s += batteryLevel;
+                s += (";var dis=");
+                s += distance;
+                s += (";var kph=");
+                s += motors.getSpeed();
+                s += (";var movd=");
+                s += motors.getTravel();
+                s += (";var hed=");
+                s += motors.getheading();
+                s += (";</script></body></html>");
+                h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
+                h += s.length();
+                h += F("\r\n\r\n");
+                String ss = h + s;
+                serverClients[currentClient].write(ss.c_str(),ss.length());
+                yield();
+                return;
+          }
+          if(fileString.indexOf("write,")!=-1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+              yield();
+              fileString.remove(0,fileString.indexOf("write,"));
+              fileString.trim();
+              //TODO Save File
+              
+              return;
+          }
+          if (fileString.indexOf("/PlayCharge") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playCharge();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarch") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarch();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioTheme") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioMainThem();
+            return;
+          }
+          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            motors.playMarioUnderworld();
+            return;
+          }
+          sendFile(fileString);
+        }
 }
 /**
  * Handles Websocket reception, deciding what needs to be done vs the type of
@@ -427,39 +437,46 @@ void executeRequest(String req) {
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t payLength) {
+
+  #ifdef Diag
   Serial.println("WEBSOCKET EVENT");
   Serial.println(millis() - timerPing);
+  #endif
   timerPing = millis();
   switch (type) {
   case WStype_DISCONNECTED: {
     // perform disconnection events (i.e. send bot to idle.)
     IPAddress ip = webSocket.remoteIP(num);
-    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." +
-                   ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #ifdef Diag
+    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #endif
     // Stop Bot
     Stop();
   } break;
   case WStype_CONNECTED: {
     // HANDLE NEW CLIENT CONNECTION
     IPAddress ip = webSocket.remoteIP(num);
+    #ifdef Diag
     Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] +
                    "." + ip[2] + "." + ip[3] + " url: " + String(*payload) +
                    "\n");
+    #endif
     // ACK connection to client
     webSocket.sendTXT(num, "Connected to FH_Tbot");
   } break;
   case WStype_TEXT: {
     // Perform actions based on a good payload.
+    #ifdef Diag
     Serial.println("Starting charstream to char array conversion");
+    #endif
     char A[payLength + 1];
     char *strncpy(char *A, const char *payload, size_t payLength);
     A[payLength] = '\0';
     String b((char *)payload);
+    #ifdef Diag
     Serial.println(String(num) + "get Text: " + b +
                    " length: " + String(payLength) + "\n");
-    // TEMP BOUNCE
-    // webSocket.sendTXT(num, "Pong");
-    // Heartbeat
+    #endif
     HeartBeatRcvd = true;
     WSRequest(b, num);
     // Feedback
@@ -467,7 +484,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   }
 }
 
-void setupWiFi() {
+void setupWiFi(){
   WiFi.mode(WIFI_AP);
 
   // Create a unique name by appending the MAC address to the AP Name
@@ -514,13 +531,15 @@ void setupWiFi() {
 
 void setupWebsocket() {
   // start websocket
+  #ifdef Diag
   Serial.println("Establishing Websocket Server");
+  #endif
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
 
-void initHardware() {
-  Serial.begin(250000);
+void initHardware(){
+  Serial.begin(2000000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FHTbot Serial Connected\r\n"));
   Serial.println(F("\r\n         Disable any form of assisted WIFI\r\n"));
@@ -528,49 +547,48 @@ void initHardware() {
   Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
-  Serial.println(
-      F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
+  Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-#ifndef Diag
+  #ifndef Diag
   Serial.end(); // disable serial interface
-#endif
+  #endif
   pingSetup();
   strip.Begin();
   strip.Show();
   smile();
   // setup motors and encoders
-  attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler, CHANGE);
-  attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler, CHANGE);
-  motorControllerTicker.attach_ms(motors.updateFrequency,
-                                  updateMotors); // attach motor update timer
-  tempTicker.attach_ms(200, updTemp); // attach temperature sample timer
-#ifndef Diag
-  pinMode(leftBumper, INPUT_PULLUP);
-  pinMode(rightBumper, INPUT_PULLUP);
-  // test for startup auto mode
-  if (digitalRead(leftBumper) == LOW) { // test for startup auto mode
-    autoMode = true;
-    motors.playCharge();
-    autoModeNextUpdate = millis() + 300;
-    autoModeNextEvent = millis() + random(10000, 30000);
-  };
-  attachInterrupt(leftBumper, leftBumperHitFunction, FALLING);
-  attachInterrupt(rightBumper, rightBumperHitFunction, FALLING);
-#endif
+  attachInterrupt(motorLeftEncoder, motorLeftEncoderInterruptHandler , CHANGE);
+  attachInterrupt(motorRightEncoder, motorRightEncoderInterruptHandler , CHANGE);
+  motorControllerTicker.attach_ms(motors.updateFrequency, updateMotors);  // attach motor update timer
+ #ifndef Diag
+    pinMode(leftBumper, INPUT_PULLUP);
+    pinMode(rightBumper, INPUT_PULLUP);
+	// test for startup auto mode
+	if (digitalRead(leftBumper) == LOW){// test for startup auto mode
+		autoMode = true;
+		motors.playCharge();
+		autoModeNextUpdate = millis()+300;
+		autoModeNextEvent = millis() + random(10000,30000);
+	};
+    attachInterrupt(leftBumper, leftBumperHitFunction , FALLING);
+    attachInterrupt(rightBumper, rightBumperHitFunction , FALLING);
+ #endif
+ Stop(); 							// incase of reset, stop motors !
+ resetVoltageFilter();				// setup voltage filter for first samples
 }
-void leftBumperHitFunction() {
-  if (!leftBumperHit) {
-    lBH.once_ms(500, leftBumperReset);
-    // setColor(RgbColor(255,0,0));
+void leftBumperHitFunction(){
+  if (!leftBumperHit){
+    lBH.once_ms(1500,leftBumperReset);
   }
   leftBumperHit = true;
 }
-void leftBumperReset() { leftBumperHit = false; }
-void rightBumperHitFunction() {
-  if (!rightBumperHit) {
-    rBH.once_ms(500, rightBumperReset);
-    // setColor(RgbColor(255,0,0));
+void leftBumperReset(){
+  leftBumperHit = false;
+}
+void rightBumperHitFunction(){
+  if (!rightBumperHit){
+    rBH.once_ms(1500,rightBumperReset);
   }
   rightBumperHit = true;
 }
@@ -588,37 +606,32 @@ void sendFile(String path) {
   }
   String dataType = getContentType(path);
 
-  // check if theres a .gz'd version and send that instead
-  String gzPath = path + ".gz";
-  File theBuffer;
-  if (SPIFFS.exists(
-          gzPath)) { // test to see if there is a .gz version of the file
-    theBuffer = SPIFFS.open(gzPath, "r");
-    path = gzPath; // got it, use this path
-  } else {         // not here so load the standard file
-    theBuffer = SPIFFS.open(path, "r");
-    if (!theBuffer) { // this one doesn't exist either, abort.
-      // Serial.println(path + "Does Not Exist");
-      theBuffer.close();
-      String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: "
-                          "Close\r\ncontent-length: 0\r\n\r\n");
-      serverClients[currentClient].write(notFound.c_str(), notFound.length());
-      // serverClients[currentClient].write(
-      // closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-      yield();
-      return; // failed to read file
-    }
+// check if theres a .gz'd version and send that instead
+String gzPath = path + ".gz";
+File theBuffer;
+if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version of the file
+  theBuffer = SPIFFS.open(gzPath, "r");
+  path = gzPath;                        // got it, use this path
+}else{                                  // not here so load the standard file
+  theBuffer = SPIFFS.open(path, "r");
+  if (!theBuffer){                      // this one doesn't exist either, abort.
+    //Serial.println(path + "Does Not Exist");
+    theBuffer.close();
+    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
+    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
+    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+    yield();
+    return; 							// failed to read file
+  }
   }
 
-  // make header
-  String s =
-      F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length: ");
-  s += theBuffer.size();
-  s += F("\r\ncontent-type: ");
-  s += dataType;
-  s += F("\r\nconnection: close"); // last one added X-Content-Type-Options:
-                                   // nosniff\r\n
-  if (path.endsWith(".gz")) {
+// make header
+String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length: ");
+    s += theBuffer.size();
+    s += F("\r\ncontent-type: ");
+    s += dataType;
+    s += F("\r\nconnection: close"); 	// last one added X-Content-Type-Options: nosniff\r\n
+  if (path.endsWith(".gz")){
     s += F("\r\nContent-Encoding: gzip\r\n\r\n");
   } else {
     s += F("\r\n\r\n");
@@ -629,8 +642,8 @@ void sendFile(String path) {
     theBuffer.close();
     return;
   }
-  int bufferLength = theBuffer.size();
-  if (serverClients[currentClient].write(theBuffer, 2920) < bufferLength) {
+  uint bufferLength = theBuffer.size();
+  if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
     // failed to send all file
   }
   yield();
@@ -680,25 +693,29 @@ String getContentType(String path) { // get content type
   return dataType;
 }
 
-void checkBoredBot() {
-  if (millis() > nextBoredBotEvent) { // bored bot event called here
-    nextBoredBotEvent =
-        millis() + boredBotTimeout * 0.5; // reset bored bot timer
-    // different events to be put here
-    int events = 4;
-    int pickedEvent = random(1, (events + 1));
-    switch (pickedEvent) {
+void checkBoredBot(){
+    if (millis() > nextBoredBotEvent){       					// bored bot event called here
+          nextBoredBotEvent = millis() + boredBotTimeout * 0.5; // reset bored bot timer
+          // different events to be put here
+          int events = 4;
+          int pickedEvent = random(1,(events+1));
+		  boredBotRunning = true;
+          switch(pickedEvent){
 
     case 1: // play vroom and bright light
       setColor(RgbColor(80, 80, 80));
+	  delay(20);
+	  setColor(RgbColor(80, 80, 80));
       motors.playVroom();
+	  boredBotRunning = false;
       break;
 
     case 2: // random colors
       for (int a = 0; a < 50; a++) {
         pixelTest();
-        delay(20);
+        delay(25);
       }
+	  boredBotRunning = false;
       break;
 
     case 3: // blinker rotation
@@ -712,69 +729,74 @@ void checkBoredBot() {
         delay(100);
         updateBlinkers(-60, -1);
       }
+	  boredBotRunning = false;
       break;
 
     case 4: // smile
       smile();
+	  boredBotRunning = false;
       break;
     }
   }
 }
 
-void updTemp() { updateTemperature(); }
-
-void testBumper() {
-#ifndef Diag
-  if (!leftBumperHit && rightBumperHit) {
-    motors.manualDrive(-250, 500);
-    motors.hardLeftTurn();
-  }
-  if (!rightBumperHit && leftBumperHit) {
-    motors.manualDrive(250, 500);
-    motors.hardRightTurn(); // in reverse right becomes left
-  }
-  if (rightBumperHit && leftBumperHit) {
-    motors.manualDrive(0, 500);
-  }
-#endif
+void testBumper(){
+    #ifndef Diag
+    if (!leftBumperHit && rightBumperHit){
+          motors.manualDrive(-250,500);
+		  motors.manualDrive(-250,500);
+          motors.hardLeftTurn();
+    }
+    if (!rightBumperHit && leftBumperHit){
+          motors.manualDrive(250,500);
+		  motors.manualDrive(250,500);
+          motors.hardRightTurn();                               // in reverse right becomes left
+    }
+     if (rightBumperHit && leftBumperHit){
+          motors.manualDrive(0,500);
+		  motors.manualDrive(0,500);
+    }
+     #endif
 }
 
-void checkAutoMode() {
-  if (autoMode) {
-    HeartBeatRcvd = true;
-    pingOn = true;
-    driverAssist = true;
-    int dX = -1;
-    int dY = -500;
-    if (millis() > autoModeNextUpdate) {
-      updateBlinkers(dX, dY);
-      autoModeNextUpdate = millis() + 500;
-      if (distance < 450 && distance > 199 && dY < 0) {
-        setColor(RgbColor(90, 105, 95));
-        motors.hardRightTurn();
-        dX = 500;
-        dY = -100;
-        autoModeNextUpdate = millis() + 2000;
-      }
-      if (distance < 200) {
-        setColor(RgbColor(255, 0, 0));
-        dY = 500;
-        autoModeNextUpdate = millis() + 1500;
-      }
-      motors.manualDrive(dX, dY);
-    }
-    if (millis() > autoModeNextEvent) {
-      autoModeNextEvent = millis() + random(10000, 30000);
-      setColor(RgbColor(30, 105, 35));
-      motors.hardRightTurn();
-      dX = 500;
-      dY = -100;
-      motors.manualDrive(dX, dY);
-      autoModeNextUpdate = millis() + 3000;
-      // String data = "data,L,120,";
-      // motors.startCommandSet(data);
-    }
-  }
+void checkAutoMode(){
+	if (autoMode){
+		HeartBeatRcvd = true;
+		pingOn = true;
+		driverAssist = true;
+		int dX = -1;
+		int dY = -430;
+		unsigned long batteryTimeOffset = motors.getBatteryLevel() * 62;
+		if (millis() > autoModeNextUpdate){
+			updateBlinkers(dX,dY);
+			autoModeNextUpdate = millis() + 500;
+			if (leftBumperHit || rightBumperHit)autoModeNextUpdate = millis() + 2000;
+			if (distance < 460 && distance > 199 && dY < 0){
+				setColor(RgbColor(90,105,95));
+				motors.hardRightTurn();
+				dX = 500;
+				dY = -50;
+				autoModeNextUpdate = millis() + 1500 + batteryTimeOffset;
+			}
+			if (distance < 200){
+				setColor(RgbColor(255,0,0));
+				dY = 500;
+				autoModeNextUpdate = millis() + 1200;
+			}
+			motors.manualDrive(dX,dY);
+		}
+		if (millis() > autoModeNextEvent){
+			autoModeNextEvent = millis() + random(10000,30000);
+			setColor(RgbColor(30,105,35));
+			motors.hardRightTurn();
+			dX = 500;
+			dY = -100;
+			motors.manualDrive(dX,dY);
+			autoModeNextUpdate = millis() + 1500 + batteryTimeOffset;
+			//String data = "data,L,120,";
+			//motors.startCommandSet(data);
+		}
+	}
 }
 /**
  * Updates websocket client with distance/temperature information.
@@ -782,10 +804,20 @@ void checkAutoMode() {
  */
 void updateClient() {
 
-  String s = "/T";
-  s.concat(getCurrentTemperature());
+  String s = "/V";
+  s.concat(getCurrentVoltage());
+  s.concat(",/B");
+  s.concat(motors.getBatteryLevel());
   s.concat(",/D");
   s.concat(distance);
   webSocket.sendTXT(0, s);
+  #ifdef Diag
   Serial.println("Return Message: " + s);
+  #endif
+}
+
+void updateMotorSpeed(){
+				updateVoltage();
+                float voltage = getCurrentVoltage();
+				motors.updateMotorSpeed(voltage);
 }
