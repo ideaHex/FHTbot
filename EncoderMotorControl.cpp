@@ -229,6 +229,7 @@ void encoderMotorController::manualDrive(int X, int Y){
     cancelCommandSet();                                                        // cancel any outstanding turtle / auto mode commands targets etc...
   }
   botTurnDirection = none;                                                     // turn to closest heading
+  inManualMode = true;
   if (X > MAX_range)X = MAX_range;
   if (X < -MAX_range)X = -MAX_range;
   if (Y > MAX_range)Y = MAX_range;
@@ -327,6 +328,7 @@ void encoderMotorController::startCommandSet(String theCommandSet){
   }
   commandSet.remove(0,5);                // trim data & comma from front of string
   commandSetHasCommands = true;
+  inManualMode = false;
   nextCommandMillis = 0;
   targetHeading = heading;
   getNextCommand();
@@ -712,7 +714,7 @@ void encoderMotorController::updateSteering(long delatT){
         double scale = positiveHeadingToTarget / MAX_heading_Change;
         if (scale < 0.3)scale = 0.3;
         double thisSpeed = botTargetSpeed * 0.22 * scale;
-		if (scale > 0.35){
+		if (scale > 0.35 && inManualMode){
 			thisSpeed = botTargetSpeed * 0.32 * scale;
 		}
           //if (positiveHeadingToTarget < 5 ){         // greater than can change in 1 second
