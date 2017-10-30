@@ -251,11 +251,11 @@ void WSRequest(String req, int clientNum) {
         setColor(RgbColor(255, 0, 0));
         dY = 500;
       }
-      updateClient();
     } else {
       pixelTest();
     }
     motors.manualDrive(dX, dY);
+    updateClient();
   }else{
     //TODO REVIEW THESE FOR FALSE ACTIVATION LS PROVED TO HIT
   if (req.indexOf("data,") != -1) {
