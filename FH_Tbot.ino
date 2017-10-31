@@ -18,6 +18,7 @@ limitations under the License.
                             // optimization, O3, as O2 plus attempts to
                             // vectorize loops, Os Optimize space
 #include "EncoderMotorControl.h"
+#include "FlashFiles.h"
 #include "NeoPixelAnimations.h"
 #include "RCW0006Ping.h"
 #include "botVoltage.h"
@@ -234,7 +235,9 @@ void WSRequest(String req, int clientNum) {
     int dX = xOffset.toInt();
     String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
     int dY = yOffset.toInt();
+    #ifdef Diag
     Serial.println("dX"+String(dX)+"dY"+String(dY));
+    #endif
     // driver assist
     if (driverAssist) {
       updateBlinkers(dX, dY);
@@ -248,11 +251,11 @@ void WSRequest(String req, int clientNum) {
         setColor(RgbColor(255, 0, 0));
         dY = 500;
       }
-      updateClient();
     } else {
       pixelTest();
     }
     motors.manualDrive(dX, dY);
+    updateClient();
   }else{
     //TODO REVIEW THESE FOR FALSE ACTIVATION LS PROVED TO HIT
   if (req.indexOf("data,") != -1) {
@@ -267,6 +270,9 @@ void WSRequest(String req, int clientNum) {
   if (req.indexOf("save,") != -1) {
     //File pushed by turtle mode to be saved
     //save,fileName,xmlstring
+    #ifdef Diag
+    Serial.println("Save Request:" + req);
+    #endif
     String dataString = req.substring(req.indexOf(","));
     int titleComma = dataString.indexOf(",");
     String fileName = "/T/" + dataString.substring(0,titleComma);
@@ -278,7 +284,9 @@ void WSRequest(String req, int clientNum) {
       //respond to client
       webSocket.sendTXT(clientNum, "File Saved Successfully");
     }else{
+      #ifdef Diag
       Serial.println("Failed to create file");
+      #endif
       //respond to client
       webSocket.sendTXT(clientNum, "Failed to create file. May already exist.");
     }
@@ -293,10 +301,14 @@ void WSRequest(String req, int clientNum) {
       //Compiling comma delimited list of file names
       out += dir.fileName();
      }
+     #ifdef Diag
+     Serial.println("output:" + out);
+     #endif
      webSocket.sendTXT(clientNum, out);
   }
   }
 }
+
 void executeRequest(String req) {
   if (!req.length()) { // empty request
     return;
@@ -341,125 +353,134 @@ void executeRequest(String req) {
     }
     motors.manualDrive(dX,dY);
   }else{
-        String fileString = req.substring(4, (req.length() - 9));
-        //Serial.println("\r\n" + fileString);
-          if (fileString.indexOf("/HB") != -1){
-            pingOn = false;
-            driverAssist = false;
-            HeartBeatRcvd = true;
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            return;
-          }
-          if (fileString.indexOf("data,") != -1){
-              serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-              yield();
-              fileString.remove(0,fileString.indexOf("data,"));
-              fileString.trim();
-              motors.startCommandSet(fileString);
-              return;
-          }
-          if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
-                float voltage = getCurrentVoltage();
-				int batteryLevel = motors.getBatteryLevel();
-                String s,h;
-                s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-                s += (";var volt=");
-                s += voltage;
-				s += (";var bLev=");
-                s += batteryLevel;
-                s += (";var dis=");
-                s += distance;
-                s += (";var kph=");
-                s += motors.getSpeed();
-                s += (";var movd=");
-                s += motors.getTravel();
-                s += (";var hed=");
-                s += motors.getheading();
-                s += (";</script></body></html>");
-                h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
-                h += s.length();
-                h += F("\r\n\r\n");
-                String ss = h + s;
-                serverClients[currentClient].write(ss.c_str(),ss.length());
-                yield();
-                return;
-          }
-          if(fileString.indexOf("write,")!=-1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-              yield();
-              fileString.remove(0,fileString.indexOf("write,"));
-              fileString.trim();
-              //TODO Save File
-              
-              return;
-          }
-          if (fileString.indexOf("/PlayCharge") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playCharge();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarch") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarch();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioTheme") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioMainThem();
-            return;
-          }
-          if (fileString.indexOf("/PlayMarioUnderworld") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            motors.playMarioUnderworld();
-            return;
-          }
-          sendFile(fileString);
+      String fileString = req.substring(4, (req.length() - 9));
+      //Serial.println("\r\n" + fileString);
+        if (fileString.indexOf("/HB") != -1){
+          pingOn = false;
+          driverAssist = false;
+          HeartBeatRcvd = true;
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          return;
         }
+        if (fileString.indexOf("data,") != -1){
+            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            fileString.remove(0,fileString.indexOf("data,"));
+            fileString.trim();
+            motors.startCommandSet(fileString);
+            return;
+        }
+        if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
+              float voltage = getCurrentVoltage();
+              int batteryLevel = motors.getBatteryLevel();
+              String s,h;
+              s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
+              s += (";var volt=");
+              s += voltage;
+              s += (";var bLev=");
+              s += batteryLevel;
+              s += (";var dis=");
+              s += distance;
+              s += (";var kph=");
+              s += motors.getSpeed();
+              s += (";var movd=");
+              s += motors.getTravel();
+              s += (";var hed=");
+              s += motors.getheading();
+              s += (";</script></body></html>");
+              h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
+              h += s.length();
+              h += F("\r\n\r\n");
+              String ss = h + s;
+              serverClients[currentClient].write(ss.c_str(),ss.length());
+              yield();
+              return;
+        }
+        if(fileString.indexOf("write,")!=-1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+            yield();
+            fileString.remove(0,fileString.indexOf("write,"));
+            fileString.trim();
+            //TODO Save File
+            
+            return;
+        }
+        if (fileString.indexOf("/PlayCharge") != -1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          motors.playCharge();
+          return;
+        }
+        if (fileString.indexOf("/PlayMarch") != -1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          motors.playMarch();
+          return;
+        }
+        if (fileString.indexOf("/PlayMarioTheme") != -1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          motors.playMarioMainThem();
+          return;
+        }
+        if (fileString.indexOf("/PlayMarioUnderworld") != -1){
+          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
+          yield();
+          motors.playMarioUnderworld();
+          return;
+        }
+        sendFile(fileString, &serverClients[currentClient]);
+      
+  }
 }
+
 /**
  * Handles Websocket reception, deciding what needs to be done vs the type of
  * message.
  */
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
                     size_t payLength) {
+
+  #ifdef Diag
   Serial.println("WEBSOCKET EVENT");
   Serial.println(millis() - timerPing);
+  #endif
   timerPing = millis();
   switch (type) {
   case WStype_DISCONNECTED: {
     // perform disconnection events (i.e. send bot to idle.)
     IPAddress ip = webSocket.remoteIP(num);
-    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." +
-                   ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #ifdef Diag
+    Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
+    #endif
     // Stop Bot
     Stop();
   } break;
   case WStype_CONNECTED: {
     // HANDLE NEW CLIENT CONNECTION
     IPAddress ip = webSocket.remoteIP(num);
+    #ifdef Diag
     Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] +
                    "." + ip[2] + "." + ip[3] + " url: " + String(*payload) +
                    "\n");
+    #endif
     // ACK connection to client
     webSocket.sendTXT(num, "Connected to FH_Tbot");
   } break;
   case WStype_TEXT: {
     // Perform actions based on a good payload.
+    #ifdef Diag
     Serial.println("Starting charstream to char array conversion");
+    #endif
     char A[payLength + 1];
     char *strncpy(char *A, const char *payload, size_t payLength);
     A[payLength] = '\0';
     String b((char *)payload);
+    #ifdef Diag
     Serial.println(String(num) + "get Text: " + b +
                    " length: " + String(payLength) + "\n");
-    // TEMP BOUNCE
-    // webSocket.sendTXT(num, "Pong");
-    // Heartbeat
+    #endif
     HeartBeatRcvd = true;
     WSRequest(b, num);
     // Feedback
@@ -514,7 +535,9 @@ void setupWiFi(){
 
 void setupWebsocket() {
   // start websocket
+  #ifdef Diag
   Serial.println("Establishing Websocket Server");
+  #endif
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
 }
@@ -531,9 +554,9 @@ void initHardware(){
   Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
   SPIFFS.begin();
   delay(200);
-#ifndef Diag
+  #ifndef Diag
   Serial.end(); // disable serial interface
-#endif
+  #endif
   pingSetup();
   strip.Begin();
   strip.Show();
@@ -580,99 +603,9 @@ void motorRightEncoderInterruptHandler() { motors.takeStep(1); }
 
 void updateMotors() { motors.update(); }
 
-void sendFile(String path) {
-  // get content type
-  if (path.endsWith("/")) {
-    path += "index.html";
-  }
-  String dataType = getContentType(path);
 
-// check if theres a .gz'd version and send that instead
-String gzPath = path + ".gz";
-File theBuffer;
-if (SPIFFS.exists(gzPath)){             // test to see if there is a .gz version of the file
-  theBuffer = SPIFFS.open(gzPath, "r");
-  path = gzPath;                        // got it, use this path
-}else{                                  // not here so load the standard file
-  theBuffer = SPIFFS.open(path, "r");
-  if (!theBuffer){                      // this one doesn't exist either, abort.
-    //Serial.println(path + "Does Not Exist");
-    theBuffer.close();
-    String notFound = F("HTTP/1.1 404 Not Found\r\nConnection: Close\r\ncontent-length: 0\r\n\r\n");
-    serverClients[currentClient].write( notFound.c_str(),notFound.length() );
-    //serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-    yield();
-    return; 							// failed to read file
-  }
-  }
 
-// make header
-String s = F("HTTP/1.1 200 OK\r\ncache-control: max-age = 3600\r\ncontent-length: ");
-    s += theBuffer.size();
-    s += F("\r\ncontent-type: ");
-    s += dataType;
-    s += F("\r\nconnection: close"); 	// last one added X-Content-Type-Options: nosniff\r\n
-  if (path.endsWith(".gz")){
-    s += F("\r\nContent-Encoding: gzip\r\n\r\n");
-  } else {
-    s += F("\r\n\r\n");
-  }
-  // send the file
-  if (!serverClients[currentClient].write(s.c_str(), s.length())) {
-    // failed to send
-    theBuffer.close();
-    return;
-  }
-  uint bufferLength = theBuffer.size();
-  if ( serverClients[currentClient].write(theBuffer,2920) <  bufferLength){
-    // failed to send all file
-  }
-  yield();
-  theBuffer.close();
-}
 
-String getContentType(String path) { // get content type
-  String dataType = F("text/html");
-  String lowerPath = path.substring(path.length() - 4, path.length());
-  lowerPath.toLowerCase();
-
-  if (lowerPath.endsWith(".src"))
-    lowerPath = lowerPath.substring(0, path.lastIndexOf("."));
-  else if (lowerPath.endsWith(".gz"))
-    dataType = F("application/x-gzip");
-  else if (lowerPath.endsWith(".html"))
-    dataType = F("text/html");
-  else if (lowerPath.endsWith(".htm"))
-    dataType = F("text/html");
-  else if (lowerPath.endsWith(".png"))
-    dataType = F("image/png");
-  else if (lowerPath.endsWith(".js"))
-    dataType = F("application/javascript");
-  else if (lowerPath.endsWith(".css"))
-    dataType = F("text/css");
-  else if (lowerPath.endsWith(".gif"))
-    dataType = F("image/gif");
-  else if (lowerPath.endsWith(".jpg"))
-    dataType = F("image/jpeg");
-  else if (lowerPath.endsWith(".ico"))
-    dataType = F("image/x-icon");
-  else if (lowerPath.endsWith(".svg"))
-    dataType = F("image/svg+xml");
-  else if (lowerPath.endsWith(".mp3"))
-    dataType = F("audio/mpeg");
-  else if (lowerPath.endsWith(".wav"))
-    dataType = F("audio/wav");
-  else if (lowerPath.endsWith(".ogg"))
-    dataType = F("audio/ogg");
-  else if (lowerPath.endsWith(".xml"))
-    dataType = F("text/xml");
-  else if (lowerPath.endsWith(".pdf"))
-    dataType = F("application/x-pdf");
-  else if (lowerPath.endsWith(".zip"))
-    dataType = F("application/x-zip");
-
-  return dataType;
-}
 
 void checkBoredBot(){
     if (millis() > nextBoredBotEvent){       					// bored bot event called here
@@ -792,7 +725,9 @@ void updateClient() {
   s.concat(",/D");
   s.concat(distance);
   webSocket.sendTXT(0, s);
+  #ifdef Diag
   Serial.println("Return Message: " + s);
+  #endif
 }
 
 void updateMotorSpeed(){

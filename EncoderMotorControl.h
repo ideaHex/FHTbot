@@ -88,7 +88,7 @@ class encoderMotorController {
 	{PERIPHS_IO_MUX_GPIO0_U, FUNC_GPIO0,   0}, // D3
 };
   double maxPWMChange = 75.0 * updateFrequencyScaler * (PWM_PERIOD / 1023);
-  double encoderWheelSlots = 32;
+  double encoderWheelSlots = 32;                       //THIS CONTROLS THE NUMBER OF WINDOWS ON THE ENCODER WHEELS
   float wheelDiameter = 64.93592;                      // in mm
   double axleLength = 90.55;                           // distance between wheel centres in mm, last version was 93.8
   double axleCircumference = (axleLength * 2.0) * PI;
@@ -106,11 +106,11 @@ class encoderMotorController {
   volatile double minPWM = minMotorSpeed * PWMWriteRange * 0.85;
   int lastX = 0;
   int lastY = 0;
-  volatile const int forward = 1;
-  volatile const int reverse = -1;
-  volatile const int turnLeft = 1;
-  volatile const int turnRight = -1;
-  volatile const int none = 0;
+  const int forward = 1;
+  const int reverse = -1;
+  const int turnLeft = 1;
+  const int turnRight = -1;
+  const int none = 0;
   volatile int motorDirection[2];
   volatile int botTargetDirection = forward;
   volatile int botTurnDirection = none;
@@ -257,3 +257,5 @@ class encoderMotorController {
 #define NOTE_DS8 4978
 
 #endif
+
+
