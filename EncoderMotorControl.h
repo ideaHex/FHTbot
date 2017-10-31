@@ -135,6 +135,7 @@ class encoderMotorController {
   volatile long nextCommandMillis = 0;
   volatile long delaybetweenCommands = 300;             // default 350
   int batteryLevel = 1; 								// current charge level 1 full 8 flat
+  volatile boolean inManualMode = false;
   
   // private functions
   float checkNormal(float);
