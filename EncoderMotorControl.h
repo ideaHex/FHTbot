@@ -59,7 +59,7 @@ class encoderMotorController {
   #define PWM_CHANNELS 4
   int MAX_range = 500;                                 // maximum input from controller, higher values will be capped
   volatile double MAX_Speed = 1.8;                     // in KPH
-  volatile double MIN_Speed = 0.28; //.37              // minimum speed in KPH
+  volatile double MIN_Speed = 0.35; //.37              // minimum speed in KPH
   volatile double BASE_MIN_Speed = MIN_Speed;
   volatile double BASE_MAX_Speed = MAX_Speed;
   volatile float minMotorSpeed = MIN_Speed / MAX_Speed;// as a normal (range from 0.0 to 1.0)
