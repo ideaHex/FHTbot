@@ -1,5 +1,5 @@
 /*
-Copyright 2017, Tilden Groves.
+Copyright 2017, Tilden Groves, Alexander Battarbee.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,12 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma GCC optimize ("-O2")
- void pingSetup();
- void startup();
- void calculateDistance();
- void triggerPing();
- int getDistance();
- 
- void addToFilter(int);
- void resetFilter();
- int getMedian();
+#include <ESP8266WiFi.h>
+#include <FS.h>
+
+void sendFile(String path, WiFiClient * client);
+String getContentType(String path);

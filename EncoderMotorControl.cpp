@@ -1,5 +1,5 @@
 /*
-Copyright 2016, Tilden Groves.
+Copyright 2017, Tilden Groves.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,9 +15,13 @@ limitations under the License.
 */
 
 #include "EncoderMotorControl.h"
+#include "fastIO.h"
+extern "C"{
+	#include "pwm.h"
+	#include "user_interface.h"
+}
 
 encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t motorA_pin_2 ,uint8_t motorB_pin_1 , uint8_t motorB_pin_2,uint8_t encoderA_pin_1,uint8_t encoderA_pin_2){
-  analogWriteFreq(PWMFrequency); //Theoretical max frequency is 80000000/range, range = 1024 so 78Khz here
   motorAPin1 = motorA_pin_1;
   motorAPin2 = motorA_pin_2;
   motorBPin1 = motorB_pin_1;
@@ -26,6 +30,10 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
   pinMode(motorAPin2,OUTPUT);
   pinMode(motorBPin1,OUTPUT);
   pinMode(motorBPin2,OUTPUT);
+  digitalWrite(motorAPin1,LOW);
+  digitalWrite(motorAPin2,LOW);
+  digitalWrite(motorBPin1,LOW);
+  digitalWrite(motorBPin2,LOW);
   lastX = 0;
   lastY = 0;
   for (int a = 0; a < 2; a++){
@@ -43,7 +51,13 @@ encoderMotorController::encoderMotorController(uint8_t motorA_pin_1 , uint8_t mo
     debounceMinStepTime[a] = (distancePerStep / (MAX_Speed/3600.0)) * 0.5;
     lastError[a] = 0;
   }
-
+  //  initialize new PWM library
+	uint32 pwm_duty_init[PWM_CHANNELS];
+	for (uint8_t channel = 0; channel < PWM_CHANNELS; channel++) {
+		pwm_duty_init[channel] = 0;
+	}
+	pwm_init(PWM_PERIOD, pwm_duty_init, PWM_CHANNELS, io_info);
+	pwm_start();
 }
  float encoderMotorController::checkNormal(float normal){
   if (normal > 1)normal = 1.0;
@@ -70,23 +84,24 @@ void encoderMotorController::playNote(int note,double duration){
   noteFrequency *= 1000000.00;
   double noteHalfDuration = noteFrequency * 0.5; 
   double a=0;
-    while (a<(duration/(noteFrequency/1000.0))){
-    a++;
-  digitalWrite(motorAPin1,0);
-  digitalWrite(motorAPin2,HIGH);
-  digitalWrite(motorBPin1,0);
-  digitalWrite(motorBPin2,HIGH);
-  delayMicroseconds(noteHalfDuration);
-  digitalWrite(motorAPin1,HIGH);
-  digitalWrite(motorAPin2,0);
-  digitalWrite(motorBPin1,HIGH);
-  digitalWrite(motorBPin2,0);
-  delayMicroseconds(noteHalfDuration);
+  while (a<(duration/(noteFrequency/1000.0))){
+	a++;
+	fastDigitalWrite(motorAPin1,0);
+	fastDigitalWrite(motorAPin2,HIGH);
+	fastDigitalWrite(motorBPin1,0);
+	fastDigitalWrite(motorBPin2,HIGH);
+	delayMicroseconds(noteHalfDuration);
+	fastDigitalWrite(motorAPin1,HIGH);
+	fastDigitalWrite(motorAPin2,0);
+	fastDigitalWrite(motorBPin1,HIGH);
+	fastDigitalWrite(motorBPin2,0);
+	delayMicroseconds(noteHalfDuration);
   }
-  analogWrite(motorAPin1,0);
-  analogWrite(motorAPin2,0);
-  analogWrite(motorBPin1,0);
-  analogWrite(motorBPin2,0);
+  pwm_set_duty(0, 0);
+  pwm_set_duty(0, 1);
+  pwm_set_duty(0, 2);
+  pwm_set_duty(0, 3);
+  pwm_start();
   delay(10);
   }else{
     delay(duration + 11);
@@ -118,11 +133,12 @@ void encoderMotorController::takeStep(int encoder){
   if (boostOn[encoder] == true){ // first step after start
       wheelSpeed[encoder] = MIN_Speed;
       if (encoder == 0){
-        PWMA = minMotorSpeed * PWMWriteRange;
+        PWMA = (MIN_Speed / MAX_Speed) * PWMWriteRange;
       }else{
-        PWMB = minMotorSpeed * PWMWriteRange;
+        PWMB = (MIN_Speed / MAX_Speed) * PWMWriteRange;
       }
       boostOn[encoder] = false;
+	  setMotorSpeed();
     }
 
   // update speed buffer / last pulse time 
@@ -163,55 +179,49 @@ void encoderMotorController::takeStep(int encoder){
       if (headingToTarget > 180)headingToTarget-=360;
       if (headingToTarget < -180)headingToTarget+=360;
     if (botTurnDirection == turnLeft || botTurnDirection == turnRight){ // stop overshoot
-      if (makePositive(headingToTarget) < (anglePerStep * 4.5 * (MIN_Speed / BASE_MIN_Speed) * 2.0) ){
-        if (BASE_MIN_Speed != MIN_Speed && !commandCompleted){
-          //Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
-          slow = true;
-          PWMA= (BASE_MIN_Speed / BASE_MAX_Speed) * PWMWriteRange * 1.0;//0.5
-          PWMB= (BASE_MIN_Speed / BASE_MAX_Speed) * PWMWriteRange * 1.0;
-          if (wheelSpeed[encoder] < MIN_Speed)slow = false; // prevent stall
-          setMotorSpeed();
-        }else{
+	  slow = false; // if target angle is greater than 330 degrees it will false trigger slow function, this will help
+      if (makePositive(headingToTarget) < (anglePerStep * 4.5 * (MIN_Speed / BASE_MIN_Speed) * 1.5) ){
             if (!commandCompleted){
               //Serial.println("Slow" + String(PWMA)+ "Heading" + String(heading) + "WS" + String(wheelSpeed[0])+ "Target" + String(targetHeading));
               slow = true;
-              if (PWMA > (minMotorSpeed * PWMWriteRange) * 1.0) PWMA = minMotorSpeed * PWMWriteRange * 1.0;
-              if (PWMB > (minMotorSpeed * PWMWriteRange) * 1.0) PWMB = minMotorSpeed * PWMWriteRange * 1.0;
-              if (wheelSpeed[encoder] < MIN_Speed)slow = false; // prevent stall
+              if (PWMA > (minMotorSpeed * PWMWriteRange) * 0.71) PWMA = minMotorSpeed * PWMWriteRange * 0.71;
+              if (PWMB > (minMotorSpeed * PWMWriteRange) * 0.71) PWMB = minMotorSpeed * PWMWriteRange * 0.71;
+              if (wheelSpeed[encoder] < MIN_Speed * 0.85){ // prevent stall
+				if (encoder == 0){
+					PWMA = minMotorSpeed * PWMWriteRange;
+				}else{
+					PWMB = minMotorSpeed * PWMWriteRange;
+				}
+				  //slow = false; 
+			  }
               setMotorSpeed();
             }
-        }
         if (commandCompleted){
           motorBreak();
           if(nextCommandMillis)nextCommandMillis += 100; // bot is shaking, give it more time to stop
           //Serial.println("Bot rocking");
         }
-        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){// 0.5
-          analogWrite(motorAPin1,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[0] > 0) );
-          analogWrite(motorAPin2,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[0] < 0) );
-          analogWrite(motorBPin1,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[1] > 0) );
-          analogWrite(motorBPin2,(minMotorSpeed * PWMWriteRange) * 0.5 * (motorDirection[1] < 0) );
+        if (makePositive(headingToTarget) < (anglePerStep * 0.5) && !commandCompleted){
           PWMA=0;
           PWMB=0;
           slow = false;
           wheelTargetSpeed[0] = 0;
           wheelTargetSpeed[1] = 0;
-          //setMotorSpeed();
-          //motorBreak();
+          motorBreak();
           commandCompleted = true;
           //Serial.println("Stop, Heading" + String(heading) + "Target" + String(targetHeading));
         }
       }
   }
   
-  if (botTurnDirection == none && botTargetSpeed > 0){
+  //if (botTurnDirection == none && botTargetSpeed > 0){
 //    if (makePositive(headingToTarget) < (anglePerStep * 0.5) ){
 //      wheelTargetSpeed[0] = botTargetSpeed;
 //      wheelTargetSpeed[1] = botTargetSpeed;
 //      PID();
 //    }
       //Serial.println("HTT" + String(headingToTarget) + "H" + String(heading) + "TH" + String(targetHeading));
-  }
+  //}
 }
 
 void encoderMotorController::manualDrive(int X, int Y){
@@ -219,6 +229,7 @@ void encoderMotorController::manualDrive(int X, int Y){
     cancelCommandSet();                                                        // cancel any outstanding turtle / auto mode commands targets etc...
   }
   botTurnDirection = none;                                                     // turn to closest heading
+  inManualMode = true;
   if (X > MAX_range)X = MAX_range;
   if (X < -MAX_range)X = -MAX_range;
   if (Y > MAX_range)Y = MAX_range;
@@ -258,9 +269,15 @@ void encoderMotorController::manualDrive(int X, int Y){
         timeOfFirstStep[a] = timeOfLastStep[a];
         motorDirection[a] = -motorDirection[a];
       }
-      PWMA = PWMWriteRange * 0.5;
-      PWMB = PWMWriteRange * 0.5;
+
+	  PWMA = 0;
+      PWMB = 0;
       setMotorSpeed();
+	  Y = 0;
+	  botTargetSpeed = 0;
+	  wheelTargetSpeed[0] = 0;
+	  wheelTargetSpeed[1] = 0;
+	  delay(250);
     }
   lastX = X;
   lastY = Y;
@@ -309,8 +326,9 @@ void encoderMotorController::startCommandSet(String theCommandSet){
     cancelCommandSet();
     return;
   }
-  commandSet.remove(0,5);                // trimm data & comma from front of string
+  commandSet.remove(0,5);                // trim data & comma from front of string
   commandSetHasCommands = true;
+  inManualMode = false;
   nextCommandMillis = 0;
   targetHeading = heading;
   getNextCommand();
@@ -350,6 +368,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = forward;
       botTargetDirection = forward;
       botTurnDirection = none;
+	  setMotorSpeed();
     }
     break;
 
@@ -363,6 +382,7 @@ void encoderMotorController::processCommand(String command, double value){
       motorDirection[1] = reverse;
       botTargetDirection = reverse;
       botTurnDirection = none;
+	  setMotorSpeed();
     }
     break;
 
@@ -371,10 +391,11 @@ void encoderMotorController::processCommand(String command, double value){
       botTargetSpeed = 0.0;
       targetHeading = targetHeading - value;
       if (targetHeading < 0)targetHeading += 360;
-      motorDirection[0] = forward;
+      motorDirection[0] = reverse;
       motorDirection[1] = forward;
       botTargetDirection = forward;
       botTurnDirection = turnLeft;
+	  setMotorSpeed();
     }
     break;
 
@@ -384,9 +405,10 @@ void encoderMotorController::processCommand(String command, double value){
       targetHeading = targetHeading + value;
       if (targetHeading > 360)targetHeading -= 360;
       motorDirection[0] = forward;
-      motorDirection[1] = forward;
+      motorDirection[1] = reverse;
       botTargetDirection = forward;
       botTurnDirection = turnRight;
+	  setMotorSpeed();
     }
     break;
     default:
@@ -425,9 +447,6 @@ void encoderMotorController::update(){
     timeOfCurrentStep[0] = timeOfLastStep[0];
     timeOfFirstStep[0] = timeOfLastStep[0];
     wheelSpeed[0] = 0;
-    if (boostOn[0]){
-      increaseMinSpeed(0);
-    }
     //Serial.println("STOP0" + String(boostOn[0]));
   }
     if ((micros() - timeOfCurrentStep[1]) > minCalculatedSpeedTimePerStep){
@@ -435,11 +454,9 @@ void encoderMotorController::update(){
     timeOfCurrentStep[1] = timeOfLastStep[1];
     timeOfFirstStep[1] = timeOfLastStep[1];
     wheelSpeed[1] = 0;
-    if (boostOn[1]){
-      increaseMinSpeed(1);
-    }
     //Serial.println("STOP1" + String(boostOn[1]));
   }
+  
 if (steps[0] > 0)timeOfFirstStep[0] = timeOfCurrentStep[0];
 if (steps[1] > 0)timeOfFirstStep[1] = timeOfCurrentStep[1];
   steps[0] = 0;
@@ -481,24 +498,27 @@ void encoderMotorController::setMotorSpeed(){
   if (commandCompleted && botTurnDirection != none){
     motorBreak();
   }else{
-  //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB));
-  analogWrite(motorAPin1,PWMA * (motorDirection[0] < 0) );
-  analogWrite(motorAPin2,PWMA * (motorDirection[0] > 0) );
-  analogWrite(motorBPin1,PWMB * (motorDirection[1] < 0) );
-  analogWrite(motorBPin2,PWMB * (motorDirection[1] > 0) );
+  //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB) + "DA" + String(motorDirection[0]) + "DB" + String(motorDirection[1]));
+  pwm_set_duty(PWMA * (motorDirection[0] < 0), 0);
+  pwm_set_duty(PWMA * (motorDirection[0] > 0), 1);
+  pwm_set_duty(PWMB * (motorDirection[1] < 0), 2);
+  pwm_set_duty(PWMB * (motorDirection[1] > 0), 3);
+  pwm_start();												// commit changes
   }
 }
 void encoderMotorController::setMotorSpeed(int newPWMA, int newPWMB){
-  analogWrite(motorAPin1,newPWMA * (motorDirection[0] < 0) );
-  analogWrite(motorAPin2,newPWMA * (motorDirection[0] > 0) );
-  analogWrite(motorBPin1,newPWMB * (motorDirection[1] < 0) );
-  analogWrite(motorBPin2,newPWMB * (motorDirection[1] > 0) );
+  pwm_set_duty(newPWMA * (motorDirection[0] < 0), 0);
+  pwm_set_duty(newPWMA * (motorDirection[0] > 0), 1);
+  pwm_set_duty(newPWMB * (motorDirection[1] < 0), 2);
+  pwm_set_duty(newPWMB * (motorDirection[1] > 0), 3);
+  pwm_start();	
 }
 void encoderMotorController::motorBreak(){
-  analogWrite(motorAPin1, PWMWriteRange);
-  analogWrite(motorAPin2, PWMWriteRange);
-  analogWrite(motorBPin1, PWMWriteRange);
-  analogWrite(motorBPin2, PWMWriteRange);
+  pwm_set_duty(PWMWriteRange, 0);
+  pwm_set_duty(PWMWriteRange, 1);
+  pwm_set_duty(PWMWriteRange, 2);
+  pwm_set_duty(PWMWriteRange, 3);
+  pwm_start();
   //Serial.println("BREAK");
 }
 void encoderMotorController::PID(){
@@ -506,7 +526,6 @@ void encoderMotorController::PID(){
       double errorA = wheelTargetSpeed[0] - wheelSpeed[0];
       double errorB = wheelTargetSpeed[1] - wheelSpeed[1];
       // convert error to PWM
-      double maxPWMChange = 110.0 * updateFrequencyScaler;
       int PWMChangeIncreaseA = int(maxPWMChange * (makePositive(errorA) / MAX_Speed));
       int PWMChangeIncreaseB = int(maxPWMChange * (makePositive(errorB) / MAX_Speed));
       int PWMChangeDecreaseA = int(double(PWMChangeIncreaseA) * 0.5);
@@ -530,26 +549,29 @@ void encoderMotorController::PID(){
       lastError[1] = errorB;
       // special limits for turning in turtle mode
       if (botTurnDirection == turnLeft || botTurnDirection == turnRight){
-        PWMChangeIncreaseA = 7 * updateFrequencyScaler;
-        PWMChangeIncreaseB = 7 * updateFrequencyScaler;
-        PWMChangeDecreaseA = 2 * updateFrequencyScaler;
-        PWMChangeDecreaseB = 2 * updateFrequencyScaler;
+        PWMChangeIncreaseA = minPWMModifier * 5; //7
+        PWMChangeIncreaseB = minPWMModifier * 5;	//7
+        PWMChangeDecreaseA = minPWMModifier * 1.5;	//2
+        PWMChangeDecreaseB = minPWMModifier * 1.5;	//2
         if (commandCompleted || slow){
           if(commandCompleted)motorBreak();
           return;
-        }
+        }else{
+			setMotorSpeed();
+		}
       }
        // slow to stop
       if (!wheelTargetSpeed[0] && !wheelTargetSpeed[1]){
+		  float qtrPeriod = float(PWM_PERIOD) * 0.25;
           if (PWMA > PWMB){PWMB = PWMA;}else{PWMA = PWMB;}
-          if (PWMA > 256){
-            PWMA = 256;
-            PWMB = 256;
+          if (PWMA > qtrPeriod){
+            PWMA = qtrPeriod;
+            PWMB = qtrPeriod;
           }
 
-      if (PWMA <= 256 && PWMA > 8){
-        PWMChangeDecreaseA = 8;
-        PWMChangeDecreaseB = 8;
+      if (PWMA <= qtrPeriod && PWMA > minPWMModifier * 8){
+        PWMChangeDecreaseA = minPWMModifier * 8;
+        PWMChangeDecreaseB = minPWMModifier * 8;
       }
     }
       // Start boost to overcome starting torque
@@ -607,16 +629,8 @@ void encoderMotorController::PID(){
    if (!wheelTargetSpeed[1] && !wheelSpeed[1]){
     PWMB = 0;
    }
-   // test for stalled motor, if battery is low enough the motor can stop at full PWM !
-   if ((!boostOn[0] || PWMA == PWMWriteRange) && !wheelSpeed[0] && wheelTargetSpeed[0] && startPWMBoost != PWMWriteRange - 1){ // if motor isnt in start mode and the wheel isn't turning
-    increaseMinSpeed(0);
-   }
-   if ((!boostOn[1] || PWMB == PWMWriteRange) && !wheelSpeed[1] && wheelTargetSpeed[1] && startPWMBoost != PWMWriteRange - 1){
-    increaseMinSpeed(1);
-   }
    //Serial.println("PWMA" + String(PWMA) + "PWMB" + String(PWMB));
-      // send pwm to motors
-   setMotorSpeed();
+   setMotorSpeed(); 			// send pwm to motors
 }
 double encoderMotorController::getSpeed(){
   return botCurrentSpeed;
@@ -650,13 +664,10 @@ void encoderMotorController::updateSteering(long delatT){
       motorDirection[1] = botTargetDirection;
       //double changeDegreesPerSecond = 0;
 
-      //double thisMAXSpeed = distancePerDegreeChange * MAX_heading_Change * 0.0036;
-      //if (thisMAXSpeed < MIN_Speed)thisMAXSpeed = MIN_Speed;
-      double positiveHeadingToTarget = makePositive(headingToTarget); 
-      //positiveHeadingToTarget >= anglePerStep  &&     
-   if (botTurnDirection != none){ // change speed to correct heading for bot pivit
+      double positiveHeadingToTarget = makePositive(headingToTarget);     
+   if (botTurnDirection != none){ 					// change speed to correct heading for bot pivit
       if (botTurnDirection == turnRight){
-        if (PWMA > startPWMBoost && !boostOn[0]){ // help prevent overshoot
+        if (PWMA > startPWMBoost && !boostOn[0]){ 	// help prevent overshoot
           PWMA = startPWMBoost;
         }
         if (PWMB > startPWMBoost && !boostOn[1]){
@@ -667,7 +678,7 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
-        }else{// heading is less than max or is 0 change 
+        }else{												// heading is less than max or is 0 change 
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[1] = -botTargetDirection;
@@ -685,9 +696,7 @@ void encoderMotorController::updateSteering(long delatT){
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[0] = -botTargetDirection;
-        }else{// heading is less than max or is 0 change 
-          //double thisSpeed = thisMAXSpeed * (positiveHeadingToTarget / MAX_heading_Change);
-         // if (thisSpeed < MIN_Speed)thisSpeed = MIN_Speed;
+        }else{									// heading is less than max or is 0 change 
             wheelTargetSpeed[0] = MIN_Speed;
             wheelTargetSpeed[1] = MIN_Speed;
             motorDirection[0] = -botTargetDirection;
@@ -699,13 +708,13 @@ void encoderMotorController::updateSteering(long delatT){
     }
     }
    if ((positiveHeadingToTarget > (anglePerStep * 0.5)) && (botTurnDirection == none)){ // change speed to correct heading for bot drive
-    if (botTargetSpeed){  // only when moving at least min speed
+    if (botTargetSpeed){  						// only when moving at least min speed
         wheelTargetSpeed[0] = botTargetSpeed;
         wheelTargetSpeed[1] = botTargetSpeed;
         double scale = positiveHeadingToTarget / MAX_heading_Change;
         if (scale < 0.3)scale = 0.3;
-        double thisSpeed = botTargetSpeed * 0.22 * scale;     //thisMAXSpeed;
-		if (scale > 0.35){
+        double thisSpeed = botTargetSpeed * 0.22 * scale;
+		if (scale > 0.35 && inManualMode){
 			thisSpeed = botTargetSpeed * 0.32 * scale;
 		}
           //if (positiveHeadingToTarget < 5 ){         // greater than can change in 1 second
@@ -769,7 +778,7 @@ void encoderMotorController::playVroom(){
 }
 
 void encoderMotorController::playMarioMainThem(){//Mario main them
-  int notes[] = { // from the website http://www.princetronics.com/supermariothemesong/
+  int notes[] = { 								 // from the website http://www.princetronics.com/supermariothemesong/
   NOTE_E7, NOTE_E7, 1, NOTE_E7,
   1, NOTE_C7, NOTE_E7, 1,
   NOTE_G7, 1, 1,  1,
@@ -827,8 +836,8 @@ double durations[] = {
     note++;
   }
 }
-void encoderMotorController::playMarioUnderworld(){//Underworld melody
-int notes[] = {// from the website http://www.princetronics.com/supermariothemesong/
+void encoderMotorController::playMarioUnderworld(){ //Underworld melody
+int notes[] = {										// from the website http://www.princetronics.com/supermariothemesong/
   NOTE_C4, NOTE_C5, NOTE_A3, NOTE_A4,
   NOTE_AS3, NOTE_AS4, 1,
   1,
@@ -897,30 +906,45 @@ void encoderMotorController::hardLeftTurn(){     // emergency turn
   setMotorSpeed();
 }
 
-void encoderMotorController::increaseMinSpeed(int wheel){
-     if (!wheel){ // stop wheel completely so next cycle it will get a surge in boost mode
-     PWMA = 0;
-     }else{
-     PWMB = 0;
-     }
-    timeOfLastStep[wheel] = micros();                             // reset timers
-    timeOfCurrentStep[wheel] = timeOfLastStep[wheel];
-    timeOfFirstStep[wheel] = timeOfLastStep[wheel];
-    wheelSpeed[wheel] = 0;
-    startPWMBoost += 50;                                          // increase the start boost to try to stop it next start
-    if (startPWMBoost >= PWMWriteRange){
-      startPWMBoost = PWMWriteRange - 1;
-    }
-      MIN_Speed += (BASE_MAX_Speed * 0.05);
-      MAX_Speed -= (BASE_MAX_Speed * 0.05);
-      if (MAX_Speed < 1.2)MAX_Speed = 1.2;
-      if (MIN_Speed > 0.85)MIN_Speed = 0.85;
-      if (MIN_Speed > MAX_Speed)MIN_Speed = MAX_Speed;
-      minMotorSpeed = MIN_Speed / MAX_Speed;
-      botmodeSpeed = ((MAX_Speed - MIN_Speed) * 0.5) + MIN_Speed;
-      if (MIN_Speed > (MAX_Speed - (MAX_Speed * 0.1))){
-      MIN_Speed = MAX_Speed - (MAX_Speed * 0.1);
-    }
-    //Serial.println("New Min Speed" + String(MIN_Speed) + "New Max Speed" + String(MAX_Speed));
+void encoderMotorController::updateMotorSpeed(double voltage){
+	if (voltage >= 5.8 && batteryLevel == 1){
+		return;
+	}
+	if (voltage > 5.5  && voltage < 5.8 && batteryLevel < 2){
+		batteryLevel = 2;
+		startPWMBoost = BASE_START_BOOST + (25 * minPWMModifier);
+		return;
+	}
+	if (voltage > 5.1 && voltage < 5.5 && batteryLevel < 4){
+		MIN_Speed = BASE_MIN_Speed + 0.03;
+		MAX_Speed = 1.6;
+		startPWMBoost = BASE_START_BOOST + (50 * minPWMModifier);
+		batteryLevel = 4;
+		return;
+	}
+	if (voltage > 4.6 && voltage < 5.1 && batteryLevel < 5){
+		MIN_Speed = BASE_MIN_Speed + 0.10;
+		MAX_Speed = 1.4;
+		startPWMBoost = BASE_START_BOOST + (85 * minPWMModifier);
+		batteryLevel = 5;
+		return;
+	}
+	if (voltage > 4.4 && voltage < 4.6 && batteryLevel < 7){
+		MIN_Speed = BASE_MIN_Speed + 0.17;
+		MAX_Speed = 1.3;
+		startPWMBoost = BASE_START_BOOST + (125  * minPWMModifier);
+		batteryLevel = 7;
+		return;
+	}
+	if (voltage < 4.4 && batteryLevel < 8){		//below minimum voltage
+		MIN_Speed = BASE_MIN_Speed + 0.24;
+		MAX_Speed = 0.9;
+		startPWMBoost = BASE_START_BOOST + (175  * minPWMModifier);
+		batteryLevel = 8;
+		return;
+	}
 }
 
+int encoderMotorController::getBatteryLevel(){
+	return batteryLevel;
+}

@@ -14,12 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #pragma GCC optimize ("-O2")
- void pingSetup();
- void startup();
- void calculateDistance();
- void triggerPing();
- int getDistance();
- 
- void addToFilter(int);
- void resetFilter();
- int getMedian();
+#if defined(ARDUINO) && ARDUINO >= 100
+	#include <Arduino.h>
+#endif
+void fastDigitalWrite(int,bool);
