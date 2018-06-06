@@ -1,0 +1,56 @@
+Designator Footprint               Mid X         Mid Y         Ref X         Ref Y         Pad X         Pad Y TB      Rotation Comment        
+
+C1         CAPC2013X140X50LL20T25      19.304mm       45.72mm      19.304mm       45.72mm      19.304mm       46.42mm  T        270.00 100nF          
+C3         CAPC2013X140X50LL20T25      23.749mm      52.578mm      23.749mm      52.578mm      23.049mm      52.578mm  T        360.00 AVX Interconnect / Elco 08055C104K4Z2A
+C2         CAPC2013X140X50LL20T25     -19.558mm       45.72mm     -19.558mm       45.72mm     -19.558mm       45.02mm  T         90.00 100nF          
+C4         CAPC2013X140X50LL20T25     -23.622mm      50.546mm     -23.622mm      50.546mm     -24.322mm      50.546mm  T        360.00 AVX Interconnect / Elco 08055C104K4Z2A
+C5         CAPC2013X140X50LL20T25      -4.064mm       43.18mm      -4.064mm       43.18mm      -4.064mm       43.88mm  T        270.00 100nF          
+C6         CAPC2013X140X50LL20T25      -7.874mm      39.878mm      -7.874mm      39.878mm      -7.874mm      39.178mm  T         90.00 100nF          
+C7         CAPC2013X140X50LL20T25        6.35mm      43.434mm        6.35mm      43.434mm        6.35mm      42.734mm  T         90.00 100nF          
+C8         CAPC2013X140X50LL20T25     -19.558mm      17.399mm     -19.558mm      17.399mm     -20.258mm      17.399mm  T        360.00 100nF          
+C9         CAPC2013X140X50LL20T25       5.207mm      21.463mm       5.207mm      21.463mm       5.907mm      21.463mm  T        180.00 100nF          
+C10        CAPC2013X140X50LL20T25      19.558mm      17.272mm      19.558mm      17.272mm      18.858mm      17.272mm  T        360.00 100nF          
+C11        CAPC2013X140X50LL20T25      -17.78mm       5.715mm      -17.78mm       5.715mm      -18.48mm       5.715mm  T        360.00 100nF          
+C12        CAPC2013X140X50LL20T25           0mm       5.715mm           0mm       5.715mm        -0.7mm       5.715mm  T        360.00 100nF          
+C13        CAPC2013X140X50LL20T25      16.002mm       5.715mm      16.002mm       5.715mm      15.302mm       5.715mm  T        360.00 100nF          
+D1         PCB-5u05b2cotxonj0zylsix-1      -17.78mm      21.336mm      -17.78mm      21.336mm      -15.33mm      19.686mm  T        180.00 WS2812B        
+D2         PCB-5u05b2cotxonj0zylsix-1           0mm      21.336mm           0mm      21.336mm        2.45mm      19.686mm  T        180.00 WS2812B        
+D3         PCB-5u05b2cotxonj0zylsix-1       17.78mm      21.336mm       17.78mm      21.336mm       20.23mm      19.686mm  T        180.00 WS2812B        
+D4         PCB-5u05b2cotxonj0zylsix-1      -17.78mm       9.652mm      -17.78mm       9.652mm      -15.33mm       8.002mm  T        180.00 WS2812B        
+D5         PCB-5u05b2cotxonj0zylsix-1           0mm       9.652mm           0mm       9.652mm        2.45mm       8.002mm  T        180.00 WS2812B        
+D6         PCB-5u05b2cotxonj0zylsix-1       17.78mm       9.652mm       17.78mm       9.652mm       20.23mm       8.002mm  T        180.00 WS2812B        
+J2         PCB-rsrshy9k52pas9f32mx6-1      11.176mm       58.42mm      11.176mm       58.42mm       8.636mm       58.42mm  B        360.00 Left_Motor     
+J3         PCB-rsrshy9k52pas9f32mx6-1     -11.176mm      58.293mm     -11.176mm      58.293mm     -13.716mm      58.293mm  B        360.00 Right_Motor    
+J1         PCB-rsrshy9k52pas9f32mx6-1           0mm      35.687mm           0mm      35.687mm       -2.54mm      35.687mm  B        360.00 TE Connectivity 282857-2
+R5         RESC2013X70X40LL20T20      28.448mm      46.609mm      28.448mm      46.609mm      27.673mm      46.609mm  T        360.00 10k            
+R4         RESC2013X70X40LL20T20      28.448mm      44.831mm      28.448mm      44.831mm      27.673mm      44.831mm  T        360.00 10k            
+R7         RESC2013X70X40LL20T20     -28.702mm      46.609mm     -28.702mm      46.609mm     -27.927mm      46.609mm  T        180.00 10k            
+R6         RESC2013X70X40LL20T20     -28.702mm      44.831mm     -28.702mm      44.831mm     -27.927mm      44.831mm  T        180.00 10k            
+R10        RESC2013X70X40LL20T20       8.255mm      36.703mm       8.255mm      36.703mm       8.255mm      35.928mm  T         90.00 10k            
+R8         RESC2013X70X40LL20T20      -4.064mm      39.878mm      -4.064mm      39.878mm      -4.064mm      39.103mm  T         90.00 100k           
+R11        RESC2013X70X40LL20T20      -7.874mm      36.703mm      -7.874mm      36.703mm      -7.874mm      35.928mm  T         90.00 10k            
+R20        RESC2013X70X40LL20T20        6.35mm      36.703mm        6.35mm      36.703mm        6.35mm      37.478mm  T        270.00 10K            
+R13        RESC2013X70X40LL20T20       4.826mm      47.498mm       4.826mm      47.498mm       4.826mm      48.273mm  T        270.00 10K            
+R14        RESC2013X70X40LL20T20      -6.604mm      16.002mm      -6.604mm      16.002mm      -5.829mm      16.002mm  T        180.00 180R           
+R18        RESC2013X70X40LL20T20      -20.32mm      37.465mm      -20.32mm      37.465mm     -19.545mm      37.465mm  T        180.00 210            
+U1         PCB-9pf0b8bzg6xzi9klhbhd-1      23.622mm       45.72mm      23.622mm       45.72mm      25.527mm       48.12mm  T        270.00 L9110s         
+U2         PCB-9pf0b8bzg6xzi9klhbhd-1     -23.622mm       45.72mm     -23.622mm       45.72mm     -21.717mm       48.12mm  T        270.00 L9110s         
+U4         M08A_L                    0mm      41.656mm           0mm      41.656mm      -1.905mm      39.306mm  T         90.00 LM393          
+US1        PCB-3rbh7bjkaeivfpopn8t1-1           0mm       55.88mm           0mm       55.88mm       -3.81mm       55.88mm  B        180.00 RCW-0006       
+PI1        PCB-09thh37foxjzttioj0ga-1          -8mm          16mm          -8mm          16mm       -2.92mm       14.73mm  B        180.00 E048-03        
+PI2        PCB-09thh37foxjzttioj0ga-1           8mm          16mm           8mm          16mm       13.08mm       14.73mm  B        180.00 E048-03        
+R12        RESC2013X70X40LL20T20      -2.794mm      47.498mm      -2.794mm      47.498mm      -2.794mm      48.273mm  T        270.00 10k            
+R19        RESC2013X70X40LL20T20      -20.32mm      32.004mm      -20.32mm      32.004mm     -21.095mm      32.004mm  T        360.00 210            
+SW1        PCB-70k6oqbhuv68f7gyhifn-1       27.94mm        6.35mm       27.94mm        6.35mm       32.49mm         4.1mm  T        270.00 Left Switch    
+SW2        PCB-70k6oqbhuv68f7gyhifn-1      -27.94mm        6.35mm      -27.94mm        6.35mm      -32.49mm         8.6mm  T         90.00 Right Switch   
+R24        RESC2013X70X40LL20T20      20.193mm      33.655mm      20.193mm      33.655mm      19.418mm      33.655mm  T        360.00 330K           
+R15        RESC2013X70X40LL20T20      -9.906mm      16.002mm      -9.906mm      16.002mm     -10.681mm      16.002mm  T        360.00 10K            
+Q1         PCB-dbhk9q13wds7exg38ggf-1      -20.32mm      34.671mm      -20.32mm      34.671mm      -19.37mm      35.671mm  T        270.00 BSS138         
+R9         RESC2013X70X40LL20T20       4.064mm      43.434mm       4.064mm      43.434mm       4.064mm      42.659mm  T         90.00 100k           
+R21        RESC2013X70X40LL20T20       2.794mm      47.498mm       2.794mm      47.498mm       2.794mm      46.723mm  T         90.00 10k            
+R1         RESC2013X70X40LL20T20      20.193mm      35.814mm      20.193mm      35.814mm      20.968mm      35.814mm  T        180.00 DNL            
+R16        RESC2013X70X40LL20T20       6.223mm      16.002mm       6.223mm      16.002mm       5.448mm      16.002mm  T        360.00 10K            
+R17        RESC2013X70X40LL20T20       9.525mm      16.002mm       9.525mm      16.002mm        10.3mm      16.002mm  T        180.00 180R           
+U3         PCB-yro250ecdpkawmrzguod-1     -0.0254mm     39.9034mm           0mm      39.878mm     -8.9408mm     28.4988mm  T        270.00 D1 Mini        
+D7         PCB-l1lmzftcqe25cysua8mc-1       -8.89mm      33.274mm       -8.89mm      33.274mm       -7.94mm      34.324mm  T        270.00 BAT54CFILM     
+
