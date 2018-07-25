@@ -758,23 +758,36 @@ void encoderMotorController::playMarch(){
   Enote+Snote,Snote,Hnote,0};
   int note = 0;
   while (notes[note]){
-    playNote(notes[note],durations[note]);
-    note++;
+	soundNote[note] = notes[note];
+	soundDuration[note] = durations[note];
+	note++;
+	soundNote[note] = notes[note];
   }
 }
 void encoderMotorController::playCharge(){
   updateBPM(68);
-  playNote(NOTE_G5,Snote);
-  playNote(NOTE_C6,Snote);
-  playNote(NOTE_E6,Snote);
-  playNote(NOTE_G6,Enote);
-  playNote(NOTE_E6,Snote);
-  playNote(NOTE_G6,Qnote);
+  soundNote[0] = NOTE_G5;
+  soundDuration[0] = Snote;
+  soundNote[1] = NOTE_C6;
+  soundDuration[1] = Snote;
+  soundNote[2] = NOTE_E6;
+  soundDuration[2] = Snote;
+  soundNote[3] = NOTE_G6;
+  soundDuration[3] = Enote;
+  soundNote[4] = NOTE_E6;
+  soundDuration[4] = Snote;
+  soundNote[5] = NOTE_G6;
+  soundDuration[5] = Qnote;
+  soundNote[6] = 1;
+  soundDuration[6] = 0;
+  soundNote[7] = 0;
+  soundDuration[7] = 0;
 }
 void encoderMotorController::playVroom(){
   for(int a = NOTE_A1; a < NOTE_F3; a++){ // v - room
     playNote(a,4);
   }
+  stopPlaying();
 }
 
 void encoderMotorController::playMarioMainThem(){//Mario main them
@@ -832,8 +845,10 @@ double durations[] = {
 };
   int note = 0;
   while (notes[note]){
-    playNote(notes[note],(1000 / durations[note]*1.5) );
+	soundNote[note] = notes[note];
+	soundDuration[note] = (1000 / durations[note]*1.5);
     note++;
+	soundNote[note] = notes[note];
   }
 }
 void encoderMotorController::playMarioUnderworld(){ //Underworld melody
@@ -881,8 +896,12 @@ double durations[] = {
 };
     int note = 0;
   while (notes[note]){
-    playNote(notes[note],(1000 / durations[note]*1.5) );
-    note++;
+	soundNote[note] = notes[note];
+	soundDuration[note] = (1000 / durations[note]*1.5);
+	  //TODO:: remove play from here and create standalone function
+    //playNote(notes[note],(1000 / durations[note]*1.5) );
+	note++;
+	soundNote[note] = notes[note];
   }
 }
 void encoderMotorController::updateBPM(double thisBPM){
@@ -895,6 +914,29 @@ Snote = Qnote/4;                                  // sixteenth 1/16
 Wnote = 4*Qnote;                                  // whole 4/4
 }
 
+void encoderMotorController::play(String soundName){
+	isPlaying = true;
+	currentNote = 0;
+	if (soundName == "PlayMarioUnderworld")playMarioUnderworld();
+	if (soundName == "PlayCharge")playCharge();
+	if (soundName == "PlayMarch")playMarch();
+	if (soundName == "PlayMarioTheme")playMarioMainThem();
+}
+bool encoderMotorController::updateSoundPlayer(){
+	if (isPlaying){
+		if (soundNote[currentNote+1] != 0){
+			playNote(soundNote[currentNote],soundDuration[currentNote]);
+			currentNote++;
+		}else{
+			stopPlaying();
+		}
+	}
+	return isPlaying;
+}
+void encoderMotorController::stopPlaying(){
+	isPlaying = false;
+	updateBPM(104); // default
+}
 void encoderMotorController::hardRightTurn(){     // emergency turn
   PWMA = PWMWriteRange;
   PWMB = minMotorSpeed * PWMWriteRange;

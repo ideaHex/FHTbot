@@ -24,6 +24,7 @@ limitations under the License.
 #include "botVoltage.h"
 #include <DNSServer.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <FS.h>
 #include <NeoPixelBus.h>
 #include <Ticker.h>
@@ -49,7 +50,6 @@ bool enableCompatibilityMode = false; // turn on compatibility mode for older
 
 void Stop(void);
 void CheckHeartBeat(void);
-void executeRequest(String);
 void setupWiFi(void);
 void setupWebsocket(void);
 void initHardware(void);
@@ -67,6 +67,14 @@ void motorLeftEncoderInterruptHandler();
 void motorRightEncoderInterruptHandler();
 void updateClient();
 void updateMotorSpeed(void);
+void feedback();
+void handleSounds();
+void handleRoot();
+void handleNotFound();
+void handleHeartBeat();
+void handleRecievedPacket();
+void WSRequest(String req, int clientNum);
+void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,size_t payLength);
 
 /////////////////////
 // Pin Definitions //
@@ -92,8 +100,7 @@ Ticker motorControllerTicker;
 Ticker tempTicker;
 Ticker lBH; // left bumper hit reverse timer
 Ticker rBH; // right bumper hit reverse timer
-WiFiServer server(80);
-WiFiClient client;
+ESP8266WebServer server(80);
 WebSocketsServer webSocket = WebSocketsServer(81);
 DNSServer dnsServer;
 Ticker HeartBeatTicker;
@@ -101,9 +108,6 @@ int distance = 500;
 boolean driverAssist = false;
 bool HeartBeatRcvd = false;
 String closeConnectionHeader = "";
-#define MAX_SRV_CLIENTS 10 // maximum client connections
-WiFiClient serverClients[MAX_SRV_CLIENTS];
-int currentClient = 0;
 boolean pingOn = false;
 unsigned long nextBoredBotEvent = 0;
 int boredBotTimeout = 60000;             //in ms
@@ -169,35 +173,10 @@ void loop(){
 
   //Loop WebSocket Server
   webSocket.loop();
-   // client functions here
-  while (server.hasClient()){
-    for(uint8_t i = 0; i < MAX_SRV_CLIENTS; i++){
-      //find free/disconnected spot
-      if (!serverClients[i] || !serverClients[i].connected()){
-        if(serverClients[i]) serverClients[i].stop();
-        serverClients[i] = server.available();
-        return;
-      }
-    }
-    // no free/disconnected spot so reject
-    // WiFiClient serverClient = server.available();
-    // serverClient.stop();
-  }
-  // check clients for data
-  String req = "";
-  for(uint8_t i = currentClient; i < MAX_SRV_CLIENTS; i++){// start at current client to keep in order
-    if (serverClients[i] && serverClients[i].connected()){
-        if (serverClients[i].available()){
-          req = serverClients[i].readStringUntil('\r');   // Read the first line of the request
-          //Serial.println((serverClients[i].readString()+"\r\n"));
-          serverClients[i].flush();
-          currentClient = i;
-          break;
-        }
-    }
-    currentClient = 0;
-  }
-  executeRequest(req);
+  // handle client requests
+  server.handleClient();
+  
+  if(motors.updateSoundPlayer()) HeartBeatRcvd = true; // non - blocking sounds
 }
 /**
  * A faster version of exeReq for websockets.
@@ -228,8 +207,6 @@ void WSRequest(String req, int clientNum) {
     if (req.indexOf("/DM") != -1){
       driverAssist = false;
       }
-    // serverClients[currentClient].write(
-    // closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
     int dX = xOffset.toInt();
@@ -259,8 +236,6 @@ void WSRequest(String req, int clientNum) {
   }else{
     //TODO REVIEW THESE FOR FALSE ACTIVATION LS PROVED TO HIT
   if (req.indexOf("data,") != -1) {
-    // serverClients[currentClient].write(
-    // closeConnectionHeader.c_str(),closeConnectionHeader.length() );
     yield();
     req.remove(0, req.indexOf("data,"));
     req.trim();
@@ -292,7 +267,7 @@ void WSRequest(String req, int clientNum) {
     }
   }
   //Listing directory contents
-  if(req.indexOf("ls,")!= 1){
+  if(req.indexOf("ls,")!= -1){
      //load dir object
      Dir dir = SPIFFS.openDir(req.substring(req.indexOf(",")));
      String out = "";
@@ -306,132 +281,6 @@ void WSRequest(String req, int clientNum) {
      #endif
      webSocket.sendTXT(clientNum, out);
   }
-  }
-}
-
-void executeRequest(String req) {
-  if (!req.length()) { // empty request
-    return;
-  }
-  HeartBeatRcvd = true; // received data, must be connected
-  if (autoMode) {
-    autoMode = false; // disable autoMode if client sends packet
-    HeartBeatRcvd = false;
-    Stop();
-  }
-  // Serial.println("\r\n" + req);
-  int indexOfX = req.indexOf("/X");
-  int indexOfY = req.indexOf("/Y");
-  if (indexOfX != -1 && indexOfY != -1) {
-    pingOn = true;
-    if (req.indexOf("/HBDA") != -1)
-      driverAssist = true;
-    if (req.indexOf("/HBDM") != -1)
-      driverAssist = false;
-    serverClients[currentClient].write(closeConnectionHeader.c_str(),
-                                       closeConnectionHeader.length());
-    yield();
-    String xOffset = req.substring(indexOfX + 2, indexOfX + 8);
-    int dX = xOffset.toInt();
-    String yOffset = req.substring(indexOfY + 2, indexOfY + 8);
-    int dY = yOffset.toInt();
-    // driver assist
-    if (driverAssist) {
-      updateBlinkers(dX, dY);
-      if (distance < 450 && distance > 199 && dY < 0) {
-        setColor(RgbColor(90, 105, 95));
-        motors.hardRightTurn();
-        dX = 500;
-        dY = -100;
-      }
-      if (distance < 200) {
-        setColor(RgbColor(255, 0, 0));
-        dY = 500;
-      }
-    } else {
-      pixelTest();
-    }
-    motors.manualDrive(dX,dY);
-  }else{
-      String fileString = req.substring(4, (req.length() - 9));
-      //Serial.println("\r\n" + fileString);
-        if (fileString.indexOf("/HB") != -1){
-          pingOn = false;
-          driverAssist = false;
-          HeartBeatRcvd = true;
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-          yield();
-          return;
-        }
-        if (fileString.indexOf("data,") != -1){
-            serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            fileString.remove(0,fileString.indexOf("data,"));
-            fileString.trim();
-            motors.startCommandSet(fileString);
-            return;
-        }
-        if (fileString.indexOf("feedback") != -1){             // send feedback to drive web page
-              float voltage = getCurrentVoltage();
-              int batteryLevel = motors.getBatteryLevel();
-              String s,h;
-              s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
-              s += (";var volt=");
-              s += voltage;
-              s += (";var bLev=");
-              s += batteryLevel;
-              s += (";var dis=");
-              s += distance;
-              s += (";var kph=");
-              s += motors.getSpeed();
-              s += (";var movd=");
-              s += motors.getTravel();
-              s += (";var hed=");
-              s += motors.getheading();
-              s += (";</script></body></html>");
-              h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
-              h += s.length();
-              h += F("\r\n\r\n");
-              String ss = h + s;
-              serverClients[currentClient].write(ss.c_str(),ss.length());
-              yield();
-              return;
-        }
-        if(fileString.indexOf("write,")!=-1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-            yield();
-            fileString.remove(0,fileString.indexOf("write,"));
-            fileString.trim();
-            //TODO Save File
-            
-            return;
-        }
-        if (fileString.indexOf("/PlayCharge") != -1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-          yield();
-          motors.playCharge();
-          return;
-        }
-        if (fileString.indexOf("/PlayMarch") != -1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-          yield();
-          motors.playMarch();
-          return;
-        }
-        if (fileString.indexOf("/PlayMarioTheme") != -1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-          yield();
-          motors.playMarioMainThem();
-          return;
-        }
-        if (fileString.indexOf("/PlayMarioUnderworld") != -1){
-          serverClients[currentClient].write( closeConnectionHeader.c_str(),closeConnectionHeader.length() );
-          yield();
-          motors.playMarioUnderworld();
-          return;
-        }
-        sendFile(fileString, &serverClients[currentClient]);
-      
   }
 }
 
@@ -493,7 +342,7 @@ void setupWiFi(){
 
   // Create a unique name by appending the MAC address to the AP Name
 
-  AP_Name = AP_Name + " " + WiFi.softAPmacAddress();
+  //AP_Name = AP_Name + " " + WiFi.softAPmacAddress();
   char AP_NameChar[AP_Name.length() + 1];
   AP_Name.toCharArray(AP_NameChar, AP_Name.length() + 1);
 
@@ -529,8 +378,11 @@ void setupWiFi(){
                                         // .org etc..' and cant use '@ or _
                                         // etc...' ! . Use "*" to divert all
                                         // **VALID** names
-  server.begin();
-  server.setNoDelay(true);
+	server.on("/", handleRoot);
+    server.on("/Sounds", handleSounds);
+	server.onNotFound(handleNotFound);
+	server.on("/HB", handleHeartBeat);
+	server.begin();
 }
 
 void setupWebsocket() {
@@ -602,9 +454,6 @@ void motorLeftEncoderInterruptHandler() { motors.takeStep(0); }
 void motorRightEncoderInterruptHandler() { motors.takeStep(1); }
 
 void updateMotors() { motors.update(); }
-
-
-
 
 
 void checkBoredBot(){
@@ -734,4 +583,76 @@ void updateMotorSpeed(){
 				updateVoltage();
                 float voltage = getCurrentVoltage();
 				motors.updateMotorSpeed(voltage);
+}
+
+// server callbacks
+
+void handleRoot(){
+	handleRecievedPacket();
+	sendFile(server.uri(),&server);
+}
+
+void handleNotFound(){
+	//handleRecievedPacket();
+	sendFile(server.uri(),&server);
+}
+
+void feedback(){
+			  float voltage = getCurrentVoltage();
+              int batteryLevel = motors.getBatteryLevel();
+              String s,h;
+              s = F("<!DOCTYPE HTML><html><head><meta http-equiv='refresh' content='1'></head><body><script>");
+              s += (";var volt=");
+              s += voltage;
+              s += (";var bLev=");
+              s += batteryLevel;
+              s += (";var dis=");
+              s += distance;
+              s += (";var kph=");
+              s += motors.getSpeed();
+              s += (";var movd=");
+              s += motors.getTravel();
+              s += (";var hed=");
+              s += motors.getheading();
+              s += (";</script></body></html>");
+              h = F("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Close\r\ncontent-length: ");
+              h += s.length();
+              h += F("\r\n\r\n");
+              String ss = h + s;
+			  server.sendContent(ss);
+              yield();
+              return;
+}
+
+void handleSounds(){
+#ifdef Diag
+  Serial.println("Handeling sounds");
+#endif
+  if(server.hasArg("Play")){
+	  //String header = F("HTTP/1.1 301 OK\r\nCache-Control: no-cache\r\nConnection: Close\r\n\r\n");
+		yield();
+		server.sendContent(closeConnectionHeader);
+		motors.play(server.arg("Play"));
+  }else{
+    sendFile(server.uri(),&server);
+  }
+}
+
+void handleHeartBeat(){
+		  pingOn = false;
+          driverAssist = false;
+          HeartBeatRcvd = true;
+          server.sendContent(closeConnectionHeader);
+          yield();
+          return;
+}
+
+void handleRecievedPacket(){
+	HeartBeatRcvd = true; // received data, must be connected
+	if (autoMode) {
+		autoMode = false; // disable autoMode if client sends packet
+		HeartBeatRcvd = false;
+		Stop();
+	}
+	motors.stopPlaying();
 }
