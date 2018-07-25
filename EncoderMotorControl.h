@@ -49,7 +49,10 @@ class encoderMotorController {
   void playMarioUnderworld();
   void playVroom();
   void updateMotorSpeed(double);
+  void play(String);
   int getBatteryLevel(void);
+  bool updateSoundPlayer(void);
+  void stopPlaying(void);
 
   private:
 
@@ -136,6 +139,10 @@ class encoderMotorController {
   volatile long delaybetweenCommands = 300;             // default 350
   int batteryLevel = 1; 								// current charge level 1 full 8 flat
   volatile boolean inManualMode = false;
+  bool isPlaying = false;
+  int currentNote = 0;
+  int soundNote[80];
+  double soundDuration[80];
   
   // private functions
   float checkNormal(float);

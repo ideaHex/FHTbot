@@ -15,7 +15,8 @@ limitations under the License.
 */
 #pragma GCC optimize ("-O2")
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <FS.h>
 
-void sendFile(String path, WiFiClient * client);
+void sendFile(String path, ESP8266WebServer * server);
 String getContentType(String path);
