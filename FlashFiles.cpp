@@ -16,9 +16,13 @@ limitations under the License.
 #include "FlashFiles.h"
 
 void sendFile(String path, ESP8266WebServer * server){
+  #ifdef Diag
   Serial.println("handleFileRead: " + path);
+  #endif
   if(path.endsWith("/")) path += "index.html";
+  #ifdef Diag
   Serial.println(path);
+  #endif
   String contentType = getContentType(path);
   String pathWithGz = path + ".gz";
   if(SPIFFS.exists(pathWithGz) || SPIFFS.exists(path)){
@@ -30,7 +34,9 @@ void sendFile(String path, ESP8266WebServer * server){
     file.close();
     return;
   }
+  #ifdef Diag
   Serial.println("Failed to read file" + path);
+  #endif
   server->send(404, "text/plain", "Failed to read file.");
   return;
 }

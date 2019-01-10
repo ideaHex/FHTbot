@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
+;
 #pragma GCC optimize ("-O2")
 #include <NeoPixelBus.h>
 
-NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart800KbpsMethod> strip(6, D4);
+NeoPixelBus<NeoGrbFeature, NeoEsp8266Uart1800KbpsMethod> strip(6, D4);
+
 int makePositive(int);
 
 void pixelTest(){
@@ -70,7 +71,7 @@ void setColor(RgbColor color){
  * param int indexOfY: y axis on Joystick, forward or back.
  */
 void updateBlinkers(int indexOfX, int indexOfY){
-  int NUMPIXELS = 6;
+  const int NUMPIXELS = 6;
   //Creates array for pixels
   RgbColor px[NUMPIXELS];
   for(int i = 0; i < NUMPIXELS; i++){
@@ -116,6 +117,3 @@ int makePositive(int number){
   }
   return number;
 }
-
-
-    byte brightness = 18; // max is 255
