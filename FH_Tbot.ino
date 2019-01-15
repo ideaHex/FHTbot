@@ -42,7 +42,7 @@ extern "C" {
 
 const char *password = "12345678"; // This is the Wifi Password (only numbers
                                    // and letters,  not . , |)
-String AP_Name = "FHTbot"; // This is the Wifi Name(SSID), some numbers will be
+String AP_Name = "FHTBot"; // This is the Wifi Name(SSID), some numbers will be
                            // added for clarity (mac address)
 bool enableCompatibilityMode = false; // turn on compatibility mode for older
                                       // devices, spacifically sets no
@@ -115,7 +115,7 @@ boolean boredBotRunning = false;		// in middle of bored bot function
 boolean leftBumperHit = false;
 boolean rightBumperHit = false;
 boolean autoMode = false; // drive mode with no client connected
-long autoModeNextUpdate = 0;
+unsigned long autoModeNextUpdate = 0;
 unsigned long autoModeNextEvent = 0;
 //#define Diag                           // if not defined disables serial communication after initial feedback
 long timerPing;
@@ -299,8 +299,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   switch (type) {
   case WStype_DISCONNECTED: {
     // perform disconnection events (i.e. send bot to idle.)
-    IPAddress ip = webSocket.remoteIP(num);
     #ifdef Diag
+    IPAddress ip = webSocket.remoteIP(num);
     Serial.println(String(num) + " Client from " + ip[0] + "." + ip[1] + "." + ip[2] + "." + ip[3] + " Has Disconnected " + "\n");
     #endif
     // Stop Bot
@@ -308,8 +308,8 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
   } break;
   case WStype_CONNECTED: {
     // HANDLE NEW CLIENT CONNECTION
-    IPAddress ip = webSocket.remoteIP(num);
     #ifdef Diag
+    IPAddress ip = webSocket.remoteIP(num);
     Serial.println(String(num) + " Connected from " + ip[0] + "." + ip[1] +
                    "." + ip[2] + "." + ip[3] + " url: " + String(*payload) +
                    "\n");
@@ -400,7 +400,7 @@ void initHardware(){
   Serial.println(F("            FHTbot Serial Connected\r\n"));
   Serial.println(F("\r\n         Disable any form of assisted WIFI\r\n"));
   Serial.print(F("\r\n  Your FHTbot Wifi connection is called "));
-  Serial.println(AP_Name + " " + WiFi.softAPmacAddress());
+  Serial.println(AP_Name);
   Serial.print(F("\r\n  Your password is "));
   Serial.println(password);
   Serial.println(F("\r\n  Type FHTbot.com into your browser after you connect. \r\n"));
@@ -420,7 +420,7 @@ void initHardware(){
  #ifndef Diag
     pinMode(leftBumper, INPUT_PULLUP);
     pinMode(rightBumper, INPUT_PULLUP);
-	// test for startup auto mode
+
 	if (digitalRead(leftBumper) == LOW){// test for startup auto mode
 		autoMode = true;
 		motors.playCharge();
