@@ -46,13 +46,13 @@ void pingSetup(){
   if (maxTimeNeeded < minimumDelay) maxTimeNeeded = minimumDelay;
   resetFilter();
 }
-void startup(){                                                 // ready now, wait for distance
+ICACHE_RAM_ATTR void startup(){                                                 // ready now, wait for distance
   previousMillis = millis();
   pingTime = micros();
   detachInterrupt(ECHO);
   attachInterrupt(ECHO, calculateDistance, FALLING);
 }
-void calculateDistance(){
+ICACHE_RAM_ATTR void calculateDistance(){
   unsigned long duration = micros() - pingTime - 5;             // added 50 uS to calibrate SQ4 sensor
   pingDistance = int((duration/2.0) / 2.91);                    // full equation int((duration/2.0) / 29.1 * 10.0);
   addToFilter(pingDistance);

@@ -1,28 +1,27 @@
 {
     "configurations": [
         {
-            "name": "Arduino",
+            "name": "Win32",
             "includePath": [
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries",
-                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\variants\\standard",
-                "C:\\Program Files (x86)\\Arduino\\libraries",
-                "C:\\Users\\Alexander Battarbee\\Documents\\Arduino\\libraries"
+                "C:\\Users\\tilde\\AppData\\Local\\Arduino15\\packages\\esp8266\\tools\\**",
+                "C:\\Users\\tilde\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\2.7.4\\**",
+                "${localappdata}/Arduino15/packages/esp8266/tools/**",
+                "${localappdata}/Arduino15/packages/esp8266/hardware/esp8266/2.7.4/**",
+                "${oneDrive}/Documents_/Arduino/libraries/**",
+                "${workspaceFolder}",
+                "C:\\Users\\tilde\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\2.7.4\\**"
             ],
-            "browse": {
-                "limitSymbolsToIncludedHeaders": true,
-                "databaseFilename": "",
-                "path": [
-                    "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino",
-                    "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries",
-                    "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\variants\\standard",
-                    "C:\\Program Files (x86)\\Arduino\\libraries",
-                    "C:\\Users\\Alexander Battarbee\\Documents\\Arduino\\libraries",
-                    "${workspaceRoot}"
-                ]
-            },
-            "intelliSenseMode": "msvc-x64"
+            "forcedInclude": [],
+            "intelliSenseMode": "gcc-x64",
+            "compilerPath": "C:/MinGW32/bin/gcc.exe",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "defines": [
+                "ARDUINO = 189",
+                "ARDUINO_ARCH_ESP8266",
+                "ESP8266"
+            ]
         }
     ],
-    "version": 3
+    "version": 4
 }
