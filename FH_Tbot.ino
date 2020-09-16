@@ -45,7 +45,7 @@ const char *password = "12345678"; // This is the Wifi Password (only numbers
 String AP_Name = "FHTBot"; // This is the Wifi Name(SSID), some numbers will be
                            // added for clarity (mac address)
 bool enableCompatibilityMode = false; // turn on compatibility mode for older
-                                      // devices, spacifically sets no
+                                      // devices, specifically sets no
                                       // encryption and 11B wifi standard
 
 void Stop(void);
@@ -142,10 +142,10 @@ void CheckHeartBeat(){
 
 void setup(){
   system_update_cpu_freq(80);           // set cpu to 80MHZ or 160MHZ !
-  system_phy_set_max_tpw(82); 			// 0 - 82 radio TX power
-  initHardware();
+  system_phy_set_max_tpw(82); 			    // 0 - 82 radio TX power
   setupWiFi();
   setupWebsocket();
+  initHardware();
   HeartBeatTicker.attach_ms(991, CheckHeartBeat);
   closeConnectionHeader += F("HTTP/1.1 204 No Content\r\nConnection: Close\r\n\r\n");
   nextBoredBotEvent = millis() + boredBotTimeout;
@@ -338,6 +338,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload,
 }
 
 void setupWiFi(){
+  Serial.begin(115200);
   WiFi.mode(WIFI_AP);
 
   // Create a unique name by appending the MAC address to the AP Name
@@ -395,7 +396,6 @@ void setupWebsocket() {
 }
 
 void initHardware(){
-  Serial.begin(2000000);
   Serial.println(F("\r\n"));
   Serial.println(F("            FHTbot Serial Connected\r\n"));
   Serial.println(F("\r\n         Disable any form of assisted WIFI\r\n"));
@@ -407,7 +407,7 @@ void initHardware(){
   SPIFFS.begin();
   delay(200);
   #ifndef Diag
-  Serial.end(); // disable serial interface
+    Serial.end(); // disable serial interface
   #endif
   pingSetup();
   strip.Begin();
@@ -433,16 +433,16 @@ void initHardware(){
  Stop(); 							// incase of reset, stop motors !
  resetVoltageFilter();				// setup voltage filter for first samples
 }
-void leftBumperHitFunction(){
+ICACHE_RAM_ATTR void leftBumperHitFunction(){
   if (!leftBumperHit){
     lBH.once_ms(1500,leftBumperReset);
   }
   leftBumperHit = true;
 }
-void leftBumperReset(){
+ void leftBumperReset(){
   leftBumperHit = false;
 }
-void rightBumperHitFunction(){
+ICACHE_RAM_ATTR void rightBumperHitFunction(){
   if (!rightBumperHit){
     rBH.once_ms(1500,rightBumperReset);
   }
@@ -450,8 +450,8 @@ void rightBumperHitFunction(){
 }
 void rightBumperReset() { rightBumperHit = false; }
 
-void motorLeftEncoderInterruptHandler() { motors.takeStep(0); }
-void motorRightEncoderInterruptHandler() { motors.takeStep(1); }
+ICACHE_RAM_ATTR void motorLeftEncoderInterruptHandler() { motors.takeStep(0); }
+ICACHE_RAM_ATTR void motorRightEncoderInterruptHandler() { motors.takeStep(1); }
 
 void updateMotors() { motors.update(); }
 
